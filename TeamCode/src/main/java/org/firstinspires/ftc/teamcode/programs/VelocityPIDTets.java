@@ -9,15 +9,17 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.base.Commands;
 import org.firstinspires.ftc.teamcode.base.Components;
+import org.firstinspires.ftc.teamcode.presets.PresetControl.GenericPIDF;
 import org.firstinspires.ftc.teamcode.robotconfigs.Motor;
 
 @TeleOp
-public class SetVelocityTets extends LinearOpMode {
+public class VelocityPIDTets extends LinearOpMode {
     public double averageVel;
     public double meanError;
     public double velocity;
     public long loop;
     public double targetVelocity=1000;
+    public GenericPIDF velocityPID = new GenericPIDF(0,0,0,0);
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -25,7 +27,7 @@ public class SetVelocityTets extends LinearOpMode {
         waitForStart();
         executor.setCommands(
                 new Commands.RunResettingLoop(
-                        motor.setVelocityCommand(targetVelocity),
+                        motor.setPowerCommand(()->velocityPID.getPIDFOutput(targetVelocity,motor.getVelocity())),
                         new Commands.ConditionalCommand(
                                 new Commands.IfThen(
                                         ()->gamepad1.a,
