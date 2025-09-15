@@ -21,11 +21,18 @@ public abstract class Commands { //Command-based system
         private boolean isBusy = false; //Indicates whether the command is active or not
         private boolean isStart = true; //Commands know if they've just started running or not
         private boolean isEnabled = true;
+        private boolean isFinished = false;
         public void reset() {
             isStart = true;
         }
 
         final public boolean run() { //Actual method called to run the command, called repeatedly in a loop. Returns true if the command is not complete and false if it is.
+            if (isFinished){
+                isFinished=false;
+                isBusy=false;
+                reset();
+                return false;
+            }
             if (isEnabled){
                 isBusy = runProcedure();
                 isStart = false;
@@ -48,7 +55,7 @@ public abstract class Commands { //Command-based system
             if (isBusy) {
                 stopProcedure();
                 isBusy = false;
-                reset();
+                isFinished=true;
             }
         }
         final public void pause(){
@@ -155,6 +162,9 @@ public abstract class Commands { //Command-based system
         public CommandHolder(){}
         @Override
         protected boolean runProcedure() {
+            if (isStart()){
+                command.reset();
+            }
             if (Objects.nonNull(command)){
                 return command.run();
             }
@@ -188,27 +198,6 @@ public abstract class Commands { //Command-based system
         public InstantCommand removeCommandCommand(){
             return new InstantCommand(this::removeCommand);
         }
-    }
-    public static class ContinuousCommandHolder extends CommandHolder{ //CommandHolder that won't stop running if it has no command inside or if the command inside has finished running; it will wait for another command to be inserted.
-        @Override
-        protected boolean runProcedure(){
-            if (Objects.nonNull(getCommand())){
-                if (!getCommand().run()){
-                    removeCommand();
-                }
-            }
-            return true;
-        }
-    }
-    public static class PersistentContinuousCommandHolder extends ContinuousCommandHolder{ //ContinuousCommandHolder where one can only set its command if there is no command inside or if the command inside has finished running.
-        @Override
-        public void setCommand(Command command){
-            if (Objects.isNull(getCommand())){
-                super.setCommand(command);
-            }
-        }
-        @Override
-        final public void removeCommand(){}
     }
     public static class PowerOnCommand extends Command { //This command automatically activates each actuator's default control functions when they are first commanded
         private final HashMap<String, Boolean> actuatorsCommanded = new HashMap<>();
