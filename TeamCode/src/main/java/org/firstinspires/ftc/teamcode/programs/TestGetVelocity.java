@@ -27,6 +27,7 @@ public class TestGetVelocity {
         timer.reset();
         for (int i=0;i<100000000;i++){
             double time=timer.time();
+            velocity = velocity+(-0.1+(0.2)*Math.random());
             if (time-lastLoopTime>loopTime){
                 loopnum+=1;
                 double exactLoopTime=time-lastLoopTime;
@@ -39,6 +40,8 @@ public class TestGetVelocity {
                     previousFiveLoopTimes.remove(0);
                     previousFiveEncoders.remove(0);
                 }
+                System.out.print("Actual Velocity: ");
+                System.out.println(velocity);
 
                 System.out.print("Simple: ");
                 System.out.println((encoderCount-previousEncoderCount)/exactLoopTime);
@@ -68,11 +71,8 @@ public class TestGetVelocity {
                     }
 
                 }
-
-
-
+                System.out.println("");
                 previousEncoderCount=encoderCount;
-
             }
             if (time-lastEncoderCount>1/velocity){
                 lastEncoderCount=time;
