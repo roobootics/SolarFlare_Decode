@@ -15,7 +15,7 @@ public class Motor implements RobotConfig {
                 "motor", Arrays.asList(new DcMotorExData("motor")),
                 ()->2000.0,()->0.0,20,5,
                 new String[]{"PID"},
-                Collections.singletonList(new PIDF<>(new PIDFConstants(0.015,0.0001,0.005,0)))
+                Collections.singletonList(new PIDF<>(new PIDFConstants(0.015,0.0001,0.0005,0)))
         );
     }
 }

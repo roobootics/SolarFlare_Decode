@@ -17,7 +17,7 @@ public class SetVelocityTets extends LinearOpMode {
     public double meanError;
     public double velocity;
     public long loop;
-    public double targetVelocity=1000;
+    public double targetVelocity=2000;
 
     @Override
     public void runOpMode() throws InterruptedException {

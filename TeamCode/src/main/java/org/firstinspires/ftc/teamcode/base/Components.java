@@ -91,7 +91,7 @@ public abstract class Components {
         //Allows for the optimized reading of values. The return of a read is cached and re-returned every time the read is called, until the cache is cleared so fresh values can be obtained.
         public static final ArrayList<CachedReader<?>> readers = new ArrayList<>(); //Stores all CachedReaders.
         private final Supplier<E> read;
-        private int resetCacheCounter = 0;
+        private int resetCacheCounter = 1;
         private final int resetCacheLoopInterval; //If this is set to n, the cache is reset every nth iteration.
         private E storedReadValue = null;
         public CachedReader(Supplier<E> read, int resetCacheLoopInterval){
@@ -106,14 +106,13 @@ public abstract class Components {
             return storedReadValue;
         }
         public void resetCache(){
-            resetCacheCounter=0;
+            resetCacheCounter=1;
             storedReadValue=null;
         }
         protected static void updateResetAllCaches(){
             for (CachedReader<?> reader : readers){
                 reader.resetCacheCounter+=1;
                 if (reader.resetCacheCounter> reader.resetCacheLoopInterval){
-                    reader.resetCacheCounter=0;
                     reader.resetCache();
                 }
             }
@@ -667,14 +666,16 @@ public abstract class Components {
         private final HashMap<String, Supplier<Double>> velocityReaders = new HashMap<>();
         private final HashMap<String, Supplier<Double>> currentReaders = new HashMap<>();
         private final HashMap<String,Double> keyVelocities = new HashMap<>(); //Stores key velocities, like 'intakeVelocity,' etc.
-        private Supplier<Double> maxVelocityFunc;
-        private Supplier<Double> minVelocityFunc;
+        private final Supplier<Double> maxVelocityFunc;
+        private final Supplier<Double> minVelocityFunc;
         @SafeVarargs
-        public BotMotor(String name, List<DcMotorExData> motors, Function<DcMotorEx, Double> getCurrentPosition, int currentPosPollingInterval, Supplier<Double> maxTargetFunc, Supplier<Double> minTargetFunc, Supplier<Double> maxPowerFunc, Supplier<Double> minPowerFunc, double errorTol, double defaultTimeout, String[] controlFuncKeys, List<ControlFunction<BotMotor>>... controlFuncs) {
+        public BotMotor(String name, List<DcMotorExData> motors, Function<DcMotorEx, Double> getCurrentPosition, int currentPosPollingInterval, Supplier<Double> maxTargetFunc, Supplier<Double> minTargetFunc, Supplier<Double> maxPowerFunc, Supplier<Double> minPowerFunc, Supplier<Double> maxVelocityFunc, Supplier<Double> minVelocityFunc, double errorTol, double defaultTimeout, String[] controlFuncKeys, List<ControlFunction<BotMotor>>... controlFuncs) {
             super(name, motors.stream().map(DcMotorExData::getMotor).collect(Collectors.toList()),getCurrentPosition, currentPosPollingInterval, maxTargetFunc, minTargetFunc, maxPowerFunc, minPowerFunc, errorTol, defaultTimeout);
+            this.minVelocityFunc=minVelocityFunc;
+            this.maxVelocityFunc=maxVelocityFunc;
             for (String partName : getPartNames()) {
-                velocityReaders.put(partName, new CachedReader<>(Objects.requireNonNull(parts.get(name))::getVelocity, 1)::cachedRead);
-                currentReaders.put(partName, new CachedReader<>(() -> Objects.requireNonNull(parts.get(name)).getCurrent(CurrentUnit.AMPS), 3)::cachedRead);
+                velocityReaders.put(partName, new CachedReader<>(Objects.requireNonNull(parts.get(partName))::getVelocity, 1)::cachedRead);
+                currentReaders.put(partName, new CachedReader<>(() -> Objects.requireNonNull(parts.get(partName)).getCurrent(CurrentUnit.AMPS), 3)::cachedRead);
             }
             for (DcMotorEx part : parts.values()) {
                 part.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -684,17 +685,17 @@ public abstract class Components {
         }
 
         @SafeVarargs
-        public BotMotor(String name, List<DcMotorExData> motors, Supplier<Double> maxTargetFunc, Supplier<Double> minTargetFunc, Supplier<Double> maxPowerFunc, Supplier<Double> minPowerFunc, double errorTol, double defaultTimeout, String[] controlFuncKeys, List<ControlFunction<BotMotor>>... controlFuncs) {
-            this(name, motors, (DcMotorEx motor) -> ((double) motor.getCurrentPosition()), 1, maxTargetFunc, minTargetFunc, maxPowerFunc, minPowerFunc, errorTol, defaultTimeout,controlFuncKeys,controlFuncs);
+        public BotMotor(String name, List<DcMotorExData> motors, Supplier<Double> maxTargetFunc, Supplier<Double> minTargetFunc, Supplier<Double> maxPowerFunc, Supplier<Double> minPowerFunc, Supplier<Double> maxVelocityFunc, Supplier<Double> minVelocityFunc, double errorTol, double defaultTimeout, String[] controlFuncKeys, List<ControlFunction<BotMotor>>... controlFuncs) {
+            this(name, motors, (DcMotorEx motor) -> ((double) motor.getCurrentPosition()), 1, maxTargetFunc, minTargetFunc, maxPowerFunc, minPowerFunc, maxVelocityFunc, minVelocityFunc, errorTol, defaultTimeout,controlFuncKeys,controlFuncs);
         }
 
         @SafeVarargs
         public BotMotor(String name, List<DcMotorExData> motors, Supplier<Double> maxTargetFunc, Supplier<Double> minTargetFunc, double errorTol, double defaultTimeout, String[] controlFuncKeys, List<ControlFunction<BotMotor>>... controlFuncs) {
-            this(name, motors, (DcMotorEx motor) -> ((double) motor.getCurrentPosition()), 1, maxTargetFunc, minTargetFunc, ()->(1.0), ()->-1.0, errorTol, defaultTimeout,controlFuncKeys,controlFuncs);
+            this(name, motors, (DcMotorEx motor) -> ((double) motor.getCurrentPosition()), 1, maxTargetFunc, minTargetFunc, ()->(1.0), ()->-1.0, ()->Double.POSITIVE_INFINITY, ()->Double.NEGATIVE_INFINITY, errorTol, defaultTimeout,controlFuncKeys,controlFuncs);
         }
 
-        public BotMotor(String name, List<DcMotorExData> motors, Supplier<Double> maxPowerFunc, Supplier<Double> minPowerFunc) {
-            this(name, motors, ()->(1.0), ()->-1.0, 0.0, 0.0, new String[]{});
+        public BotMotor(String name, List<DcMotorExData> motors, Supplier<Double> maxPowerFunc, Supplier<Double> minPowerFunc, Supplier<Double> maxVelocityFunc, Supplier<Double> minVelocityFunc) {
+            this(name, motors, ()->(1.0), ()->-1.0, maxPowerFunc, minPowerFunc, maxVelocityFunc, minVelocityFunc, 0.0, 0.0, new String[]{});
         }
 
         public double getKeyVelocity(String key){
