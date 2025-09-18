@@ -566,9 +566,9 @@ public abstract class Commands { //Command-based system
         }
     }
 
-    public static class PressTrigger extends ConditionalCommand { //ConditionalCommand, but all Conditions are converted into button-presses, such that they will not return 'true' two loop-iterations in a row.
+    public static class PressCommand extends ConditionalCommand { //ConditionalCommand, but all Conditions are converted into button-presses, such that they will not return 'true' two loop-iterations in a row.
         private final ArrayList<Boolean> isPressed;
-        public PressTrigger(IfThen... ConditionalPairs) {
+        public PressCommand(IfThen... ConditionalPairs) {
             super(ConditionalPairs);
             commands.clear();
             isPressed = new ArrayList<>();
@@ -596,9 +596,9 @@ public abstract class Commands { //Command-based system
         }
     }
 
-    public static class PersistentPressTrigger extends PersistentConditionalCommand { //PressTrigger but persistent
+    public static class PersistentPressCommand extends PersistentConditionalCommand { //PressTrigger but persistent
         private final ArrayList<Boolean> isPressed;
-        public PersistentPressTrigger(IfThen... ConditionalPairs) {
+        public PersistentPressCommand(IfThen... ConditionalPairs) {
             super(ConditionalPairs);
             commands.clear();
             isPressed = new ArrayList<>();
@@ -905,7 +905,7 @@ public abstract class Commands { //Command-based system
         AtomicBoolean state = new AtomicBoolean(true);
         command1 = new SequentialCommand(new InstantCommand(()->state.set(!state.get())), command1);
         command2 = new SequentialCommand(new InstantCommand(()->state.set(!state.get())), command2);
-        return new RunResettingLoop(new PressTrigger(
+        return new RunResettingLoop(new PressCommand(
                 new IfThen(condition,
                         new SemiPersistentConditionalCommand(
                                 new IfThen(state::get,command1),
@@ -938,7 +938,7 @@ public abstract class Commands { //Command-based system
                     commands[i]
             );
         }
-        return new RunResettingLoop(new PressTrigger(
+        return new RunResettingLoop(new PressCommand(
                 new IfThen(upCondition,
                         new SequentialCommand(
                                 new InstantCommand(()->{if (state.get()<commands.length-1){state.set(state.get()+1);}}),
@@ -972,7 +972,7 @@ public abstract class Commands { //Command-based system
                     }), commands[finalI])
             );
         }
-        return new RunResettingLoop(new PressTrigger(
+        return new RunResettingLoop(new PressCommand(
                 new IfThen(condition,
                     new SemiPersistentConditionalCommand(
                         ifThens
@@ -1033,6 +1033,9 @@ public abstract class Commands { //Command-based system
         }
         public void setCommands(Command...commandGroups){
             this.commands=new ArrayList<>(Arrays.asList(commandGroups));
+            for (Command command:this.commands){
+                command.reset();
+            }
         }
         public void clearCommands(){
             this.commands.clear();

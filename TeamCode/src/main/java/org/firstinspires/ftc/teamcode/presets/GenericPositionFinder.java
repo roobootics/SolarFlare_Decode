@@ -1,16 +1,16 @@
 package org.firstinspires.ftc.teamcode.presets;
 
-import static org.firstinspires.ftc.teamcode.base.Components.actuators;
 import static org.firstinspires.ftc.teamcode.base.Commands.executor;
+import static org.firstinspires.ftc.teamcode.base.Components.actuators;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
-import org.firstinspires.ftc.teamcode.base.Components;
-
 import org.firstinspires.ftc.teamcode.base.Commands;
+import org.firstinspires.ftc.teamcode.base.Components;
 
 import java.util.ArrayList;
 import java.util.Objects;
+
 //Dpad left/right to switch between actuators. If the actuator is a servo, use left/right bumper to move it and see the position.
 public abstract class GenericPositionFinder extends LinearOpMode { //Used to find the specific positions that we will end up setting actuators to. Allows one to select an actuator and move it.
     //Subclass this class, such that in the subclass's runOpMode, all robot state is initialized before the super's runOpMode runs.
@@ -59,11 +59,11 @@ public abstract class GenericPositionFinder extends LinearOpMode { //Used to fin
         executor.setWriteToTelemetry(this::updateTelemetry);
         executor.setCommands(
                 new Commands.RunResettingLoop(
-                        new Commands.PressTrigger(new Commands.IfThen(
+                        new Commands.PressCommand(new Commands.IfThen(
                                 ()->(gamepad1.dpad_left),
                                 new Commands.InstantCommand(this::shiftSelectionLeft)
                         )),
-                        new Commands.PressTrigger(new Commands.IfThen(
+                        new Commands.PressCommand(new Commands.IfThen(
                                 ()->(gamepad1.dpad_right),
                                 new Commands.InstantCommand(this::shiftSelectionRight)
                         )),

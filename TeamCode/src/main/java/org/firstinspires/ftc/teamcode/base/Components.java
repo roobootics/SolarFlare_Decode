@@ -18,7 +18,7 @@ import org.firstinspires.ftc.teamcode.base.Commands.CompoundCommand;
 import org.firstinspires.ftc.teamcode.base.Commands.ConditionalCommand;
 import org.firstinspires.ftc.teamcode.base.Commands.IfThen;
 import org.firstinspires.ftc.teamcode.base.Commands.InstantCommand;
-import org.firstinspires.ftc.teamcode.base.Commands.PressTrigger;
+import org.firstinspires.ftc.teamcode.base.Commands.PressCommand;
 import org.firstinspires.ftc.teamcode.base.Commands.RunResettingLoop;
 import org.firstinspires.ftc.teamcode.base.Commands.SequentialCommand;
 import org.firstinspires.ftc.teamcode.base.Commands.SleepUntilTrue;
@@ -486,34 +486,34 @@ public abstract class Components {
             return new SetOffsetCommand(offsetFunc);
         }
         public RunResettingLoop triggeredMoveToTargetCommand(Supplier<Boolean> condition, double target){
-            return new RunResettingLoop(new PressTrigger(new IfThen(condition, new MoveToTargetCommand(target))));
+            return new RunResettingLoop(new PressCommand(new IfThen(condition, new MoveToTargetCommand(target))));
         }
         public RunResettingLoop triggeredMoveToTargetCommand(Supplier<Boolean> condition, Supplier<Double> targetFunc) {
-            return new RunResettingLoop(new PressTrigger(new IfThen(condition, moveToTargetCommand(targetFunc))));
+            return new RunResettingLoop(new PressCommand(new IfThen(condition, moveToTargetCommand(targetFunc))));
         }
         public RunResettingLoop triggeredMoveToTargetCommand(Supplier<Boolean> condition, double target, double timeout){
-            return new RunResettingLoop(new PressTrigger(new IfThen(condition, moveToTargetCommand(target,timeout))));
+            return new RunResettingLoop(new PressCommand(new IfThen(condition, moveToTargetCommand(target,timeout))));
         }
         public RunResettingLoop triggeredMoveToTargetCommand(Supplier<Boolean> condition, Supplier<Double> targetFunc, double timeout){
-            return new RunResettingLoop(new PressTrigger(new IfThen(condition, moveToTargetCommand(targetFunc,timeout))));
+            return new RunResettingLoop(new PressCommand(new IfThen(condition, moveToTargetCommand(targetFunc,timeout))));
         }
         public RunResettingLoop triggeredMoveToTargetCommand(Supplier<Boolean> condition, String position){
-            return new RunResettingLoop(new PressTrigger(new IfThen(condition, moveToTargetCommand(position))));
+            return new RunResettingLoop(new PressCommand(new IfThen(condition, moveToTargetCommand(position))));
         }
         public RunResettingLoop triggeredMoveToTargetCommand(Supplier<Boolean> condition, String position,double timeout){
-            return new RunResettingLoop(new PressTrigger(new IfThen(condition, moveToTargetCommand(position,timeout))));
+            return new RunResettingLoop(new PressCommand(new IfThen(condition, moveToTargetCommand(position,timeout))));
         }
         public RunResettingLoop triggeredToggleTargetCommand(Supplier<Boolean> condition, double target1, double target2){
-            return new RunResettingLoop(new PressTrigger(new IfThen(condition, toggleTargetCommand(target1,target2))));
+            return new RunResettingLoop(new PressCommand(new IfThen(condition, toggleTargetCommand(target1,target2))));
         }
         public RunResettingLoop triggeredDynamicTargetCommand(Supplier<Boolean> upCondition, Supplier<Boolean> downCondition, double change){
             return new RunResettingLoop(new ConditionalCommand(new IfThen(upCondition, moveToTargetCommand(()->(getTargetMinusOffset()+change))),new IfThen(downCondition, moveToTargetCommand(()->(getTargetMinusOffset()-change)))));
         }
         public RunResettingLoop triggeredFSMTargetCommand(Supplier<Boolean> upCondition, Supplier<Boolean> downCondition, double...targets){
-            return new RunResettingLoop(new PressTrigger(new IfThen(upCondition, upwardFSMTargetCommand(targets)),new IfThen(downCondition, downwardFSMTargetCommand(targets))));
+            return new RunResettingLoop(new PressCommand(new IfThen(upCondition, upwardFSMTargetCommand(targets)),new IfThen(downCondition, downwardFSMTargetCommand(targets))));
         }
         public RunResettingLoop triggeredSetOffsetCommand(Supplier<Boolean> condition, double offset){
-            return new RunResettingLoop(new PressTrigger(new IfThen(condition, new SetOffsetCommand(offset))));
+            return new RunResettingLoop(new PressCommand(new IfThen(condition, new SetOffsetCommand(offset))));
         }
         public RunResettingLoop triggeredDynamicOffsetCommand(Supplier<Boolean> upCondition, Supplier<Boolean> downCondition, double offsetChange){
             return new RunResettingLoop(new ConditionalCommand(new IfThen(upCondition, setOffsetCommand(()->(offset+offsetChange))),new IfThen(downCondition, setOffsetCommand(()->(offset-offsetChange)))));
@@ -639,22 +639,22 @@ public abstract class Components {
             });
         }
         public RunResettingLoop triggeredSetPowerCommand(Supplier<Boolean> condition, Supplier<Double> powerFunc){
-            return new RunResettingLoop(new PressTrigger(new IfThen(condition, new SetPowerCommand(powerFunc))));
+            return new RunResettingLoop(new PressCommand(new IfThen(condition, new SetPowerCommand(powerFunc))));
         }
         public RunResettingLoop triggeredSetPowerCommand(Supplier<Boolean> condition, String key){
-            return new RunResettingLoop(new PressTrigger(new IfThen(condition, new SetPowerCommand(getKeyPower(key)))));
+            return new RunResettingLoop(new PressCommand(new IfThen(condition, new SetPowerCommand(getKeyPower(key)))));
         }
         public RunResettingLoop triggeredSetPowerCommand(Supplier<Boolean> condition, double power){
-            return new RunResettingLoop(new PressTrigger(new IfThen(condition, new SetPowerCommand(power))));
+            return new RunResettingLoop(new PressCommand(new IfThen(condition, new SetPowerCommand(power))));
         }
         public RunResettingLoop triggeredDynamicPowerCommand(Supplier<Boolean> upCondition, Supplier<Boolean> downCondition, double change){
             return new RunResettingLoop(new ConditionalCommand(new IfThen(upCondition, setPowerCommand(()->(getPart(partNames[0]).getPower()+change))),new IfThen(downCondition, setPowerCommand(()->(getPart(partNames[0]).getPower()-change)))));
         }
         public RunResettingLoop triggeredTogglePowerCommand(Supplier<Boolean> condition, double power1, double power2){
-            return new RunResettingLoop(new PressTrigger(new IfThen(condition, togglePowerCommand(power1,power2))));
+            return new RunResettingLoop(new PressCommand(new IfThen(condition, togglePowerCommand(power1,power2))));
         }
         public RunResettingLoop triggeredFSMPowerCommand(Supplier<Boolean> upCondition, Supplier<Boolean> downCondition, double...powers){
-            return new RunResettingLoop(new PressTrigger(
+            return new RunResettingLoop(new PressCommand(
                     new IfThen(upCondition, upwardFSMPowerCommand(powers)),
                     new IfThen(downCondition, downwardFSMPowerCommand(powers))
             ));
@@ -793,8 +793,8 @@ public abstract class Components {
             return new StallResetCommand(resetPosition, stallVolts);
         }
 
-        public PressTrigger triggeredStallResetCommand(Supplier<Boolean> condition, double resetPosition, double stallVolts) {
-            return new PressTrigger(new IfThen(condition, stallResetCommand(resetPosition, stallVolts)));
+        public PressCommand triggeredStallResetCommand(Supplier<Boolean> condition, double resetPosition, double stallVolts) {
+            return new PressCommand(new IfThen(condition, stallResetCommand(resetPosition, stallVolts)));
         }
         public class SetPowerForDistance extends CompoundCommand{ //Makes the motor set a power until it travels a certain distance.
             private double startPosition;
@@ -855,19 +855,19 @@ public abstract class Components {
             });
         }
         public RunResettingLoop triggeredSetVelocityCommand(Supplier<Boolean> condition, Supplier<Double> velocityFunc){
-            return new RunResettingLoop(new PressTrigger(new IfThen(condition, new SetVelocityCommand(velocityFunc))));
+            return new RunResettingLoop(new PressCommand(new IfThen(condition, new SetVelocityCommand(velocityFunc))));
         }
         public RunResettingLoop triggeredSetVelocityCommand(Supplier<Boolean> condition, double velocity){
-            return new RunResettingLoop(new PressTrigger(new IfThen(condition, new SetVelocityCommand(velocity))));
+            return new RunResettingLoop(new PressCommand(new IfThen(condition, new SetVelocityCommand(velocity))));
         }
         public RunResettingLoop triggeredSetVelocityCommand(Supplier<Boolean> condition, String key){
-            return new RunResettingLoop(new PressTrigger(new IfThen(condition, new SetVelocityCommand(getKeyVelocity(key)))));
+            return new RunResettingLoop(new PressCommand(new IfThen(condition, new SetVelocityCommand(getKeyVelocity(key)))));
         }
         public RunResettingLoop triggeredDynamicVelocityCommand(Supplier<Boolean> upCondition, Supplier<Boolean> downCondition, double change){
             return new RunResettingLoop(new ConditionalCommand(new IfThen(upCondition, setVelocityCommand(()->(getPart(partNames[0]).getVelocity()+change))),new IfThen(downCondition, setPowerCommand(()->(getPart(partNames[0]).getVelocity()-change)))));
         }
         public RunResettingLoop triggeredToggleVelocityCommand(Supplier<Boolean> condition, double velocity1, double velocity2){
-            return new RunResettingLoop(new PressTrigger(new IfThen(condition, toggleVelocityCommand(velocity1,velocity2))));
+            return new RunResettingLoop(new PressCommand(new IfThen(condition, toggleVelocityCommand(velocity1,velocity2))));
         }
     }
     public static class BotServo extends Actuator<Servo>{
