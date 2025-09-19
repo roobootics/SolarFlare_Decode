@@ -16,33 +16,29 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public abstract class Commands { //Command-based system
-    public static final ParallelCommandExecutor executor=new ParallelCommandExecutor(); //This runs Commands
+    public static final CommandExecutor executor=new CommandExecutor(); //This runs Commands
     public abstract static class Command { //Base class for any command
-        private boolean isBusy = false; //Indicates whether the command is active or not
-        private boolean isStart = true; //Commands know if they've just started running or not
+        private enum CommandState{
+            START,
+            ACTIVE,
+            END
+        }
         private boolean isEnabled = true;
-        private boolean isFinished = false;
+        private CommandState state = CommandState.START;
+
         public void reset() {
-            isStart = true;
+            state= CommandState.START;
         }
 
-        final public boolean run() { //Actual method called to run the command, called repeatedly in a loop. Returns true if the command is not complete and false if it is.
-            if (isFinished){
-                isFinished=false;
-                isBusy=false;
-                reset();
-                return false;
-            }
-            if (isEnabled){
-                isBusy = runProcedure();
-                isStart = false;
-                if (!isBusy) {
-                    reset(); //Auto-reset after command is completed or stopped.
+        final public void run() { //Actual method called to run the command, called repeatedly in a loop. Returns true if the command is not complete and false if it is.
+            if (isEnabled && !isFinished()){
+                boolean continuing = runProcedure();
+                if (!continuing) {
+                    state= CommandState.END;
                 }
-                return isBusy;
-            }
-            else{
-                return false;
+                else{
+                    state= CommandState.ACTIVE;
+                }
             }
         }
 
@@ -52,23 +48,19 @@ public abstract class Commands { //Command-based system
         } //This is where code is made for if the command is interrupted
 
         final public void stop() { //Actual method called to stop the command
-            if (isBusy) {
+            if (isBusy()) {
                 stopProcedure();
-                isBusy = false;
-                isFinished=true;
-            }
-        }
-        final public void pause(){
-            if (isBusy) {
-                stopProcedure();
-                isBusy = false;
+                state= CommandState.END;
             }
         }
         final public boolean isBusy(){
-            return isBusy;
+            return state== CommandState.ACTIVE;
         }
         final public boolean isStart(){
-            return isStart;
+            return state== CommandState.START;
+        }
+        final public boolean isFinished(){
+            return state== CommandState.END;
         }
         final public boolean isEnabled(){
             return isEnabled;
@@ -77,7 +69,7 @@ public abstract class Commands { //Command-based system
             isEnabled=true;
         }
         final public void disable(){
-            pause();
+            stopProcedure();
             isEnabled=false;
         }
     }
@@ -141,7 +133,8 @@ public abstract class Commands { //Command-based system
             if (isStart()) {
                 group.reset();
             }
-            return group.run();
+            group.run();
+            return group.isBusy();
         }
         protected void setGroup(Command group){
             this.group=group;
@@ -166,7 +159,8 @@ public abstract class Commands { //Command-based system
                 command.reset();
             }
             if (Objects.nonNull(command)){
-                return command.run();
+                command.run();
+                return command.isBusy();
             }
             else{
                 return false;
@@ -274,8 +268,10 @@ public abstract class Commands { //Command-based system
                 command.reset();
                 commandEnded=false;
             }
-            if (sleepCommand.run()){
-                if (!commandEnded && !command.run()){
+            sleepCommand.run();
+            if (sleepCommand.isBusy()){
+                command.run();
+                if (!commandEnded && !command.isBusy()){
                     commandEnded=true;
                 }
             }
@@ -305,8 +301,10 @@ public abstract class Commands { //Command-based system
                 command.reset();
                 commandEnded=false;
             }
-            if (sleepCommand.run()){
-                if (!commandEnded && !command.run()){
+            sleepCommand.run();
+            if (sleepCommand.isBusy()){
+                command.run();
+                if (!commandEnded && !command.isBusy()){
                     commandEnded=true;
                 }
             }
@@ -347,7 +345,8 @@ public abstract class Commands { //Command-based system
                 remainingCommands.get(0).reset();
                 isStarts.set(commands.size() - remainingCommands.size(),false);
             }
-            if (!remainingCommands.get(0).run()) {
+            remainingCommands.get(0).run();
+            if (!remainingCommands.get(0).isBusy()) {
                 remainingCommands.remove(0);
             }
             return !remainingCommands.isEmpty();
@@ -389,7 +388,8 @@ public abstract class Commands { //Command-based system
             }
             ArrayList<Command> removingCommands = new ArrayList<>();
             for (Command command:remainingCommands){
-                if(!command.run()){
+                command.run();
+                if(!command.isBusy()){
                     removingCommands.add(command);
                 }
             }
@@ -457,7 +457,8 @@ public abstract class Commands { //Command-based system
                 }
             }
             if (Objects.nonNull(currentCommand)) {
-                if (!currentCommand.run()) {
+                currentCommand.run();
+                if (!currentCommand.isBusy()) {
                     currentCommand = null;
                     return false;
                 } else {
@@ -499,7 +500,8 @@ public abstract class Commands { //Command-based system
                 }
             }
             if (Objects.nonNull(currentCommand)) {
-                if (!currentCommand.run()) {
+                currentCommand.run();
+                if (!currentCommand.isBusy()) {
                     currentCommand = null;
                     return false;
                 } else {
@@ -547,7 +549,8 @@ public abstract class Commands { //Command-based system
                 }
             }
             if (Objects.nonNull(currentCommand)) {
-                if (!currentCommand.run()) {
+                currentCommand.run();
+                if (!currentCommand.isBusy()) {
                     currentCommand = null;
                     return false;
                 } else {
@@ -637,6 +640,9 @@ public abstract class Commands { //Command-based system
             if ((timer.time() - startTime) < duration) {
                 for (Command command : commands){
                     command.run();
+                    if (command.isFinished()){
+                        command.reset();
+                    }
                 }
                 return true;
             } else {
@@ -667,6 +673,9 @@ public abstract class Commands { //Command-based system
             if (!condition.get() && (timer.time() - startTime) < timeout) {
                 for (Command command : commands){
                     command.run();
+                    if (command.isFinished()){
+                        command.reset();
+                    }
                 }
                 return true;
             } else {
@@ -1015,6 +1024,9 @@ public abstract class Commands { //Command-based system
         public boolean runProcedure(){
             for (Command command : commands){
                 command.run();
+                if (command.isFinished()){
+                    command.reset();
+                }
             }
             return true;
         }
@@ -1024,12 +1036,12 @@ public abstract class Commands { //Command-based system
             }
         }
     }
-    public static class ParallelCommandExecutor{
+    public static class CommandExecutor {
         private ArrayList<Command> commands = new ArrayList<>();
         private final ArrayList<Command> commandsToAdd = new ArrayList<>();
         private final ArrayList<Command> commandsToRemove = new ArrayList<>();
         private Runnable writeToTelemetry = ()->{};
-        private ParallelCommandExecutor(){
+        private CommandExecutor(){
         }
         public void setCommands(Command...commandGroups){
             this.commands=new ArrayList<>(Arrays.asList(commandGroups));
@@ -1051,7 +1063,7 @@ public abstract class Commands { //Command-based system
             this.commands.removeAll(commandsToRemove);
             commandsToAdd.clear();
             commandsToRemove.clear();
-            this.commands = commands.stream().filter(Command::run).collect(Collectors.toCollection(ArrayList::new));
+            this.commands = commands.stream().filter((Command command)->{command.run(); return command.isBusy();}).collect(Collectors.toCollection(ArrayList::new));
             for (Components.Actuator<?> actuator : actuators.values()) {
                 //This ensures that old targets do not fall outside of any new max or min targets.
                 actuator.setTarget(actuator.getTargetMinusOffset());
