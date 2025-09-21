@@ -312,7 +312,6 @@ public abstract class Components {
         private final String name;
         public final HashMap<String,E> parts = new HashMap<>(); public final String[] partNames; //Since two hardware devices can be synchronized on one mechanism, Actuators can have multiple inner parts, each referenced by its hardwareMap name
         private double target; //Global target of the actuator
-        private double instantTarget; //The target the actuator will go for each loop. In feedforward systems like motion profiling, this does not match the global target, but builds toward it over time.
         private boolean newTarget=false; //Set to true when setTarget is called. Set to false after the end of each loop.
         private boolean newActuation=false; //Set to true when a method tagged with @Actuator is called. Set to false after the end of each loop.
         private double offset; //In case a part skips or something, this allows us to offset all the targets we set to compensate for the skip.
@@ -415,7 +414,6 @@ public abstract class Components {
                 target=Math.max(minTargetFunc.get(),Math.min(target, maxTargetFunc.get()));
                 if (target!=this.target) {
                     this.target = target;
-                    this.instantTarget = target;
                     newTarget = true;
                 }
             }
@@ -426,12 +424,6 @@ public abstract class Components {
         public double getTarget(){
             return target;
         } //Returns the target including the offset
-        public void setInstantTarget(double instantTarget){
-            this.instantTarget=Math.max(minTargetFunc.get(),Math.min(instantTarget, maxTargetFunc.get()));
-        }
-        public double getInstantTarget(){
-            return instantTarget;
-        }
         public double getCurrentPosition(String name){ //Gets the position of a specific part
             return Objects.requireNonNull(getCurrentPositions.get(name)).get();
         }

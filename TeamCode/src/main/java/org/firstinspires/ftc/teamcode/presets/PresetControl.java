@@ -125,6 +125,44 @@ public abstract class PresetControl { //Holds control functions that actuators c
             parentActuator.setPower(0);
         }
     }
+    public static class VelocityPID<E extends BotMotor> extends ControlFunc<E>{ //Position PIDF controller for CRActuators
+        private final ArrayList<GenericPID> PIDs = new ArrayList<>();
+        private final double kP;
+        private final double kI;
+        private final double kD;
+        public VelocityPID(double kP, double kI, double kD){
+            this.kP=kP;
+            this.kI=kI;
+            this.kD=kD;
+        }
+        @Override
+        public void registerToSystem(ControlSystem<? extends E> system){
+            super.registerToSystem(system);
+            for (String name: system.getParentActuator().getPartNames()){
+                PIDs.add(new GenericPID(kP,kI,kD));
+            }
+        }
+        @Override
+        public void runProcedure(){
+            for (int i=0;i<parentActuator.getPartNames().length;i++){
+                String name=parentActuator.getPartNames()[i];
+                GenericPID PID=PIDs.get(i);
+                if (system.isStart()){
+                    PID.clearIntegral();
+                    PID.clearFivePointStencil();
+                }
+                if (system.isNewReference("targetVelocity")){
+                    PID.clearIntegral();
+                }
+                double output=PID.getPIDOutput(system.getInstantReference("targetVelocity"), parentActuator.getVelocity(name));
+                system.setOutput(system.getOutput(name)+output,name);
+            }
+        }
+        @Override
+        public void stopProcedure(){
+            parentActuator.setPower(0);
+        }
+    }
     public static class BasicFeedforward<E extends CRActuator<?>> extends ControlFunc<E>{
         private final double[] kFs;
         private final String[] references;
