@@ -1,21 +1,25 @@
 package org.firstinspires.ftc.teamcode.robotconfigs;
 
 import org.firstinspires.ftc.teamcode.base.Components.*;
-import org.firstinspires.ftc.teamcode.presets.PresetControl.PIDF.PIDFConstants;
 import org.firstinspires.ftc.teamcode.presets.PresetControl.*;
 
-import java.util.Arrays;
-import java.util.Collections;
+import java.util.List;
 
 public class Motor implements RobotConfig {
     public static BotMotor motor;
+    public static double targetVelocity;
     @Override
     public void init() {
         motor = new BotMotor(
-                "motor", Arrays.asList(new DcMotorExData("motor")),
-                ()->2000.0,()->0.0,20,5,
-                new String[]{"PID"},
-                Collections.singletonList(new PIDF<>(new PIDFConstants(0.015,0.0001,0.0005,0)))
+                "motor", List.of(new DcMotorExData("motor")),
+                ()->2000.0,()->0.0,20.0,5.0,
+                new String[]{"PID","setVelocity"},
+                new ControlSystem<>(new TrapezoidalMotionProfile<>(10000,1000),new PositionPID<>(0.015,0.00001,0.0001)),
+                new ControlSystem<>(
+                        new String[]{"targetVelocity"},
+                        List.of((BotMotor motor) -> targetVelocity),
+                        new TrapezoidalMotionProfile<>(10000,1000),new PositionPID<>(0.015,0.00001,0.0001)
+                )
         );
     }
 }

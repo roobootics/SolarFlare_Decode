@@ -3,39 +3,36 @@ package org.firstinspires.ftc.teamcode.presets;
 import static org.firstinspires.ftc.teamcode.base.Components.timer;
 
 import org.firstinspires.ftc.teamcode.base.Components.Actuator;
+import org.firstinspires.ftc.teamcode.base.Components.BotMotor;
 import org.firstinspires.ftc.teamcode.base.Components.BotServo;
 import org.firstinspires.ftc.teamcode.base.Components.CRActuator;
-import org.firstinspires.ftc.teamcode.base.Components.ControlFunction;
-
+import org.firstinspires.ftc.teamcode.base.Components.ControlFunc;
+import org.firstinspires.ftc.teamcode.base.Components.ControlSystem;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Objects;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 public abstract class PresetControl { //Holds control functions that actuators can use. Note that more control functions, like other types of motion profiling, can be coded and used.
-    public static class GenericPIDF{
+    public static class GenericPID{ //A class that creates a PIDF controller for any purpose.
         private final double kP;
         private final double kI;
         private final double kD;
-        private final Function<Double,Double> fTerm;
         private double integralSum;
         private double previousLoop;
         private double previousError;
         private final ArrayList<Double> previousFiveLoopTimes = new ArrayList<>();
         private final ArrayList<Double> previousFiveErrors = new ArrayList<>();
-        public GenericPIDF(double kP, double kI, double kD, Function<Double,Double> fTerm){ //Allows for a custom feedforward, such as one that takes acceleration into account
+        public GenericPID(double kP, double kI, double kD){ //Allows for a custom feedforward, such as one that takes acceleration into account
             this.kP=kP;
             this.kI=kI;
             this.kD=kD;
-            this.fTerm=fTerm;
         }
-        public GenericPIDF(double kP, double kI, double kD, double kF){
-            this(kP,kI,kD,(Double target)->kF*target);
+        public GenericPID(double kP, double kI, double kD, double kF){
+            this(kP,kI,kD);
         }
-        public double getPIDFOutput(double target, double current){
+        public double getPIDOutput(double target, double current, double velocity){ //Give it the target value and the current value
             double error=target-current;
             double time=timer.time();
             double loopTime=time-previousLoop;
@@ -61,75 +58,66 @@ public abstract class PresetControl { //Holds control functions that actuators c
             } else{
                 dOutput=kD*(error-previousError)/loopTime;
             }
-            double fOutput=fTerm.apply(target);
+            if (!Double.isNaN(velocity)){
+                dOutput=-kD*velocity;
+            }
 
             previousLoop=time;
             previousError=error;
 
-            return pOutput+iOutput+dOutput+fOutput;
+            return pOutput+iOutput+dOutput;
+        }
+        public double getPIDOutput(double target, double current){
+            return getPIDOutput(target,current,Double.NaN);
         }
         public void clearIntegral(){
             integralSum=0;
-        }
-        public void clearFivePointStencil(){
+        } //Clear the accumulating integral term. Do this when a global target is changed
+        public void clearFivePointStencil(){ //Clear the five point stencil for derivative approximation
             previousLoop=timer.time();
             previousError=0;
             previousFiveLoopTimes.clear();
             previousFiveErrors.clear();
         }
     }
-    public static class PIDF<E extends CRActuator<?>> extends ControlFunction<E>{
-
-        private final ArrayList<PIDFConstants> constants;
-        private final ArrayList<GenericPIDF> PIDFs = new ArrayList<>();
-        public static class PIDFConstants{ //Stores PIDF coefficients
-            public double kP;
-            public double kI;
-            public double kD;
-            public Function<Double,Double> feedForwardFunc;
-            public PIDFConstants(double kP, double kI, double kD, Function<Double,Double> feedForwardFunc){
-                this.kP=kP;
-                this.kI=kI;
-                this.kD=kD;
-                this.feedForwardFunc = feedForwardFunc;
-            }
-            public PIDFConstants(double kP, double kI, double kD, double kF){
-                this.kP=kP;
-                this.kI=kI;
-                this.kD=kD;
-                this.feedForwardFunc = (Double target)->(kF*target);
-            }
-        }
-        public PIDF(PIDFConstants...constants){ //The PIDF can accept multiple sets of coefficients, since if two synchronized CR components have different loads, they will need to produce different power outputs
-            this.constants=new ArrayList<>(Arrays.asList(constants));
+    public static class PositionPID<E extends CRActuator<?>> extends ControlFunc<E>{ //Position PIDF controller for CRActuators
+        private final ArrayList<GenericPID> PIDs = new ArrayList<>();
+        private final double kP;
+        private final double kI;
+        private final double kD;
+        public PositionPID(double kP, double kI, double kD){
+            this.kP=kP;
+            this.kI=kI;
+            this.kD=kD;
         }
         @Override
-        public void registerToParent(E actuator){
-            super.registerToParent(actuator);
-            if (actuator.parts.values().size()>this.constants.size()){
-                for (int i=0;i<actuator.parts.values().size()-this.constants.size();i++){
-                    constants.add(constants.get(constants.size()-1));
-                }
-            }
-            for (PIDFConstants constant:this.constants){
-                PIDFs.add(new GenericPIDF(constant.kP, constant.kI, constant.kD,constant.feedForwardFunc));
+        public void registerToSystem(ControlSystem<? extends E> system){
+            super.registerToSystem(system);
+            for (String name: system.getParentActuator().getPartNames()){
+                PIDs.add(new GenericPID(kP,kI,kD));
             }
         }
         @Override
         public void runProcedure(){
             for (int i=0;i<parentActuator.getPartNames().length;i++){
-                GenericPIDF pidf = PIDFs.get(i);
-                if (isStart()){
-                    pidf.clearIntegral();
-                    pidf.clearFivePointStencil();
+                String name=parentActuator.getPartNames()[i];
+                GenericPID PID=PIDs.get(i);
+                if (system.isStart()){
+                    PID.clearIntegral();
+                    PID.clearFivePointStencil();
                 }
-                if (parentActuator.isNewTarget()){
-                    pidf.clearIntegral();
+                if (system.isNewReference("targetPosition")){
+                    PID.clearIntegral();
                 }
-                parentActuator.setPower(
-                        pidf.getPIDFOutput(parentActuator.getInstantTarget(), parentActuator.getCurrentPosition()),
-                        parentActuator.getPartNames()[i]
-                );
+                double output;
+                if (parentActuator instanceof BotMotor){
+                    BotMotor castedActuator = (BotMotor) parentActuator;
+                    output=PID.getPIDOutput(system.getInstantReference("targetPosition"), parentActuator.getCurrentPosition(name), castedActuator.getVelocity(name));
+                }
+                else{
+                    output=PID.getPIDOutput(system.getInstantReference("targetPosition"), parentActuator.getCurrentPosition(name));
+                }
+                system.setOutput(system.getOutput(name)+output,name);
             }
         }
         @Override
@@ -137,26 +125,35 @@ public abstract class PresetControl { //Holds control functions that actuators c
             parentActuator.setPower(0);
         }
     }
-    public static class SQUID<E extends CRActuator<?>> extends ControlFunction<E>{
-        public ArrayList<Double> kPs;
-        public SQUID(double...kPs){
-            Double[] tempKPs=new Double[kPs.length];
-            Arrays.setAll(tempKPs,(int i)->(kPs[i]));
-            this.kPs=new ArrayList<>(Arrays.asList(tempKPs));
+    public static class BasicFeedforward<E extends CRActuator<?>> extends ControlFunc<E>{
+        private final double[] kFs;
+        private final String[] references;
+        public BasicFeedforward(double[] kFs, String[] references){
+            this.kFs = kFs;
+            this.references = references;
         }
         @Override
-        public void registerToParent(E actuator){
-            super.registerToParent(actuator);
-            for (int i=0;i<parentActuator.partNames.length-kPs.size();i++){
-                kPs.add(kPs.get(kPs.size()-1));
+        protected void runProcedure() {
+            for (String name: parentActuator.getPartNames()){
+                double output=0;
+                for (int i=0;i< kFs.length;i++){
+                    output+=kFs[i]*system.getInstantReference(references[i]);
+                }
+                system.setOutput(system.getOutput(name)+output,name);
             }
+        }
+    }
+    public static class SQUID<E extends CRActuator<?>> extends ControlFunc<E>{ //SQUID controller for CRActuators
+        public double kP;
+        public SQUID(double kP){
+            this.kP=kP;
         }
         @Override
         protected void runProcedure() {
             for (int i=0;i<parentActuator.partNames.length;i++){
-                double error = parentActuator.getInstantTarget()- parentActuator.getCurrentPosition();
-                parentActuator.setPower(
-                        kPs.get(i) * Math.sqrt(Math.abs(error))*Math.signum(error),
+                double error = system.getInstantReference("targetPosition")- parentActuator.getCurrentPosition(parentActuator.getPartNames()[i]);
+                system.setOutput(
+                        kP * Math.sqrt(Math.abs(error))*Math.signum(error)+system.getOutput(parentActuator.getPartNames()[i]),
                         parentActuator.getPartNames()[i]
                 );
             }
@@ -166,7 +163,7 @@ public abstract class PresetControl { //Holds control functions that actuators c
             parentActuator.setPower(0);
         }
     }
-    public static class TrapezoidalMotionProfile<E extends Actuator<?>> extends ControlFunction<E>{
+    public static class TrapezoidalMotionProfile<E extends Actuator<?>> extends ControlFunc<E>{ //Trapezoidal motion profile for any actuator.
         public enum Phase{
             ACCEL,
             CRUISE,
@@ -198,11 +195,6 @@ public abstract class PresetControl { //Holds control functions that actuators c
             this.MAX_VELOCITY=maxVelocity;
             this.ACCELERATION=acceleration;
         }
-        @Override
-        public void registerToParent(E actuator){
-            super.registerToParent(actuator);
-            currentTarget=actuator.getTarget();
-        }
         public void setNewParams(double maxVelocity, double acceleration){
             this.MAX_VELOCITY=maxVelocity;
             this.ACCELERATION=acceleration;
@@ -210,15 +202,15 @@ public abstract class PresetControl { //Holds control functions that actuators c
         }
         @Override
         protected void runProcedure() {
-            if (parentActuator.isNewTarget()||newParams||isStart()){
-                if (isStart()){
+            if (system.isNewReference("targetPosition")||newParams||system.isStart()){
+                if (system.isStart()){
                     instantTarget=parentActuator.getCurrentPosition();
                     lastLoopTime=timer.time();
                 }
                 newParams=false;
-                createMotionProfile(parentActuator.getTarget());
+                createMotionProfile(system.getReference("targetPosition"));
             }
-            parentActuator.setInstantTarget(runMotionProfileOnce());
+            system.setInstantReference("targetPosition", runMotionProfileOnce());
         }
         public void createMotionProfile(double target){
             elapsedTime=0;
@@ -305,8 +297,9 @@ public abstract class PresetControl { //Holds control functions that actuators c
         public void stopProcedure() {
             phase= Phase.OFF; targetVelocity=0; instantTarget=0;
         }
-        public HashMap<String,Double> getProfileData(){
+        public HashMap<String,Double> getProfileData(){ //Returns data on the motion profile for debugging.
             HashMap<String,Double> data = new HashMap<>();
+            data.put("instantTarget",instantTarget);
             data.put("currentMaxVelocity",currentMaxVelocity);
             data.put("accelDistance",accelDistance);
             data.put("decelDistance",decelDistance);
@@ -324,17 +317,27 @@ public abstract class PresetControl { //Holds control functions that actuators c
         }
         public Phase getPhase(){
             return phase;
-        }
+        } //Gives the phase that the motion profile is in.
     }
 
 
-    public static class ServoControl extends ControlFunction<BotServo>{ //Control function to get servos to their targets
+    public static class ServoControl extends ControlFunc<BotServo>{ //Control function to get servos to their targets by calling setPosition. Automatically given to BotServos depending on the constructor you call.
         @Override
         protected void runProcedure() {
-            parentActuator.setPosition(parentActuator.getInstantTarget());
+            for (String name: parentActuator.getPartNames()){
+                system.setOutput(system.getInstantReference("targetPosition"),name);
+            }
         }
     }
-    public static class CRBangBangControl<E extends CRActuator<?>> extends ControlFunction<E>{ //Likely will be used to get CRServos to their targets if they have no encoders with them
+    public static class SetVelocity extends ControlFunc<BotMotor>{
+        @Override
+        protected void runProcedure() {
+            for (String name: parentActuator.getPartNames()){
+                system.setOutput(system.getInstantReference("targetVelocity"),name);
+            }
+        }
+    }
+    public static class CRBangBangControl<E extends CRActuator<?>> extends ControlFunc<E>{ //Likely will be used to get CRServos to their targets if they have no encoders with them. Sets a positive or negative power to the servo depending on where it is relative to the target. May create oscillations
         private final Supplier<Double> powerFunc; //This control function moves the CRActuator to the target at a given power, which can change. That is stored here.
         public CRBangBangControl(double power){
             this.powerFunc=()->(power);
@@ -344,9 +347,11 @@ public abstract class PresetControl { //Holds control functions that actuators c
         }
         @Override
         protected void runProcedure() {
-            double currentPosition = parentActuator.getCurrentPosition();
-            if (Math.abs(parentActuator.getInstantTarget()-currentPosition)>parentActuator.getErrorTol()){
-                parentActuator.setPower(powerFunc.get()*Math.signum(parentActuator.getInstantTarget()-currentPosition));
+            for (String name: parentActuator.getPartNames()){
+                double currentPosition = parentActuator.getCurrentPosition(name);
+                if (Math.abs(system.getInstantReference("targetPosition")-currentPosition)>parentActuator.getErrorTol()){
+                    system.setOutput(system.getOutput(name)+ powerFunc.get()*Math.signum(system.getInstantReference("targetPosition")-currentPosition),name);
+                }
             }
         }
     }
