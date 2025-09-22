@@ -29,9 +29,6 @@ public abstract class PresetControl { //Holds control functions that actuators c
             this.kI=kI;
             this.kD=kD;
         }
-        public GenericPID(double kP, double kI, double kD, double kF){
-            this(kP,kI,kD);
-        }
         public double getPIDOutput(double target, double current, double velocity){ //Give it the target value and the current value
             double error=target-current;
             double time=timer.time();

@@ -19,13 +19,13 @@ public class Motor implements RobotConfig {
                 new ControlSystem<>(profile,new PositionPID<>(0.015,0.0,0.0)),
                 new ControlSystem<>(
                         new String[]{"targetVelocity"},
-                        List.of((BotMotor motor) -> targetVelocity),
+                        List.of(() -> targetVelocity),
                         (String name, Double vel)->motor.setVelocity(vel,name),
                         new SetVelocity()
                 ),
                 new ControlSystem<>(
                         new String[]{"targetVelocity"},
-                        List.of((BotMotor motor) -> targetVelocity),
+                        List.of(() -> targetVelocity),
                         new BasicFeedforward<>(new double[]{0.000357185},new String[]{"targetVelocity"}),
                         new VelocityPID<>(0.0001,0,0)
                 )

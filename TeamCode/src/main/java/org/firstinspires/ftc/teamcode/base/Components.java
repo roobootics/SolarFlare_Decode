@@ -128,6 +128,7 @@ public abstract class Components {
         prevTelemetryOutput.clear();
         executor.clearCommands();
         if (Objects.isNull(Components.config) || alwaysReInit || config.getClass()!=Components.config.getClass()){
+            CachedReader.readers.clear();
             actuators.clear();
             Components.config=config;
             config.init();
@@ -197,7 +198,7 @@ public abstract class Components {
     public static class ControlSystem<E extends Actuator<?>>{
         private E parentActuator;
         private boolean isStart=true; //Indicates if the control system has just started running
-        private final HashMap<String,Function<E,Double>> globalReferences=new HashMap<>();
+        private final HashMap<String,Supplier<Double>> globalReferences=new HashMap<>();
         private final HashMap<String,Double> storedGlobalReferences=new HashMap<>();
         private final HashMap<String,Boolean> isNewGlobalReferences=new HashMap<>();
         private final HashMap<String,Double> instantReferences=new HashMap<>();
@@ -205,10 +206,10 @@ public abstract class Components {
         private final HashMap<String,Double> outputs=new HashMap<>();
         private final List<ControlFunc<? super E>> controlFuncs;
         @SafeVarargs
-        public ControlSystem(String[] referenceKeys, List<Function<E,Double>> referenceValues, BiConsumer<String, Double> outputFunc, ControlFunc<? super E>...controlFuncs) {
+        public ControlSystem(String[] referenceKeys, List<Supplier<Double>> referenceValues, BiConsumer<String, Double> outputFunc, ControlFunc<? super E>...controlFuncs) {
             this.outputFunc = outputFunc;
             this.controlFuncs=Arrays.asList(controlFuncs);
-            globalReferences.put("targetPosition",(E actuator)->actuator.getTarget());
+            globalReferences.put("targetPosition",()->parentActuator.getTarget());
             storedGlobalReferences.put("targetPosition",0.0);
             isNewGlobalReferences.put("targetPosition",false);
             instantReferences.put("targetPosition",0.0);
@@ -220,7 +221,7 @@ public abstract class Components {
             }
         }
         @SafeVarargs
-        public ControlSystem(String[] referenceKeys, List<Function<E,Double>> referenceValues, ControlFunc<? super E>...controlFuncs) {
+        public ControlSystem(String[] referenceKeys, List<Supplier<Double>> referenceValues, ControlFunc<? super E>...controlFuncs) {
             this(referenceKeys,referenceValues,null,controlFuncs);
         }
         @SafeVarargs
@@ -258,6 +259,9 @@ public abstract class Components {
             for (String label:storedGlobalReferences.keySet()){
                 readReference(label);
             }
+            for (String label:storedGlobalReferences.keySet()){
+                setInstantReference(label,getReference(label));
+            }
             for (ControlFunc<?> func:controlFuncs){
                 func.runProcedure();
             }
@@ -281,7 +285,7 @@ public abstract class Components {
             }
         }
         private void readReference(String label){
-            double reference = Objects.requireNonNull(globalReferences.get(label)).apply(parentActuator);
+            double reference = Objects.requireNonNull(globalReferences.get(label)).get();
             if (reference!=Objects.requireNonNull(storedGlobalReferences.get(label))){
                 isNewGlobalReferences.put(label,true);
             }
