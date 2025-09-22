@@ -7,14 +7,16 @@ import java.util.List;
 
 public class Motor implements RobotConfig {
     public static BotMotor motor;
+    public static TrapezoidalMotionProfile<BotMotor> profile;
     public static double targetVelocity;
     @Override
     public void init() {
+        profile=new TrapezoidalMotionProfile<>(10000,1000);
         motor = new BotMotor(
                 "motor", List.of(new DcMotorExData("motor")),
                 ()->2000.0,()->0.0,20.0,5.0,
                 new String[]{"PID","setVelocity","VelocityPIDF"},
-                new ControlSystem<>(new TrapezoidalMotionProfile<>(10000,1000),new PositionPID<>(0.015,0.00001,0.0001)),
+                new ControlSystem<>(profile,new PositionPID<>(0.015,0.0,0.0)),
                 new ControlSystem<>(
                         new String[]{"targetVelocity"},
                         List.of((BotMotor motor) -> targetVelocity),

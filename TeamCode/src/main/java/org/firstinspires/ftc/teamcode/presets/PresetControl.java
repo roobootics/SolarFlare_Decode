@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.presets;
 
+import static org.firstinspires.ftc.teamcode.base.Components.telemetryAddData;
 import static org.firstinspires.ftc.teamcode.base.Components.timer;
 
 import org.firstinspires.ftc.teamcode.base.Components.Actuator;
@@ -34,6 +35,7 @@ public abstract class PresetControl { //Holds control functions that actuators c
         }
         public double getPIDOutput(double target, double current, double velocity){ //Give it the target value and the current value
             double error=target-current;
+            telemetryAddData("error",error);
             double time=timer.time();
             double loopTime=time-previousLoop;
 
@@ -100,6 +102,7 @@ public abstract class PresetControl { //Holds control functions that actuators c
         @Override
         public void runProcedure(){
             for (int i=0;i<parentActuator.getPartNames().length;i++){
+                telemetryAddData("target",system.getInstantReference("targetPosition"));
                 String name=parentActuator.getPartNames()[i];
                 GenericPID PID=PIDs.get(i);
                 if (system.isStart()){
@@ -107,16 +110,10 @@ public abstract class PresetControl { //Holds control functions that actuators c
                     PID.clearFivePointStencil();
                 }
                 if (system.isNewReference("targetPosition")){
+                    telemetryAddData("newtarget",system.isNewReference("targetPosition"));
                     PID.clearIntegral();
                 }
-                double output;
-                if (parentActuator instanceof BotMotor){
-                    BotMotor castedActuator = (BotMotor) parentActuator;
-                    output=PID.getPIDOutput(system.getInstantReference("targetPosition"), parentActuator.getCurrentPosition(name), castedActuator.getVelocity(name));
-                }
-                else{
-                    output=PID.getPIDOutput(system.getInstantReference("targetPosition"), parentActuator.getCurrentPosition(name));
-                }
+                double output=PID.getPIDOutput(system.getInstantReference("targetPosition"), parentActuator.getCurrentPosition(name));
                 system.setOutput(system.getOutput(name)+output,name);
             }
         }

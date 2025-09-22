@@ -218,9 +218,6 @@ public abstract class Components {
                 isNewGlobalReferences.put(referenceKeys[i],false);
                 instantReferences.put(referenceKeys[i],0.0);
             }
-            for (ControlFunc<? super E> func:controlFuncs){
-                func.registerToSystem(this);
-            }
         }
         @SafeVarargs
         public ControlSystem(String[] referenceKeys, List<Function<E,Double>> referenceValues, ControlFunc<? super E>...controlFuncs) {
@@ -232,6 +229,12 @@ public abstract class Components {
         }
         public void registerToActuator(E parentActuator){
             this.parentActuator=parentActuator;
+            for (ControlFunc<? super E> func:controlFuncs){
+                func.registerToSystem(this);
+            }
+            for (String name: parentActuator.getPartNames()){
+                outputs.put(name,0.0);
+            }
             if (Objects.isNull(outputFunc)){
                 if (parentActuator instanceof CRActuator){
                     CRActuator<?> castedActuator = (CRActuator<?>) parentActuator;
@@ -770,6 +773,9 @@ public abstract class Components {
                 part.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
                 part.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
             }
+            for (ControlSystem<BotMotor> system:controlFuncs){
+                system.registerToActuator(this);
+            }
         }
 
         @SafeVarargs
@@ -935,6 +941,9 @@ public abstract class Components {
             setTarget(initialTarget);
             this.range=range;
             this.setPositionConversion=(Double pos)->pos/range;
+            for (ControlSystem<BotServo> system:controlFuncs){
+                system.registerToActuator(this);
+            }
         }
         public BotServo(String name, List<ServoData> servos, Supplier<Double> maxTargetFunc, Supplier<Double> minTargetFunc, double servoSpeedDPS, double defaultTimeout, double range, double initialTarget) {
             this(name,servos,new TimeBasedLocalizers.ServoTimeBasedLocalizer(servoSpeedDPS/range,initialTarget,range)::getCurrentPosition,1,maxTargetFunc,minTargetFunc,1.5,defaultTimeout,range, initialTarget, new String[]{"setPos"}, new ControlSystem<>(new ServoControl()));
@@ -974,6 +983,9 @@ public abstract class Components {
         @SafeVarargs
         public CRBotServo(String name, List<CRServoData> crservos, Function<CRServo, Double> getCurrentPosition, int pollingRate,Supplier<Double> maxTargetFunc, Supplier<Double> minTargetFunc, Supplier<Double> maxPowerFunc, Supplier<Double> minPowerFunc, double errorTol, double defaultTimeout, String[] controlFuncKeys, ControlSystem<CRBotServo>... controlFuncs) {
             super(name, crservos.stream().map(CRServoData::getCRServo).collect(Collectors.toList()), getCurrentPosition, pollingRate, maxTargetFunc, minTargetFunc, maxPowerFunc, minPowerFunc, errorTol, defaultTimeout,controlFuncKeys,controlFuncs);
+            for (ControlSystem<CRBotServo> system:controlFuncs){
+                system.registerToActuator(this);
+            }
         }
         @SafeVarargs
         public CRBotServo(String name, List<CRServoData> crservos, Supplier<Double> maxTargetFunc, Supplier<Double> minTargetFunc, Supplier<Double> maxPowerFunc, Supplier<Double> minPowerFunc, double servoSpeed, String[] controlFuncKeys, ControlSystem<CRBotServo>... controlFuncs) {
