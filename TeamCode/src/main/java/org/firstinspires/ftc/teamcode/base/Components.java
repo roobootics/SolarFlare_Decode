@@ -680,7 +680,7 @@ public abstract class Components {
     //Each of the bottom-level subclass constructors will accept getCurrentPosition functions and control functions, since those cater to a specific subclass.
     public static class BotMotor extends CRActuator<DcMotorEx> {
         private boolean isStallResetting;
-        private final Supplier<Double> velocityReader;
+        private Supplier<Double> velocityReader;
         private final Supplier<Double> currentReader;
         private final HashMap<String,Double> keyVelocities = new HashMap<>(); //Stores key velocities, like 'intakeVelocity,' etc.
         private final Supplier<Double> maxVelocityFunc;
@@ -722,7 +722,9 @@ public abstract class Components {
                 keyVelocities.put(keyVelocityKeys[i],keyVelocityValues[i]);
             }
         }
-
+        public void setVelocityFilter(Function<BotMotor,Double> velFilter){ //Allows you to set a custom function, like a Kalman filter, to determine the velocity of the motor.
+            velocityReader=new CachedReader<>(()->velFilter.apply(this),1)::cachedRead;
+        }
         public double getVelocity() { //Get the motor's velocity
             return velocityReader.get();
         }
