@@ -7,7 +7,6 @@ import org.firstinspires.ftc.teamcode.base.Components.BotMotor;
 import org.firstinspires.ftc.teamcode.base.Components.BotServo;
 import org.firstinspires.ftc.teamcode.base.Components.CRActuator;
 import org.firstinspires.ftc.teamcode.base.Components.ControlFunc;
-import org.firstinspires.ftc.teamcode.base.Components.ControlSystem;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -78,75 +77,43 @@ public abstract class PresetControl { //Holds control functions that actuators c
         }
     }
     public static class PositionPID<E extends CRActuator<?>> extends ControlFunc<E>{ //Position PIDF controller for CRActuators
-        private final ArrayList<GenericPID> PIDs = new ArrayList<>();
-        private final double kP;
-        private final double kI;
-        private final double kD;
+        private final GenericPID PID;
         public PositionPID(double kP, double kI, double kD){
-            this.kP=kP;
-            this.kI=kI;
-            this.kD=kD;
-        }
-        @Override
-        public void registerToSystem(ControlSystem<? extends E> system){
-            super.registerToSystem(system);
-            for (String name: system.getParentActuator().getPartNames()){
-                PIDs.add(new GenericPID(kP,kI,kD));
-            }
+            this.PID=new GenericPID(kP,kI,kD);
         }
         @Override
         public void runProcedure(){
-            for (int i=0;i<parentActuator.getPartNames().length;i++){
-                String name=parentActuator.getPartNames()[i];
-                GenericPID PID=PIDs.get(i);
-                if (system.isStart()){
-                    PID.clearIntegral();
-                    PID.clearFivePointStencil();
-                }
-                if (system.isNewReference("targetPosition")){
-                    PID.clearIntegral();
-                }
-                double output=PID.getPIDOutput(system.getInstantReference("targetPosition"), parentActuator.getCurrentPosition(name));
-                system.setOutput(system.getOutput(name)+output,name);
+            if (system.isStart()){
+                PID.clearIntegral();
+                PID.clearFivePointStencil();
             }
+            if (system.isNewReference("targetPosition")){
+                PID.clearIntegral();
+            }
+            double output=PID.getPIDOutput(system.getInstantReference("targetPosition"), parentActuator.getCurrentPosition());
+            system.setOutput(system.getOutput()+output);
         }
         @Override
         public void stopProcedure(){
             parentActuator.setPower(0);
         }
     }
-    public static class VelocityPID<E extends BotMotor> extends ControlFunc<E>{ //Position PIDF controller for CRActuators
-        private final ArrayList<GenericPID> PIDs = new ArrayList<>();
-        private final double kP;
-        private final double kI;
-        private final double kD;
+    public static class VelocityPID extends ControlFunc<BotMotor>{ //Position PIDF controller for CRActuators
+        private final GenericPID PID;
         public VelocityPID(double kP, double kI, double kD){
-            this.kP=kP;
-            this.kI=kI;
-            this.kD=kD;
-        }
-        @Override
-        public void registerToSystem(ControlSystem<? extends E> system){
-            super.registerToSystem(system);
-            for (String name: system.getParentActuator().getPartNames()){
-                PIDs.add(new GenericPID(kP,kI,kD));
-            }
+            this.PID=new GenericPID(kP,kI,kD);
         }
         @Override
         public void runProcedure(){
-            for (int i=0;i<parentActuator.getPartNames().length;i++){
-                String name=parentActuator.getPartNames()[i];
-                GenericPID PID=PIDs.get(i);
-                if (system.isStart()){
-                    PID.clearIntegral();
-                    PID.clearFivePointStencil();
-                }
-                if (system.isNewReference("targetVelocity")){
-                    PID.clearIntegral();
-                }
-                double output=PID.getPIDOutput(system.getInstantReference("targetVelocity"), parentActuator.getVelocity(name));
-                system.setOutput(system.getOutput(name)+output,name);
+            if (system.isStart()){
+                PID.clearIntegral();
+                PID.clearFivePointStencil();
             }
+            if (system.isNewReference("targetVelocity")){
+                PID.clearIntegral();
+            }
+            double output=PID.getPIDOutput(system.getInstantReference("targetVelocity"), parentActuator.getVelocity());
+            system.setOutput(system.getOutput()+output);
         }
         @Override
         public void stopProcedure(){
@@ -162,25 +129,21 @@ public abstract class PresetControl { //Holds control functions that actuators c
         }
         @Override
         protected void runProcedure() {
-            for (String name: parentActuator.getPartNames()){
-                double output=0;
-                for (int i=0;i< kFs.length;i++){
-                    output+=kFs[i]*system.getInstantReference(references[i]);
-                }
-                system.setOutput(system.getOutput(name)+output,name);
+            double output=0;
+            for (int i=0;i< kFs.length;i++){
+                output+=kFs[i]*system.getInstantReference(references[i]);
             }
+            system.setOutput(system.getOutput()+output);
         }
     }
     public static class ElevatorFeedforward<E extends CRActuator<?>> extends ControlFunc<E>{
         public double kF;
-        public ElevatorFeedforward(double kG){
+        public ElevatorFeedforward(double kF){
             this.kF = kF;
         }
         @Override
         protected void runProcedure() {
-            for (String name: parentActuator.getPartNames()){
-                system.setOutput(system.getOutput(name)+kF,name);
-            }
+            system.setOutput(system.getOutput()+kF);
         }
     }
     public static class ArmFeedforward<E extends CRActuator<?>> extends ControlFunc<E>{
@@ -194,9 +157,7 @@ public abstract class PresetControl { //Holds control functions that actuators c
         }
         @Override
         protected void runProcedure() {
-            for (String name: parentActuator.getPartNames()){
-                system.setOutput(kF*Math.cos(system.getOutput(name)*referenceToRad+angleAtZero),name);
-            }
+            system.setOutput(kF*Math.cos(system.getOutput()*referenceToRad+angleAtZero));
         }
     }
     public static class SQUID<E extends CRActuator<?>> extends ControlFunc<E>{ //SQUID controller for CRActuators
@@ -206,13 +167,10 @@ public abstract class PresetControl { //Holds control functions that actuators c
         }
         @Override
         protected void runProcedure() {
-            for (int i=0;i<parentActuator.partNames.length;i++){
-                double error = system.getInstantReference("targetPosition")- parentActuator.getCurrentPosition(parentActuator.getPartNames()[i]);
-                system.setOutput(
-                        kP * Math.sqrt(Math.abs(error))*Math.signum(error)+system.getOutput(parentActuator.getPartNames()[i]),
-                        parentActuator.getPartNames()[i]
-                );
-            }
+            double error = system.getInstantReference("targetPosition")- parentActuator.getCurrentPosition();
+            system.setOutput(
+                    kP * Math.sqrt(Math.abs(error))*Math.signum(error)+system.getOutput()
+            );
         }
         @Override
         public void stopProcedure(){
@@ -380,17 +338,13 @@ public abstract class PresetControl { //Holds control functions that actuators c
     public static class ServoControl extends ControlFunc<BotServo>{ //Control function to get servos to their targets by calling setPosition. Automatically given to BotServos depending on the constructor you call.
         @Override
         protected void runProcedure() {
-            for (String name: parentActuator.getPartNames()){
-                system.setOutput(system.getInstantReference("targetPosition"),name);
-            }
+            system.setOutput(system.getInstantReference("targetPosition"));
         }
     }
     public static class SetVelocity extends ControlFunc<BotMotor>{
         @Override
         protected void runProcedure() {
-            for (String name: parentActuator.getPartNames()){
-                system.setOutput(system.getInstantReference("targetVelocity"),name);
-            }
+            system.setOutput(system.getInstantReference("targetVelocity"));
         }
     }
     public static class CRBangBangControl<E extends CRActuator<?>> extends ControlFunc<E>{ //Likely will be used to get CRServos to their targets if they have no encoders with them. Sets a positive or negative power to the servo depending on where it is relative to the target. May create oscillations
@@ -403,11 +357,9 @@ public abstract class PresetControl { //Holds control functions that actuators c
         }
         @Override
         protected void runProcedure() {
-            for (String name: parentActuator.getPartNames()){
-                double currentPosition = parentActuator.getCurrentPosition(name);
-                if (Math.abs(system.getInstantReference("targetPosition")-currentPosition)>parentActuator.getErrorTol()){
-                    system.setOutput(system.getOutput(name)+ powerFunc.get()*Math.signum(system.getInstantReference("targetPosition")-currentPosition),name);
-                }
+            double currentPosition = parentActuator.getCurrentPosition();
+            if (Math.abs(system.getInstantReference("targetPosition")-currentPosition)>parentActuator.getErrorTol()){
+                system.setOutput(system.getOutput()+ powerFunc.get()*Math.signum(system.getInstantReference("targetPosition")-currentPosition));
             }
         }
     }

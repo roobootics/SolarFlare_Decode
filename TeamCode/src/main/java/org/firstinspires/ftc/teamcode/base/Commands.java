@@ -27,17 +27,17 @@ public abstract class Commands { //Command-based system
         private CommandState state = CommandState.START;
 
         public void reset() {
-            state= CommandState.START;
+            state=CommandState.START;
         }
 
         final public void run() { //Actual method called to run the command, called repeatedly in a loop. Returns true if the command is not complete and false if it is.
             if (isEnabled && !isFinished()){
                 boolean continuing = runProcedure();
                 if (!continuing) {
-                    state= CommandState.END;
+                    state=CommandState.END;
                 }
                 else{
-                    state= CommandState.ACTIVE;
+                    state=CommandState.ACTIVE;
                 }
             }
         }
@@ -50,25 +50,25 @@ public abstract class Commands { //Command-based system
         final public void stop() { //Actual method called to stop the command
             if (isBusy()) {
                 stopProcedure();
-                state= CommandState.END;
+                state=CommandState.END;
             }
         }
         final public boolean isBusy(){
-            return state== CommandState.ACTIVE;
+            return state==CommandState.ACTIVE;
         }
         final public boolean isStart(){
-            return state== CommandState.START;
+            return state==CommandState.START;
         }
         final public boolean isFinished(){
-            return state== CommandState.END;
+            return state==CommandState.END;
         }
         final public boolean isEnabled(){
             return isEnabled;
         }
-        final public void enable(){
+        final public void enable(){ //Allow the action to be run, if it was disabled
             isEnabled=true;
         }
-        final public void disable(){
+        final public void disable(){ //Prevent the action from being run
             stopProcedure();
             isEnabled=false;
         }
@@ -85,7 +85,7 @@ public abstract class Commands { //Command-based system
         }
     }
 
-    public static class InstantCommand extends Command { //Command that completes in one loop iteration
+    public static class InstantCommand extends Command { //Command that runs a procedure and completes in one loop iteration
         private final Runnable procedure;
 
         public InstantCommand(Runnable procedure) {
@@ -99,7 +99,7 @@ public abstract class Commands { //Command-based system
         }
     }
 
-    public static class ContinuousCommand extends Command { //Command that constantly runs the same way each loop iteration
+    public static class ContinuousCommand extends Command { //Command that constantly runs the same procedure each loop iteration
         private final Runnable procedure;
 
         public ContinuousCommand(Runnable procedure) {
@@ -193,7 +193,7 @@ public abstract class Commands { //Command-based system
             return new InstantCommand(this::removeCommand);
         }
     }
-    public static class PowerOnCommand extends Command { //This command automatically activates each actuator's default control functions when they are first commanded
+    public static class PowerOnCommand extends Command { //This command automatically activates each actuator's default control functions, when they are first commanded to move to a target
         private final HashMap<String, Boolean> actuatorsCommanded = new HashMap<>();
         @Override
         protected boolean runProcedure() {
@@ -213,7 +213,7 @@ public abstract class Commands { //Command-based system
 
         }
     }
-    public static class SleepUntilTrue extends Command { //Sleeps until a is met or until an optional timeout time is reached
+    public static class SleepUntilTrue extends Command { //Sleeps until a condition is met or until an optional timeout time is reached
         private final Supplier<Boolean> condition;
         private final double timeout;
         private double startTime;
@@ -684,7 +684,7 @@ public abstract class Commands { //Command-based system
             }
         }
     }
-    public static class ResetAndLoopForDuration extends ParallelCommand { //Loops a command for a certain duration
+    public static class ResetAndLoopForDuration extends ParallelCommand { //Loops a command for a certain duration and resets it each iteration
         private double startTime;
         private final double duration;
 
@@ -707,7 +707,7 @@ public abstract class Commands { //Command-based system
             }
         }
     }
-    public static class ResetAndLoopUntilTrue extends ParallelCommand { //Loops a command until a Supplier<Boolean> is met, or until an optional timeout is reached
+    public static class ResetAndLoopUntilTrue extends ParallelCommand { //Loops a command until a Supplier<Boolean> is met, or until an optional timeout is reached, and resets it each iteration
         private double startTime;
         private final Supplier<Boolean> condition;
         private final double timeout;
@@ -734,11 +734,11 @@ public abstract class Commands { //Command-based system
             }
         }
     }
-    public static class StallResetOnStall extends CompoundCommand{
+    public static class StallResetOnStall extends CompoundCommand{ //Automatically stall-resets the encoder position of motors when they stall.
         public BotMotor[] motors;
         public double[] stallVolts;
         public double[] resetPositions;
-        public StallResetOnStall(BotMotor[] motors, double[] stallVolts, double[] resetPositions){
+        public StallResetOnStall(BotMotor[] motors, double[] stallVolts, double[] resetPositions){ //Input an array of BotMotors to reset, their respective stall volt thresholds, and an array of the positions they should be reset to.
             this.motors=motors;
             this.stallVolts=stallVolts;
             this.resetPositions = resetPositions;
@@ -781,7 +781,7 @@ public abstract class Commands { //Command-based system
 
     public abstract static class PathCommand<E> extends Command { //Command for autonomous pathing. Must be subclassed to create an implementation for a specific autonomous library. Parameterized to the actual path object it is based off of.
         private final Supplier<E> buildPath;
-        public static boolean buildPathOnInit=false;
+        public static boolean buildPathOnInit=false; //A subclass should set this to true if it can construct the path on construction instead of right before the command is run
         private boolean constructPathOnRuntime=true;
         private E path; //Stores the path this command follows. For RR it would be a TrajectoryCommand, for Pedro it would be a PathChain
         public PathCommand(Supplier<E> buildPath) {
@@ -809,7 +809,7 @@ public abstract class Commands { //Command-based system
         public E getPath(){
             return path;
         }
-        public void buildPath(){
+        public void buildPath(){ //Call this method to build the path earlier than the command's runtime.
             path=buildPath.get();
             constructPathOnRuntime=false;
         }
@@ -910,7 +910,7 @@ public abstract class Commands { //Command-based system
             return true;
         }
     }
-    public static RunResettingLoop triggeredToggleCommand(Supplier<Boolean> condition, Command command1, Command command2){
+    public static RunResettingLoop triggeredToggleCommand(Supplier<Boolean> condition, Command command1, Command command2){ //Call this method to return an action that toggles between the execution of two actions when a button is pressed.
         AtomicBoolean state = new AtomicBoolean(true);
         command1 = new SequentialCommand(new InstantCommand(()->state.set(!state.get())), command1);
         command2 = new SequentialCommand(new InstantCommand(()->state.set(!state.get())), command2);
@@ -923,7 +923,8 @@ public abstract class Commands { //Command-based system
                 )
         ));
     }
-    public static RunResettingLoop triggeredFSMCommand(Supplier<Boolean> upCondition, Supplier<Boolean> downCondition, int startingState, Command...commands){
+    public static RunResettingLoop triggeredFSMCommand(Supplier<Boolean> upCondition, Supplier<Boolean> downCondition, int startingState, Command...commands){ //Call this method to return an action that scrolls between the executions of several actions when up/down scrolling buttons are pressed.
+        // The startingState refers to the integer, non-zero-index of the first action that should be run by the FSM. If 0, it means that no action should initially be run.
         if (startingState>commands.length){
             startingState= commands.length;
         }
@@ -966,7 +967,7 @@ public abstract class Commands { //Command-based system
                 )
         ));
     }
-    public static RunResettingLoop triggeredCycleCommand(Supplier<Boolean> condition, Command...commands){
+    public static RunResettingLoop triggeredCycleCommand(Supplier<Boolean> condition, Command...commands){ //Returns and action that cycles between commands in one direction each time a button is pressed.
         AtomicInteger state = new AtomicInteger(0);
         IfThen[] ifThens=new IfThen[commands.length];
         for (int i=0;i< ifThens.length;i++){
@@ -989,7 +990,7 @@ public abstract class Commands { //Command-based system
                 )
         ));
     }
-    public static RunResettingLoop triggeredDynamicCommand(Supplier<Boolean> upCondition, Supplier<Boolean> downCondition, Command command1, Command command2){
+    public static RunResettingLoop triggeredDynamicCommand(Supplier<Boolean> upCondition, Supplier<Boolean> downCondition, Command command1, Command command2){ //Returns an action that repeatedly runs one command when one button is pressed, and another when the second is pressed. Useful for incrementing/decrementing a variable.
         return new RunResettingLoop(
                 new ConditionalCommand(
                         new IfThen(
@@ -1036,7 +1037,7 @@ public abstract class Commands { //Command-based system
             }
         }
     }
-    public static class CommandExecutor {
+    public static class CommandExecutor { //Executes commands given to it in parallel
         private ArrayList<Command> commands = new ArrayList<>();
         private final ArrayList<Command> commandsToAdd = new ArrayList<>();
         private final ArrayList<Command> commandsToRemove = new ArrayList<>();
@@ -1069,9 +1070,7 @@ public abstract class Commands { //Command-based system
                 actuator.setTarget(actuator.getTargetMinusOffset());
                 if (actuator instanceof Components.CRActuator) {
                     Components.CRActuator<?> castedActuator = ((Components.CRActuator<?>) actuator);
-                    for (String name:castedActuator.getPartNames()){
-                        castedActuator.setPower(castedActuator.getPower(name),name);
-                    }
+                    castedActuator.setPower(castedActuator.getPower());
                 }
                 //This ensures that old powers do not fall outside of any new max or min targets.
                 actuator.runControl();
