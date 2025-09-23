@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.robotconfigs;
 
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
+
 import org.firstinspires.ftc.teamcode.base.Components.*;
 import org.firstinspires.ftc.teamcode.presets.PresetControl.*;
 
@@ -13,7 +15,7 @@ public class Motor implements RobotConfig {
     public void init() {
         profile=new TrapezoidalMotionProfile<>(10000,1000);
         motor = new BotMotor(
-                "motor",
+                "motor", DcMotorSimple.Direction.FORWARD,
                 ()->2000.0,()->0.0,20.0,5.0,
                 new String[]{"PID","setVelocity","VelocityPIDF"},
                 new ControlSystem<>(profile,new PositionPID<>(0.015,0.0,0.0)),

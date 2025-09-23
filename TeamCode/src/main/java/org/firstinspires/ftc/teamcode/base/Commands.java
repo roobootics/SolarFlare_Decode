@@ -736,19 +736,19 @@ public abstract class Commands { //Command-based system
     }
     public static class StallResetOnStall extends CompoundCommand{ //Automatically stall-resets the encoder position of motors when they stall.
         public BotMotor[] motors;
-        public double[] stallVolts;
+        public double[] stallAmps;
         public double[] resetPositions;
-        public StallResetOnStall(BotMotor[] motors, double[] stallVolts, double[] resetPositions){ //Input an array of BotMotors to reset, their respective stall volt thresholds, and an array of the positions they should be reset to.
+        public StallResetOnStall(BotMotor[] motors, double[] stallAmps, double[] resetPositions){ //Input an array of BotMotors to reset, their respective stall volt thresholds, and an array of the positions they should be reset to.
             this.motors=motors;
-            this.stallVolts=stallVolts;
+            this.stallAmps =stallAmps;
             this.resetPositions = resetPositions;
             ConditionalCommand[] commands = new ConditionalCommand[motors.length];
             for (int i=0;i<motors.length;i++){
                 int finalI = i;
                 commands[i]=new ConditionalCommand(
                         new IfThen(
-                                ()->((!motors[finalI].isStallResetting()) && (motors[finalI].getCurrentAmps()>stallVolts[finalI])),
-                                motors[finalI].stallResetCommand(resetPositions[finalI],stallVolts[finalI])
+                                ()->((!motors[finalI].isStallResetting()) && (motors[finalI].getCurrentAmps()>stallAmps[finalI])),
+                                motors[finalI].stallResetCommand(resetPositions[finalI],stallAmps[finalI])
                         )
                 );
             }
