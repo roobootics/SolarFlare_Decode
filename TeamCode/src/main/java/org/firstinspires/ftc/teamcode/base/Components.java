@@ -284,8 +284,8 @@ public abstract class Components {
         private boolean newTarget=false; //Set to true when setTarget is called. Set to false after the end of each loop.
         private boolean newActuation=false; //Set to true when a method tagged with @Actuator is called. Set to false after the end of each loop.
         private double offset; //In case a part skips or something, this allows us to offset all the targets we set to compensate for the skip.
-        public final Supplier<Double> maxTargetFunc;
-        public final Supplier<Double> minTargetFunc;
+        public Supplier<Double> maxTargetFunc = ()->Double.POSITIVE_INFINITY;
+        public Supplier<Double> minTargetFunc = ()->Double.NEGATIVE_INFINITY;
         //Max and min targets. They are dynamic functions since the max position for an actuator may not be the same. An in-game extension limit may not apply based on the direction of the actuator, for example.
         private Supplier<Double> maxOffsetFunc = ()->(Double.POSITIVE_INFINITY);
         private Supplier<Double> minOffsetFunc = ()->(Double.NEGATIVE_INFINITY);
@@ -303,13 +303,10 @@ public abstract class Components {
         private boolean timeBasedLocalization = false; //Indicates whether the getCurrentPosition method of the actuator calculates the position based on time as opposed to an encoder, which is important to know.
         @SafeVarargs
         public Actuator(String actuatorName, Function<E, Double> getCurrentPosition, int currentPosPollingInterval,
-                        Supplier<Double> maxTargetFunc, Supplier<Double> minTargetFunc,
                         double errorTol, double defaultMovementTimeout, String[] controlFuncKeys, ControlSystem<? extends Actuator<E>>... controlFuncs){
             currentPosPollingInterval=Math.max(0,currentPosPollingInterval);
             this.name=actuatorName;
             this.device = (E) hardwareMap.get(actuatorName);
-            this.maxTargetFunc = ()->(maxTargetFunc.get()+offset);
-            this.minTargetFunc = ()->(minTargetFunc.get()+offset);
             this.defaultMovementTimeout = defaultMovementTimeout;
             this.errorTol=errorTol;
             CachedReader<Double> reader = new CachedReader<>(()->(getCurrentPosition.apply(device)),currentPosPollingInterval);
@@ -326,6 +323,10 @@ public abstract class Components {
                 defaultControlKey=currControlFuncKey;
             }
             actuators.put(name,this);
+        }
+        public void setTargetBounds(Supplier<Double> maxTargetFunc, Supplier<Double> minTargetFunc){
+            this.maxTargetFunc = ()->(maxTargetFunc.get()+offset);
+            this.minTargetFunc = ()->(minTargetFunc.get()+offset);
         }
         public String getName(){
             return name;
@@ -565,24 +566,22 @@ public abstract class Components {
     }
     //Each of the subclasses of Actuator will have some generic constructors and some constructors where information is preset.
     public abstract static class CRActuator<E extends DcMotorSimple> extends Actuator<E>{ //Type of Actuator that works for continuous rotation parts, like DcMotorEx and CRServo
-        private final Supplier<Double> maxPowerFunc;
-        private final Supplier<Double> minPowerFunc;
+        private Supplier<Double> maxPowerFunc = ()->Double.POSITIVE_INFINITY;
+        private Supplier<Double> minPowerFunc = ()->Double.NEGATIVE_INFINITY;
         //Max and min power boundaries
         private final HashMap<String,Double> keyPowers = new HashMap<>(); //Stores key powers, like 'intakePower,' etc.
         @SafeVarargs
-        public CRActuator(String name, DcMotorSimple.Direction direction, Function<E, Double> getCurrentPosition, int pollingRate, Supplier<Double> maxTargetFunc, Supplier<Double> minTargetFunc, Supplier<Double> maxPowerFunc, Supplier<Double> minPowerFunc, double errorTol, double defaultTimeout, String[] controlFuncKeys, ControlSystem<? extends CRActuator<E>>... controlFuncs) {
-            super(name, getCurrentPosition, pollingRate, maxTargetFunc, minTargetFunc, errorTol, defaultTimeout,controlFuncKeys,controlFuncs);
-            this.maxPowerFunc=maxPowerFunc;
-            this.minPowerFunc=minPowerFunc;
+        public CRActuator(String name, DcMotorSimple.Direction direction, Function<E, Double> getCurrentPosition, int pollingRate, double errorTol, double defaultTimeout, String[] controlFuncKeys, ControlSystem<? extends CRActuator<E>>... controlFuncs) {
+            super(name, getCurrentPosition, pollingRate, errorTol, defaultTimeout,controlFuncKeys,controlFuncs);
             this.setTarget(0);
             this.getDevice().setDirection(direction);
         }
-        @SafeVarargs
-        public CRActuator(String name, DcMotorSimple.Direction direction, Function<E, Double> getCurrentPosition, int pollingRate, Supplier<Double> maxTargetFunc, Supplier<Double> minTargetFunc, double errorTol, double defaultTimeout, String[] controlFuncKeys, ControlSystem<? extends CRActuator<E>>... controlFuncs) {
-            this(name,direction,getCurrentPosition,pollingRate,maxTargetFunc,minTargetFunc,()->(1.0),()->(-1.0),errorTol,defaultTimeout,controlFuncKeys,controlFuncs);
+        public CRActuator(String name, DcMotorSimple.Direction direction, Function<E, Double> getCurrentPosition) { //For CRActuators that don't set targets and only use setPower, like drivetrain motors.
+            this(name,direction,getCurrentPosition, 1,0,0,new String[]{});
         }
-        public CRActuator(String name, DcMotorSimple.Direction direction, Supplier<Double> maxPowerFunc, Supplier<Double> minPowerFunc) { //For CRActuators that don't set targets and only use setPower, like drivetrain motors.
-            this(name,direction,(E e)->(0.0), 1,()->(Double.POSITIVE_INFINITY),()->(Double.NEGATIVE_INFINITY),()->(1.0),()->(-1.0),0,0,new String[]{});
+        public void setPowerBounds(Supplier<Double> maxPowerFunc, Supplier<Double> minPowerFunc){
+            this.maxPowerFunc=maxPowerFunc;
+            this.minPowerFunc=minPowerFunc;
         }
         public double getKeyPower(String key){
             return Objects.requireNonNull(keyPowers.get(key));
@@ -683,13 +682,11 @@ public abstract class Components {
         private Supplier<Double> velocityReader;
         private final Supplier<Double> currentReader;
         private final HashMap<String,Double> keyVelocities = new HashMap<>(); //Stores key velocities, like 'intakeVelocity,' etc.
-        private final Supplier<Double> maxVelocityFunc;
-        private final Supplier<Double> minVelocityFunc;
+        private Supplier<Double> maxVelocityFunc = ()->Double.POSITIVE_INFINITY;
+        private Supplier<Double> minVelocityFunc = ()->Double.NEGATIVE_INFINITY;
         @SafeVarargs
-        public BotMotor(String name, DcMotorSimple.Direction direction, Function<DcMotorEx, Double> getCurrentPosition, int currentPosPollingInterval, Supplier<Double> maxTargetFunc, Supplier<Double> minTargetFunc, Supplier<Double> maxPowerFunc, Supplier<Double> minPowerFunc, Supplier<Double> maxVelocityFunc, Supplier<Double> minVelocityFunc, double errorTol, double defaultTimeout, String[] controlFuncKeys, ControlSystem<BotMotor>... controlFuncs) {
-            super(name,direction,getCurrentPosition, currentPosPollingInterval, maxTargetFunc, minTargetFunc, maxPowerFunc, minPowerFunc, errorTol, defaultTimeout,controlFuncKeys,controlFuncs);
-            this.minVelocityFunc=minVelocityFunc;
-            this.maxVelocityFunc=maxVelocityFunc;
+        public BotMotor(String name, DcMotorSimple.Direction direction, Function<DcMotorEx, Double> getCurrentPosition, int currentPosPollingInterval, double errorTol, double defaultTimeout, String[] controlFuncKeys, ControlSystem<BotMotor>... controlFuncs) {
+            super(name,direction,getCurrentPosition, currentPosPollingInterval, errorTol, defaultTimeout,controlFuncKeys,controlFuncs);
             DcMotorEx device=getDevice();
             velocityReader=new CachedReader<>(device::getVelocity,1)::cachedRead;
             currentReader=new CachedReader<>(()->device.getCurrent(CurrentUnit.AMPS),3)::cachedRead;
@@ -701,19 +698,17 @@ public abstract class Components {
         }
 
         @SafeVarargs
-        public BotMotor(String name, DcMotorSimple.Direction direction, Supplier<Double> maxTargetFunc, Supplier<Double> minTargetFunc, Supplier<Double> maxPowerFunc, Supplier<Double> minPowerFunc, Supplier<Double> maxVelocityFunc, Supplier<Double> minVelocityFunc, double errorTol, double defaultTimeout, String[] controlFuncKeys, ControlSystem<BotMotor>... controlFuncs) {
-            this(name, direction, (DcMotorEx motor) -> ((double) motor.getCurrentPosition()), 1, maxTargetFunc, minTargetFunc, maxPowerFunc, minPowerFunc, maxVelocityFunc, minVelocityFunc, errorTol, defaultTimeout,controlFuncKeys,controlFuncs);
+        public BotMotor(String name, DcMotorSimple.Direction direction, double errorTol, double defaultTimeout, String[] controlFuncKeys, ControlSystem<BotMotor>... controlFuncs) {
+            this(name, direction, (DcMotorEx motor) -> ((double) motor.getCurrentPosition()), 1, errorTol, defaultTimeout,controlFuncKeys,controlFuncs);
         }
 
-        @SafeVarargs
-        public BotMotor(String name, DcMotorSimple.Direction direction, Supplier<Double> maxTargetFunc, Supplier<Double> minTargetFunc, double errorTol, double defaultTimeout, String[] controlFuncKeys, ControlSystem<BotMotor>... controlFuncs) {
-            this(name, direction, (DcMotorEx motor) -> ((double) motor.getCurrentPosition()), 1, maxTargetFunc, minTargetFunc, ()->(1.0), ()->-1.0, ()->Double.POSITIVE_INFINITY, ()->Double.NEGATIVE_INFINITY, errorTol, defaultTimeout,controlFuncKeys,controlFuncs);
+        public BotMotor(String name, DcMotorSimple.Direction direction) {
+            this(name, direction, 0.0, 0.0, new String[]{});
         }
-
-        public BotMotor(String name, DcMotorSimple.Direction direction, Supplier<Double> maxPowerFunc, Supplier<Double> minPowerFunc, Supplier<Double> maxVelocityFunc, Supplier<Double> minVelocityFunc) {
-            this(name, direction, ()->(1.0), ()->-1.0, maxPowerFunc, minPowerFunc, maxVelocityFunc, minVelocityFunc, 0.0, 0.0, new String[]{});
+        public void setVelocityBounds(Supplier<Double> maxVelocityFunc, Supplier<Double> minVelocityFunc){
+            this.minVelocityFunc=minVelocityFunc;
+            this.maxVelocityFunc=maxVelocityFunc;
         }
-
         public double getKeyVelocity(String key){
             return Objects.requireNonNull(keyVelocities.get(key));
         }
@@ -821,9 +816,9 @@ public abstract class Components {
         private final double range; //Stores the range of the servo positions (e.g. 0-180 degrees)
         private Function<Double, Double> setPositionConversion;
         @SafeVarargs
-        public BotServo(String name, Servo.Direction direction, Function<Servo, Double> getCurrentPosition, int currentPosPollingInterval, Supplier<Double> maxTargetFunc, Supplier<Double> minTargetFunc, double errorTol, double defaultTimeout, double range, //Degree range that servo is programmed to
+        public BotServo(String name, Servo.Direction direction, Function<Servo, Double> getCurrentPosition, int currentPosPollingInterval, double errorTol, double defaultTimeout, double range, //Degree range that servo is programmed to
                         double initialTarget, String[] controlFuncKeys, ControlSystem<BotServo>... controlFuncs) {
-            super(name, getCurrentPosition, currentPosPollingInterval, maxTargetFunc, minTargetFunc, errorTol, defaultTimeout, controlFuncKeys, controlFuncs);
+            super(name, getCurrentPosition, currentPosPollingInterval, errorTol, defaultTimeout, controlFuncKeys, controlFuncs);
             setTarget(initialTarget);
             this.range=range;
             this.setPositionConversion=(Double pos)->pos/range;
@@ -832,8 +827,8 @@ public abstract class Components {
             }
             getDevice().setDirection(direction);
         }
-        public BotServo(String name, Servo.Direction direction, Supplier<Double> maxTargetFunc, Supplier<Double> minTargetFunc, double servoSpeedDPS, double defaultTimeout, double range, double initialTarget) {
-            this(name,direction, new TimeBasedLocalizers.ServoTimeBasedLocalizer(servoSpeedDPS/range,initialTarget,range)::getCurrentPosition,1,maxTargetFunc,minTargetFunc,1.5,defaultTimeout,range, initialTarget, new String[]{"setPos"}, new ControlSystem<>(new ServoControl()));
+        public BotServo(String name, Servo.Direction direction, double servoSpeedDPS, double defaultTimeout, double range, double initialTarget) {
+            this(name,direction, new TimeBasedLocalizers.ServoTimeBasedLocalizer(servoSpeedDPS/range,initialTarget,range)::getCurrentPosition,1,1.5,defaultTimeout,range, initialTarget, new String[]{"setPos"}, new ControlSystem<>(new ServoControl()));
             setTimeBasedLocalization(true);
         }
         public void setPositionConversion(Function<Double,Double> setPositionConversion){
@@ -868,26 +863,18 @@ public abstract class Components {
     }
     public static class CRBotServo extends CRActuator<CRServo>{
         @SafeVarargs
-        public CRBotServo(String name, DcMotorSimple.Direction direction, Function<CRServo, Double> getCurrentPosition, int pollingRate,Supplier<Double> maxTargetFunc, Supplier<Double> minTargetFunc, Supplier<Double> maxPowerFunc, Supplier<Double> minPowerFunc, double errorTol, double defaultTimeout, String[] controlFuncKeys, ControlSystem<CRBotServo>... controlFuncs) {
-            super(name, direction, getCurrentPosition, pollingRate, maxTargetFunc, minTargetFunc, maxPowerFunc, minPowerFunc, errorTol, defaultTimeout,controlFuncKeys,controlFuncs);
+        public CRBotServo(String name, DcMotorSimple.Direction direction, Function<CRServo, Double> getCurrentPosition, int pollingRate, double errorTol, double defaultTimeout, String[] controlFuncKeys, ControlSystem<CRBotServo>... controlFuncs) {
+            super(name, direction, getCurrentPosition, pollingRate, errorTol, defaultTimeout,controlFuncKeys,controlFuncs);
             for (ControlSystem<CRBotServo> system:controlFuncs){
                 system.registerToActuator(this);
             }
         }
         @SafeVarargs
-        public CRBotServo(String name, DcMotorSimple.Direction direction, Supplier<Double> maxTargetFunc, Supplier<Double> minTargetFunc, Supplier<Double> maxPowerFunc, Supplier<Double> minPowerFunc, double servoSpeed, String[] controlFuncKeys, ControlSystem<CRBotServo>... controlFuncs) {
-            this(name, direction, new TimeBasedLocalizers.CRTimeBasedLocalizer<CRServo>(servoSpeed)::getCurrentPosition, 1, maxTargetFunc, minTargetFunc, maxPowerFunc,minPowerFunc,0, Double.POSITIVE_INFINITY,controlFuncKeys,controlFuncs);
+        public CRBotServo(String name, DcMotorSimple.Direction direction, double servoSpeedDPS, String[] controlFuncKeys, ControlSystem<CRBotServo>... controlFuncs) {
+            this(name, direction, new TimeBasedLocalizers.CRTimeBasedLocalizer<CRServo>(servoSpeedDPS)::getCurrentPosition, 1,0, Double.POSITIVE_INFINITY,controlFuncKeys,controlFuncs);
         }
-        @SafeVarargs
-        public CRBotServo(String name, DcMotorSimple.Direction direction, Function<CRServo, Double> getCurrentPosition, int pollingRate, Supplier<Double> maxTargetFunc, Supplier<Double> minTargetFunc, double errorTol, double defaultTimeout, String[] controlFuncKeys, ControlSystem<CRBotServo>... controlFuncs) {
-            this(name, direction, getCurrentPosition, pollingRate, maxTargetFunc, minTargetFunc,()->(1.0),()->(-1.0),errorTol,defaultTimeout,controlFuncKeys,controlFuncs);
-        }
-        @SafeVarargs
-        public CRBotServo(String name, DcMotorSimple.Direction direction, Supplier<Double> maxTargetFunc, Supplier<Double> minTargetFunc, double servoSpeed, String[] controlFuncKeys, ControlSystem<CRBotServo>... controlFuncs) {
-            this(name,direction, new TimeBasedLocalizers.CRTimeBasedLocalizer<CRServo>(servoSpeed)::getCurrentPosition, 1, maxTargetFunc, minTargetFunc, ()->(1.0),()->(-1.0),0, Double.POSITIVE_INFINITY,controlFuncKeys,controlFuncs);
-        }
-        public CRBotServo(String name, DcMotorSimple.Direction direction, Supplier<Double> maxPowerFunc, Supplier<Double> minPowerFunc, double servoSpeed) {
-            this(name, direction, ()->(0.0), ()->(0.0), maxPowerFunc,minPowerFunc,servoSpeed,new String[]{});
+        public CRBotServo(String name, DcMotorSimple.Direction direction, double servoSpeedDPS) {
+            this(name, direction, servoSpeedDPS,new String[]{});
         }
     }
 }
