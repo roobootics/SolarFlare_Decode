@@ -76,7 +76,7 @@ public abstract class PresetControl { //Holds control functions that actuators c
             previousFiveErrors.clear();
         }
     }
-    public static class PositionPID<E extends CRActuator<?>> extends ControlFunc<E>{ //Position PIDF controller for CRActuators
+    public static class PositionPID extends ControlFunc<CRActuator<?>>{ //Position PIDF controller for CRActuators
         private final GenericPID PID;
         public PositionPID(double kP, double kI, double kD){
             this.PID=new GenericPID(kP,kI,kD);
@@ -120,7 +120,7 @@ public abstract class PresetControl { //Holds control functions that actuators c
             parentActuator.setPower(0);
         }
     }
-    public static class BasicFeedforward<E extends CRActuator<?>> extends ControlFunc<E>{
+    public static class BasicFeedforward extends ControlFunc<CRActuator<?>>{
         private final double[] kFs;
         private final String[] references;
         public BasicFeedforward(double[] kFs, String[] references){
@@ -136,7 +136,7 @@ public abstract class PresetControl { //Holds control functions that actuators c
             system.setOutput(system.getOutput()+output);
         }
     }
-    public static class ElevatorFeedforward<E extends CRActuator<?>> extends ControlFunc<E>{
+    public static class ElevatorFeedforward extends ControlFunc<CRActuator<?>>{
         public double kF;
         public ElevatorFeedforward(double kF){
             this.kF = kF;
@@ -146,7 +146,7 @@ public abstract class PresetControl { //Holds control functions that actuators c
             system.setOutput(system.getOutput()+kF);
         }
     }
-    public static class ArmFeedforward<E extends CRActuator<?>> extends ControlFunc<E>{
+    public static class ArmFeedforward extends ControlFunc<CRActuator<?>>{
         public double kF;
         public double referenceToRad;
         public double angleAtZero;
@@ -160,7 +160,7 @@ public abstract class PresetControl { //Holds control functions that actuators c
             system.setOutput(kF*Math.cos(system.getOutput()*referenceToRad+angleAtZero));
         }
     }
-    public static class SQUID<E extends CRActuator<?>> extends ControlFunc<E>{ //SQUID controller for CRActuators
+    public static class SQUID extends ControlFunc<CRActuator<?>>{ //SQUID controller for CRActuators
         public double kP;
         public SQUID(double kP){
             this.kP=kP;
@@ -177,7 +177,7 @@ public abstract class PresetControl { //Holds control functions that actuators c
             parentActuator.setPower(0);
         }
     }
-    public static class TrapezoidalMotionProfile<E extends Actuator<?>> extends ControlFunc<E>{ //Trapezoidal motion profile for any actuator.
+    public static class TrapezoidalMotionProfile extends ControlFunc<Actuator<?>>{ //Trapezoidal motion profile for any actuator.
         public enum Phase{
             ACCEL,
             CRUISE,
@@ -347,7 +347,7 @@ public abstract class PresetControl { //Holds control functions that actuators c
             system.setOutput(system.getInstantReference("targetVelocity"));
         }
     }
-    public static class CRBangBangControl<E extends CRActuator<?>> extends ControlFunc<E>{ //Likely will be used to get CRServos to their targets if they have no encoders with them. Sets a positive or negative power to the servo depending on where it is relative to the target. May create oscillations
+    public static class CRBangBangControl extends ControlFunc<CRActuator<?>>{ //Likely will be used to get CRServos to their targets if they have no encoders with them. Sets a positive or negative power to the servo depending on where it is relative to the target. May create oscillations
         private final Supplier<Double> powerFunc; //This control function moves the CRActuator to the target at a given power, which can change. That is stored here.
         public CRBangBangControl(double power){
             this.powerFunc=()->(power);
