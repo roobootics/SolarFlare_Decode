@@ -13,7 +13,7 @@ public class Motor implements RobotConfig {
     public static double targetVelocity;
     @Override
     public void init() {
-        profile=new TrapezoidalMotionProfile(10000,1000);
+        profile=new TrapezoidalMotionProfile(20000,5000);
         motor = new BotMotor(
                 "motor", DcMotorSimple.Direction.FORWARD, 20.0,5.0,
                 new String[]{"PID","setVelocity","VelocityPIDF"},
