@@ -10,7 +10,6 @@ import org.firstinspires.ftc.teamcode.base.Components;
 
 import java.util.ArrayList;
 import java.util.Objects;
-
 //Dpad left/right to switch between actuators. If the actuator is a servo, use left/right bumper to move it and see the position.
 public abstract class GenericPositionFinder extends LinearOpMode { //Used to find the specific positions that we will end up setting actuators to. Allows one to select an actuator and move it.
     //Subclass this class, such that in the subclass's runOpMode, all robot state is initialized before the super's runOpMode runs.

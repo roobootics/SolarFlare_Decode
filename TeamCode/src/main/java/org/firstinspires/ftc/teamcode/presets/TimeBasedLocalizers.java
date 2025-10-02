@@ -2,12 +2,11 @@ package org.firstinspires.ftc.teamcode.presets;
 
 import static org.firstinspires.ftc.teamcode.base.Components.timer;
 
-
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Servo;
 
 public abstract class TimeBasedLocalizers{
-    public static class ServoTimeBasedLocalizer{ //Calculates position of a servo based on time
+    public static class ServoTimeBasedLocalizer{ //Calculates position of a servo based on time. Given to BotServos by default depending on the constructor you call. If you have a servo encoder you can use that instead by calling the most general constructor and providing a getCurrentPosition method.
         private final double ABS_SERVO_SPEED;
         private double prevPosition;
         private double prevTime;
