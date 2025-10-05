@@ -203,9 +203,6 @@ public abstract class Components {
             for (String label:storedGlobalReferences.keySet()){
                 readReference(label);
             }
-            for (String label:storedGlobalReferences.keySet()){
-                setInstantReference(label,getReference(label));
-            }
             for (ControlFunc<?> func:controlFuncs){
                 func.runProcedure();
             }
@@ -232,6 +229,7 @@ public abstract class Components {
                 isNewGlobalReferences.put(label,true);
             }
             storedGlobalReferences.put(label,reference);
+            setInstantReference(label,getReference(label));
         }
         public double getInstantReference(String label){ //Return the value of an instantaneous reference. In systems like motion profiling, this is distinct from the global reference but builds to it over time.
             try{

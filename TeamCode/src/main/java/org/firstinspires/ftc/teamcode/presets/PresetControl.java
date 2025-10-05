@@ -160,6 +160,17 @@ public abstract class PresetControl { //Holds control functions that actuators c
             system.setOutput(kF*Math.cos(system.getOutput()*referenceToRad+angleAtZero));
         }
     }
+    public static class CustomFeedforward extends ControlFunc<CRActuator<?>>{
+        public double kF;
+        public Supplier<Double> func;
+        public CustomFeedforward(double kF, Supplier<Double> func){
+            this.kF = kF; this.func=func;
+        }
+        @Override
+        protected void runProcedure() {
+            system.setOutput(system.getOutput()+kF*func.get());
+        }
+    }
     public static class SQUID extends ControlFunc<CRActuator<?>>{ //SQUID controller for CRActuators
         public double kP;
         public SQUID(double kP){
