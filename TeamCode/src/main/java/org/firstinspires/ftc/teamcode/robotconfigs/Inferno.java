@@ -1,15 +1,24 @@
 package org.firstinspires.ftc.teamcode.robotconfigs;
 
+import android.graphics.Bitmap;
+
 import com.pedropathing.geometry.Pose;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.hardware.rev.RevColorSensorV3;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Servo;
 
+import org.firstinspires.ftc.robotcore.external.function.Consumer;
+import org.firstinspires.ftc.robotcore.external.function.Continuation;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.CameraName;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.CameraControl;
 import org.firstinspires.ftc.teamcode.base.Components;
 import org.firstinspires.ftc.teamcode.base.Components.*;
 import org.firstinspires.ftc.teamcode.pedroPathing.Pedro;
 import org.firstinspires.ftc.teamcode.presets.PresetControl.*;
+import org.firstinspires.ftc.vision.VisionPortal;
+import org.firstinspires.ftc.vision.VisionProcessor;
 
 import java.util.List;
 
@@ -26,6 +35,7 @@ public class Inferno implements RobotConfig{
     public static BotMotor backIntake;
     public static RevColorSensorV3[] sensors = new RevColorSensorV3[3];
     public static Limelight3A limelight;
+    public static VisionPortal aprilTagCam1;
     @Override
     public void init() {
         Pedro.createFollower(new Pose(0,0,0));
@@ -63,5 +73,8 @@ public class Inferno implements RobotConfig{
         sensors[1] = Components.getHardwareMap().get(RevColorSensorV3.class,"sensor2");
         sensors[2] = Components.getHardwareMap().get(RevColorSensorV3.class,"sensor3");
         limelight=Components.getHardwareMap().get(Limelight3A.class,"limelight");
+        aprilTagCam1 = new VisionPortal.Builder()
+                .setCamera(Components.getHardwareMap().get(CameraName.class,"aprilTagCam1"))
+                .build();
     }
 }
