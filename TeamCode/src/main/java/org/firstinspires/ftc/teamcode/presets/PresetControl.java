@@ -121,19 +121,15 @@ public abstract class PresetControl { //Holds control functions that actuators c
         }
     }
     public static class BasicFeedforward extends ControlFunc<CRActuator<?>>{
-        private final double[] kFs;
-        private final String[] references;
-        public BasicFeedforward(double[] kFs, String[] references){
-            this.kFs = kFs;
-            this.references = references;
+        private final double kF;
+        private final String reference;
+        public BasicFeedforward(double kF, String reference){
+            this.kF = kF;
+            this.reference = reference;
         }
         @Override
         protected void runProcedure() {
-            double output=0;
-            for (int i=0;i< kFs.length;i++){
-                output+=kFs[i]*system.getInstantReference(references[i]);
-            }
-            system.setOutput(system.getOutput()+output);
+            system.setOutput(system.getOutput()+kF*system.getInstantReference(reference));
         }
     }
     public static class ElevatorFeedforward extends ControlFunc<CRActuator<?>>{
