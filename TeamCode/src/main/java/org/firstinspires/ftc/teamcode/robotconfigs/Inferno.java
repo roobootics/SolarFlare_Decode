@@ -1,7 +1,5 @@
 package org.firstinspires.ftc.teamcode.robotconfigs;
 
-import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
-
 import com.pedropathing.geometry.Pose;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.hardware.rev.RevColorSensorV3;
@@ -25,7 +23,6 @@ public class Inferno implements RobotConfig{
     public static SyncedActuators<BotMotor> flywheel;
     public static double targetFlywheelVelocity;
     public static SyncedActuators<BotServo> turretYaw;
-    public static double targetTurretYaw;
     public static SyncedActuators<BotServo> turretPitch;
     public static BotMotor frontIntake;
     public static BotMotor backIntake;
@@ -83,10 +80,6 @@ public class Inferno implements RobotConfig{
     public static ParallelCommand frontIntakeAndTransfer;
     public static ParallelCommand backIntakeAndTransfer;
     public static ConditionalCommand transfer;
-    public static void setTargetTurretYaw(){
-        Pose currentRobotPose = follower.getPose();
-
-    }
     @Override
     public void init() {
         Pedro.createFollower(new Pose(0, 0, 0));
