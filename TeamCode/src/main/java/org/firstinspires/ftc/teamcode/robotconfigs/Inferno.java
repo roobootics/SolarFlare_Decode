@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.robotconfigs;
 
+import static org.firstinspires.ftc.teamcode.base.Components.timer;
+
 import com.pedropathing.geometry.Pose;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.hardware.rev.RevColorSensorV3;
@@ -13,6 +15,7 @@ import org.firstinspires.ftc.teamcode.base.Components.*;
 import org.firstinspires.ftc.teamcode.pedroPathing.Pedro;
 import org.firstinspires.ftc.teamcode.presets.PresetControl.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class Inferno implements RobotConfig{
@@ -35,6 +38,10 @@ public class Inferno implements RobotConfig{
         PURPLE,
         GREEN,
     }
+    public enum ShotHeight{
+        LOW,
+        HIGH,
+    }
     public enum ShotType{
         MOTIF,
         NORMAL
@@ -48,13 +55,20 @@ public class Inferno implements RobotConfig{
         INTAKE_BACK_AND_SHOOT
     }
     public static Color[] ballStorage = new Color[3];
-    public static RobotState robotState = RobotState.NONE;
+    public static RobotState robotState = RobotState.INTAKE_FRONT;
     public static ShotType shotType = ShotType.NORMAL;
-    public static double ballShotTiming;
+    private final static double ballShotTiming = 0;
+    private final static double transferSlowdown = 0.9;
     public static Color[] motif = new Color[3];
     public static Color[] shotSequence = new Color[3];
-
-    public static void colorSensorRead(){
+    public static ArrayList<ShotHeight> shotHeights = new ArrayList<>();
+    public static Command setState(RobotState robotState){
+        return new InstantCommand(()->Inferno.robotState=robotState);
+    }
+    public static Command setShotType(ShotType shotType){
+        return new InstantCommand(()->Inferno.shotType=shotType);
+    }
+    private static void colorSensorRead(){
         for (int i=0;i<3;i++){
             RevColorSensorV3 sensor = sensors[i];
             double [] greenCenter = new double[]{0,255,0};
@@ -71,15 +85,36 @@ public class Inferno implements RobotConfig{
             ballStorage[i] = color;
         }
     }
+    private static void findShotSequence(){}
+    private static void findShotHeights(){}
+    private static void aprilTagRelocalize(){}
+    private void calcTurretPos(){}
+    private void calcFlywheelVelocity(){}
+    public static Command loopFSM;
+    private static class TimeShotHeight extends Command{
+        private double startTime;
+        @Override
+        protected boolean runProcedure() {
+            if (isStart()){
+                startTime = timer.time();
+            }
+            if (timer.time()-startTime>ballShotTiming && !shotHeights.isEmpty()){
+                if (shotHeights.get(0)==ShotHeight.HIGH || (shotHeights.size()>1 && shotHeights.get(1)==ShotHeight.HIGH)){
+                    if (frontIntake.getPower()==frontIntake.getKeyPower("transfer")){
+                        frontIntake.setPower(frontIntake.getKeyPower("transfer")*transferSlowdown);
+                        backIntake.setPower(frontIntake.getKeyPower("otherSideTransfer")*transferSlowdown);
+                    }
+                    else{
+                        backIntake.setPower(frontIntake.getKeyPower("transfer")*transferSlowdown);
+                        frontIntake.setPower(frontIntake.getKeyPower("otherSideTransfer")*transferSlowdown);
+                    }
+                }
+                shotHeights.remove(0); startTime = timer.time();
+            }
+            return true;
+        }
+    }
 
-    public static ParallelCommand frontIntakeAction;
-    public static ParallelCommand backIntakeAction;
-    public static ParallelCommand stopIntake;
-    public static ParallelCommand frontTransfer;
-    public static ParallelCommand backTransfer;
-    public static ParallelCommand frontIntakeAndTransfer;
-    public static ParallelCommand backIntakeAndTransfer;
-    public static ConditionalCommand transfer;
     @Override
     public void init() {
         Pedro.createFollower(new Pose(0, 0, 0));
@@ -107,11 +142,11 @@ public class Inferno implements RobotConfig{
         frontIntake = new BotMotor("frontIntake", DcMotorSimple.Direction.FORWARD);
         backIntake = new BotMotor("backIntake", DcMotorSimple.Direction.REVERSE);
         frontIntake.setKeyPowers(
-                new String[]{"intake", "otherSideIntake", "thisSideTransfer", "otherSideTransfer", "stopped", "expel"},
+                new String[]{"intake","otherSideIntake","thisSideTransfer","otherSideTransfer","stopped","expel"},
                 new double[]{}
         );
         backIntake.setKeyPowers(
-                new String[]{"intake", "otherSideIntake", "thisSideTransfer", "otherSideTransfer", "stopped", "expel"},
+                new String[]{"intake","otherSideIntake","thisSideTransfer","otherSideTransfer","stopped","expel"},
                 new double[]{}
         );
         frontIntakeGate = new BotServo("frontIntakeGate", Servo.Direction.FORWARD, 422, 5, 270, 90);
@@ -126,69 +161,88 @@ public class Inferno implements RobotConfig{
         limelightPitch.setKeyPositions(new String[]{"balls", "apriltag", "obelisk"}, new double[]{});
         limelightPitch.setTarget(limelightPitch.getPos("obelisk"));
 
-        frontIntakeAction = new ParallelCommand(
+        ParallelCommand frontIntakeAction = new ParallelCommand(
                 frontIntake.setPowerCommand("intake"),
                 backIntake.setPowerCommand("otherSideIntake"),
                 frontIntakeGate.instantSetTargetCommand("open"),
                 backIntakeGate.instantSetTargetCommand("closed")
         );
-        backIntakeAction = new ParallelCommand(
+        ParallelCommand backIntakeAction = new ParallelCommand(
                 backIntake.setPowerCommand("intake"),
                 frontIntake.setPowerCommand("otherSideIntake"),
                 backIntakeGate.instantSetTargetCommand("open"),
                 frontIntakeGate.instantSetTargetCommand("closed")
         );
-        stopIntake = new ParallelCommand(
+        ParallelCommand stopIntake = new ParallelCommand(
                 frontIntake.setPowerCommand("stopped"),
                 backIntake.setPowerCommand("stopped"),
                 frontIntakeGate.instantSetTargetCommand("open"),
                 backIntakeGate.instantSetTargetCommand("open")
         );
-        frontTransfer = new ParallelCommand(
+        ParallelCommand frontTransfer = new ParallelCommand(
+                new InstantCommand(Inferno::aprilTagRelocalize),
                 frontIntake.setPowerCommand("transfer"),
                 backIntake.setPowerCommand("otherSideTransfer"),
                 frontIntakeGate.instantSetTargetCommand("closed"),
                 backIntakeGate.instantSetTargetCommand("closed")
         );
-        backTransfer = new ParallelCommand(
+        ParallelCommand backTransfer = new ParallelCommand(
+                new InstantCommand(Inferno::aprilTagRelocalize),
                 backIntake.setPowerCommand("transfer"),
                 frontIntake.setPowerCommand("otherSideTransfer"),
                 frontIntakeGate.instantSetTargetCommand("closed"),
                 backIntakeGate.instantSetTargetCommand("closed")
         );
-        frontIntakeAndTransfer = new ParallelCommand(
-                frontIntake.setPowerCommand("transfer"),
-                backIntake.setPowerCommand("otherSideTransfer"),
+        ParallelCommand frontIntakeAndTransfer = new ParallelCommand(
+                new InstantCommand(() -> shotType = ShotType.NORMAL),
+                frontTransfer,
                 frontIntakeGate.instantSetTargetCommand("open"),
                 backIntakeGate.instantSetTargetCommand("closed")
         );
-        backIntakeAndTransfer = new ParallelCommand(
-                backIntake.setPowerCommand("transfer"),
-                frontIntake.setPowerCommand("otherSideTransfer"),
+        ParallelCommand backIntakeAndTransfer = new ParallelCommand(
+                new InstantCommand(() -> shotType = ShotType.NORMAL),
+                backTransfer,
                 backIntakeGate.instantSetTargetCommand("open"),
                 frontIntakeGate.instantSetTargetCommand("closed")
         );
-        transfer = new ConditionalCommand(
+        ConditionalCommand transfer = new ConditionalCommand(
                 new IfThen(
-                        ()->shotType==ShotType.NORMAL,
+                        () -> shotType == ShotType.NORMAL,
                         frontTransfer
                 ),
                 new IfThen(
-                        ()->shotType==ShotType.MOTIF,
-                        new SequentialCommand(
-                                new InstantCommand(Inferno::colorSensorRead),
+                        () -> shotType == ShotType.MOTIF,
+                        new ParallelCommand(
+                                new InstantCommand(() -> {colorSensorRead(); aprilTagRelocalize(); findShotHeights();}),
                                 new ConditionalCommand(
                                         new IfThen(
-                                                ()->shotSequence[1]==ballStorage[2],
+                                                () -> shotSequence[1] == ballStorage[2],
                                                 backTransfer
                                         ),
                                         new IfThen(
-                                                ()->true,
+                                                () -> true,
                                                 frontTransfer
                                         )
                                 )
                         )
                 )
+        );
+        ContinuousCommand physics = new ContinuousCommand(()->{
+            calcTurretPos();
+            if (robotState==RobotState.SHOOTING || robotState==RobotState.INTAKE_BACK_AND_SHOOT || robotState==RobotState.INTAKE_FRONT_AND_SHOOT){calcFlywheelVelocity();}
+            else {targetFlywheelVelocity=0;}
+        });
+
+        loopFSM = new RunResettingLoop(
+               new PressCommand(
+                       new IfThen(()->robotState==RobotState.NONE, stopIntake),
+                       new IfThen(()->robotState==RobotState.INTAKE_BACK, backIntakeAction),
+                       new IfThen(()->robotState==RobotState.INTAKE_FRONT, frontIntakeAction),
+                       new IfThen(()->robotState==RobotState.INTAKE_BACK_AND_SHOOT, backIntakeAndTransfer),
+                       new IfThen(()->robotState==RobotState.INTAKE_FRONT, frontIntakeAndTransfer),
+                       new IfThen(()->robotState==RobotState.SHOOTING, new ParallelCommand(transfer, new TimeShotHeight()))
+               ),
+               physics
         );
     }
 }
