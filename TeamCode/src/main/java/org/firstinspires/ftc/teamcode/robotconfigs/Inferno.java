@@ -223,7 +223,8 @@ public class Inferno implements RobotConfig{
                                                 () -> true,
                                                 frontTransfer
                                         )
-                                )
+                                ),
+                                new TimeShotHeight()
                         )
                 )
         );
@@ -234,15 +235,29 @@ public class Inferno implements RobotConfig{
         });
 
         loopFSM = new RunResettingLoop(
-               new PressCommand(
-                       new IfThen(()->robotState==RobotState.NONE, stopIntake),
-                       new IfThen(()->robotState==RobotState.INTAKE_BACK, backIntakeAction),
-                       new IfThen(()->robotState==RobotState.INTAKE_FRONT, frontIntakeAction),
-                       new IfThen(()->robotState==RobotState.INTAKE_BACK_AND_SHOOT, backIntakeAndTransfer),
-                       new IfThen(()->robotState==RobotState.INTAKE_FRONT, frontIntakeAndTransfer),
-                       new IfThen(()->robotState==RobotState.SHOOTING, new ParallelCommand(transfer, new TimeShotHeight()))
-               ),
-               physics
+                new PressCommand(
+                        new IfThen(
+                                ()->limelightPitch.getTarget()==limelightPitch.getPos("obelisk"),
+                                new InstantCommand(()->limelight.pipelineSwitch(0))
+                        ),
+                        new IfThen(
+                                ()->limelightPitch.getTarget()==limelightPitch.getPos("apriltag"),
+                                new InstantCommand(()->limelight.pipelineSwitch(1))
+                        ),
+                        new IfThen(
+                                ()->limelightPitch.getTarget()==limelightPitch.getPos("balls"),
+                                new InstantCommand(()->limelight.pipelineSwitch(2))
+                        )
+                ),
+                new PressCommand(
+                        new IfThen(()->robotState==RobotState.NONE, stopIntake),
+                        new IfThen(()->robotState==RobotState.INTAKE_BACK, backIntakeAction),
+                        new IfThen(()->robotState==RobotState.INTAKE_FRONT, frontIntakeAction),
+                        new IfThen(()->robotState==RobotState.INTAKE_BACK_AND_SHOOT, backIntakeAndTransfer),
+                        new IfThen(()->robotState==RobotState.INTAKE_FRONT, frontIntakeAndTransfer),
+                        new IfThen(()->robotState==RobotState.SHOOTING, transfer)
+                ),
+                physics
         );
     }
 }
