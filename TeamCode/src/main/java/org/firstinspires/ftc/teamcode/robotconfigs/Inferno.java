@@ -2,6 +2,8 @@ package org.firstinspires.ftc.teamcode.robotconfigs;
 
 import static org.firstinspires.ftc.teamcode.base.Components.timer;
 
+import org.apache.commons.lang3.tuple.Triple;
+
 import com.pedropathing.geometry.Pose;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.hardware.rev.RevColorSensorV3;
@@ -16,7 +18,9 @@ import org.firstinspires.ftc.teamcode.pedroPathing.Pedro;
 import org.firstinspires.ftc.teamcode.presets.PresetControl.*;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 public class Inferno implements RobotConfig{
     public static BotMotor leftFront;
@@ -38,9 +42,13 @@ public class Inferno implements RobotConfig{
         PURPLE,
         GREEN,
     }
-    public enum ShotHeight{
+    public static Color opposite(Color color){
+        if (color == Color.GREEN) return Color.PURPLE; else return Color.GREEN;
+    }
+    public enum BallPath {
         LOW,
         HIGH,
+        BLANK
     }
     public enum ShotType{
         MOTIF,
@@ -55,19 +63,14 @@ public class Inferno implements RobotConfig{
         INTAKE_BACK_AND_SHOOT
     }
     public static Color[] ballStorage = new Color[3];
-    public static RobotState robotState = RobotState.INTAKE_FRONT;
+    private static BallPath currentBallPath = BallPath.LOW;
+    public static RobotState robotState;
     public static ShotType shotType = ShotType.NORMAL;
     private final static double ballShotTiming = 0;
+    private final static double slowedBallShotTiming = 0;
     private final static double transferSlowdown = 0.9;
     public static Color[] motif = new Color[3];
-    public static Color[] shotSequence = new Color[3];
-    public static ArrayList<ShotHeight> shotHeights = new ArrayList<>();
-    public static Command setState(RobotState robotState){
-        return new InstantCommand(()->Inferno.robotState=robotState);
-    }
-    public static Command setShotType(ShotType shotType){
-        return new InstantCommand(()->Inferno.shotType=shotType);
-    }
+    public static double classifierBallCount = 0;
     private static void colorSensorRead(){
         for (int i=0;i<3;i++){
             RevColorSensorV3 sensor = sensors[i];
@@ -85,31 +88,117 @@ public class Inferno implements RobotConfig{
             ballStorage[i] = color;
         }
     }
-    private static void findShotSequence(){}
-    private static void findShotHeights(){}
+    private static Triple<ArrayList<BallPath>,Boolean,Boolean> findMotifShotPlan(){
+        colorSensorRead();
+        ArrayList<BallPath> ballPaths = new ArrayList<>();
+        Color[] shotSequence = new Color[3];
+        if (classifierBallCount%3==0){
+            shotSequence = motif;
+        }
+        else if (classifierBallCount%3==1){
+            shotSequence[0] = motif[1];
+            shotSequence[1] = motif[2];
+            shotSequence[2] = motif[0];
+        }
+        else{
+            shotSequence[0] = motif[2];
+            shotSequence[1] = motif[0];
+            shotSequence[2] = motif[1];
+        }
+
+        int shotLength = 0;
+        boolean transferDirection = true;
+        boolean leaveRollersOn = true;
+        ArrayList<Color> balls = new ArrayList<>(Arrays.asList(ballStorage));
+        for (Color color : shotSequence){
+            if (balls.contains(color)){
+                shotLength+=1;
+                balls.remove(color);
+            }
+            else{ break;}
+        }
+        if (shotLength>0 && Objects.isNull(ballStorage[1])){shotLength+=1;}
+        leaveRollersOn=!(shotLength==0 || balls.contains(Color.PURPLE)||balls.contains(Color.GREEN));
+
+        ArrayList<Color> shotChecklist = new ArrayList<>(Arrays.asList(shotSequence));
+        if (shotLength>=1){
+            if (ballStorage[1]==shotSequence[0]){
+                ballPaths.add(BallPath.LOW);
+                shotChecklist.remove(0);
+            } else if (Objects.isNull(ballStorage[1])){
+                ballPaths.add(BallPath.BLANK);
+            } else{ ballPaths.add(BallPath.HIGH);}
+            if (shotLength>=2){
+                transferDirection = !(ballStorage[2]==shotChecklist.get(0));
+                ballPaths.add(BallPath.LOW);
+                shotChecklist.remove(0);
+                if (shotLength==3){
+                    int lastBall;
+                    if (transferDirection) lastBall=2; else lastBall=0;
+                    if (ballStorage[lastBall] == shotChecklist.get(0)){
+                        ballPaths.add(BallPath.LOW);
+                    } else {ballPaths.add(BallPath.HIGH);}
+                }
+            }
+        }
+        return Triple.of(ballPaths,transferDirection,leaveRollersOn);
+    }
     private static void aprilTagRelocalize(){}
-    private void calcTurretPos(){}
     private void calcFlywheelVelocity(){}
+    private void calcTurretPos(){}
+    public static Command setState(RobotState robotState){
+        return new InstantCommand(()->Inferno.robotState=robotState);
+    }
+    public static Command setShotType(ShotType shotType){
+        return new InstantCommand(()->Inferno.shotType=shotType);
+    }
     public static Command loopFSM;
-    private static class TimeShotHeight extends Command{
+
+    private static ParallelCommand frontTransfer;
+    private static ParallelCommand backTransfer;
+    private static class MotifShoot extends Command{
         private double startTime;
+        private ArrayList<BallPath> ballPaths; private boolean leaveRollersOn; private boolean transferDirection;
+        private double currentBallShotTiming = ballShotTiming;
         @Override
         protected boolean runProcedure() {
-            if (isStart()){
-                startTime = timer.time();
-            }
-            if (timer.time()-startTime>ballShotTiming && !shotHeights.isEmpty()){
-                if (shotHeights.get(0)==ShotHeight.HIGH || (shotHeights.size()>1 && shotHeights.get(1)==ShotHeight.HIGH)){
-                    if (frontIntake.getPower()==frontIntake.getKeyPower("transfer")){
-                        frontIntake.setPower(frontIntake.getKeyPower("transfer")*transferSlowdown);
-                        backIntake.setPower(frontIntake.getKeyPower("otherSideTransfer")*transferSlowdown);
-                    }
-                    else{
-                        backIntake.setPower(frontIntake.getKeyPower("transfer")*transferSlowdown);
-                        frontIntake.setPower(frontIntake.getKeyPower("otherSideTransfer")*transferSlowdown);
-                    }
+
+            if (isStart()) {
+                startTime = -9999;
+                Triple<ArrayList<BallPath>, Boolean, Boolean> plan = findMotifShotPlan();
+                ballPaths = plan.getLeft(); transferDirection = plan.getMiddle(); leaveRollersOn = plan.getRight();
+                if (!ballPaths.isEmpty()){
+                    if (transferDirection){frontTransfer.reset(); frontTransfer.run();} else{backTransfer.reset(); backTransfer.run();}
                 }
-                shotHeights.remove(0); startTime = timer.time();
+            }
+
+            if (timer.time() - startTime > currentBallShotTiming && !ballPaths.isEmpty()) {
+                startTime = timer.time();
+                if (ballPaths.get(0)!=currentBallPath && ballPaths.get(0)!=BallPath.BLANK) {
+                    if (transferDirection) {
+                        frontIntake.setPower(frontIntake.getKeyPower("transfer") * transferSlowdown);
+                        backIntake.setPower(frontIntake.getKeyPower("otherSideTransfer") * transferSlowdown);
+                    } else {
+                        backIntake.setPower(frontIntake.getKeyPower("transfer") * transferSlowdown);
+                        frontIntake.setPower(frontIntake.getKeyPower("otherSideTransfer") * transferSlowdown);
+                    }
+                    currentBallShotTiming = slowedBallShotTiming;
+                }
+                else{
+                    if (transferDirection) {
+                        frontIntake.setPower(frontIntake.getKeyPower("transfer"));
+                        backIntake.setPower(frontIntake.getKeyPower("otherSideTransfer"));
+                    } else {
+                        backIntake.setPower(frontIntake.getKeyPower("transfer"));
+                        frontIntake.setPower(frontIntake.getKeyPower("otherSideTransfer"));
+                    }
+                    currentBallShotTiming = ballShotTiming;
+                }
+                if (ballPaths.get(0)!=BallPath.BLANK) currentBallPath = ballPaths.get(0); else currentBallPath = ballPaths.get(1);
+                ballPaths.remove(0);
+            }
+            else if (ballPaths.isEmpty() && !leaveRollersOn){
+                setState(RobotState.NONE);
             }
             return true;
         }
@@ -161,6 +250,19 @@ public class Inferno implements RobotConfig{
         limelightPitch.setKeyPositions(new String[]{"balls", "apriltag", "obelisk"}, new double[]{});
         limelightPitch.setTarget(limelightPitch.getPos("obelisk"));
 
+        frontTransfer = new ParallelCommand(
+                frontIntake.setPowerCommand("transfer"),
+                backIntake.setPowerCommand("otherSideTransfer"),
+                frontIntakeGate.instantSetTargetCommand("closed"),
+                backIntakeGate.instantSetTargetCommand("closed")
+        );
+        backTransfer = new ParallelCommand(
+                backIntake.setPowerCommand("transfer"),
+                frontIntake.setPowerCommand("otherSideTransfer"),
+                frontIntakeGate.instantSetTargetCommand("closed"),
+                backIntakeGate.instantSetTargetCommand("closed")
+        );
+
         ParallelCommand frontIntakeAction = new ParallelCommand(
                 frontIntake.setPowerCommand("intake"),
                 backIntake.setPowerCommand("otherSideIntake"),
@@ -179,20 +281,6 @@ public class Inferno implements RobotConfig{
                 frontIntakeGate.instantSetTargetCommand("open"),
                 backIntakeGate.instantSetTargetCommand("open")
         );
-        ParallelCommand frontTransfer = new ParallelCommand(
-                new InstantCommand(Inferno::aprilTagRelocalize),
-                frontIntake.setPowerCommand("transfer"),
-                backIntake.setPowerCommand("otherSideTransfer"),
-                frontIntakeGate.instantSetTargetCommand("closed"),
-                backIntakeGate.instantSetTargetCommand("closed")
-        );
-        ParallelCommand backTransfer = new ParallelCommand(
-                new InstantCommand(Inferno::aprilTagRelocalize),
-                backIntake.setPowerCommand("transfer"),
-                frontIntake.setPowerCommand("otherSideTransfer"),
-                frontIntakeGate.instantSetTargetCommand("closed"),
-                backIntakeGate.instantSetTargetCommand("closed")
-        );
         ParallelCommand frontIntakeAndTransfer = new ParallelCommand(
                 new InstantCommand(() -> shotType = ShotType.NORMAL),
                 frontTransfer,
@@ -208,24 +296,11 @@ public class Inferno implements RobotConfig{
         ConditionalCommand transfer = new ConditionalCommand(
                 new IfThen(
                         () -> shotType == ShotType.NORMAL,
-                        frontTransfer
+                        new ParallelCommand(frontTransfer,new InstantCommand(()-> currentBallPath = BallPath.LOW))
                 ),
                 new IfThen(
                         () -> shotType == ShotType.MOTIF,
-                        new ParallelCommand(
-                                new InstantCommand(() -> {colorSensorRead(); aprilTagRelocalize(); findShotHeights();}),
-                                new ConditionalCommand(
-                                        new IfThen(
-                                                () -> shotSequence[1] == ballStorage[2],
-                                                backTransfer
-                                        ),
-                                        new IfThen(
-                                                () -> true,
-                                                frontTransfer
-                                        )
-                                ),
-                                new TimeShotHeight()
-                        )
+                        new MotifShoot()
                 )
         );
         ContinuousCommand physics = new ContinuousCommand(()->{
@@ -257,6 +332,7 @@ public class Inferno implements RobotConfig{
                         new IfThen(()->robotState==RobotState.INTAKE_FRONT, frontIntakeAndTransfer),
                         new IfThen(()->robotState==RobotState.SHOOTING, transfer)
                 ),
+                new InstantCommand(()->{if (robotState!=RobotState.SHOOTING){currentBallPath =BallPath.LOW;}}),
                 physics
         );
     }
