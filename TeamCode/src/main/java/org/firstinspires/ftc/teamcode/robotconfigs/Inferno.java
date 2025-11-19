@@ -35,6 +35,8 @@ public class Inferno implements RobotConfig{
     public static SyncedActuators<BotServo> turretPitch;
     public static BotMotor frontIntake;
     public static BotMotor backIntake;
+    private static final double TRANSFER_VEL = 2000;
+    private static final double OPPOSITE_TRANSFER_VEL = 1500;
     public static BotServo frontIntakeGate;
     public static BotServo backIntakeGate;
     public static RevColorSensorV3[] sensors = new RevColorSensorV3[3];
@@ -68,9 +70,9 @@ public class Inferno implements RobotConfig{
     private static BallPath currentBallPath = BallPath.LOW;
     public static RobotState robotState;
     public static ShotType shotType = ShotType.NORMAL;
-    private final static double ballShotTiming = 0;
-    private final static double slowedBallShotTiming = 0;
-    private final static double transferSlowdown = 0.9;
+    private final static double BALL_SHOT_TIMING = 0;
+    private final static double SLOWED_BALL_SHOT_TIMING = 0;
+    private final static double TRANSFER_SLOWDOWN = 0.9;
     public static Color[] motif = new Color[3];
     public static double classifierBallCount = 0;
     private static void colorSensorRead(){
@@ -177,7 +179,7 @@ public class Inferno implements RobotConfig{
     private static class MotifShoot extends Command{
         private double startTime;
         private ArrayList<BallPath> ballPaths; private boolean leaveRollersOn; private boolean transferDirection;
-        private double currentBallShotTiming = ballShotTiming;
+        private double currentBallShotTiming = BALL_SHOT_TIMING;
         @Override
         protected boolean runProcedure() {
 
@@ -194,23 +196,23 @@ public class Inferno implements RobotConfig{
                 startTime = timer.time();
                 if (ballPaths.get(0)!=currentBallPath && ballPaths.get(0)!=BallPath.BLANK) {
                     if (transferDirection) {
-                        frontIntake.setPower(frontIntake.getKeyPower("transfer") * transferSlowdown);
-                        backIntake.setPower(frontIntake.getKeyPower("otherSideTransfer") * transferSlowdown);
+                        frontIntake.setVelocity(TRANSFER_VEL * TRANSFER_SLOWDOWN);
+                        backIntake.setVelocity(OPPOSITE_TRANSFER_VEL * TRANSFER_SLOWDOWN);
                     } else {
-                        backIntake.setPower(frontIntake.getKeyPower("transfer") * transferSlowdown);
-                        frontIntake.setPower(frontIntake.getKeyPower("otherSideTransfer") * transferSlowdown);
+                        backIntake.setVelocity(TRANSFER_VEL * TRANSFER_SLOWDOWN);
+                        frontIntake.setVelocity(OPPOSITE_TRANSFER_VEL * TRANSFER_SLOWDOWN);
                     }
-                    currentBallShotTiming = slowedBallShotTiming;
+                    currentBallShotTiming = SLOWED_BALL_SHOT_TIMING;
                 }
                 else{
                     if (transferDirection) {
-                        frontIntake.setPower(frontIntake.getKeyPower("transfer"));
-                        backIntake.setPower(frontIntake.getKeyPower("otherSideTransfer"));
+                        frontIntake.setVelocity(TRANSFER_VEL);
+                        backIntake.setVelocity(OPPOSITE_TRANSFER_VEL);
                     } else {
-                        backIntake.setPower(frontIntake.getKeyPower("transfer"));
-                        frontIntake.setPower(frontIntake.getKeyPower("otherSideTransfer"));
+                        backIntake.setVelocity(TRANSFER_VEL);
+                        frontIntake.setVelocity(OPPOSITE_TRANSFER_VEL);
                     }
-                    currentBallShotTiming = ballShotTiming;
+                    currentBallShotTiming = BALL_SHOT_TIMING;
                 }
                 if (ballPaths.get(0)!=BallPath.BLANK) currentBallPath = ballPaths.get(0); else currentBallPath = ballPaths.get(1);
                 ballPaths.remove(0);
@@ -249,11 +251,11 @@ public class Inferno implements RobotConfig{
         frontIntake = new BotMotor("frontIntake", DcMotorSimple.Direction.FORWARD);
         backIntake = new BotMotor("backIntake", DcMotorSimple.Direction.REVERSE);
         frontIntake.setKeyPowers(
-                new String[]{"intake","otherSideIntake","thisSideTransfer","otherSideTransfer","stopped","expel"},
+                new String[]{"intake","otherSideIntake","stopped","expel"},
                 new double[]{}
         );
         backIntake.setKeyPowers(
-                new String[]{"intake","otherSideIntake","thisSideTransfer","otherSideTransfer","stopped","expel"},
+                new String[]{"intake","otherSideIntake","stopped","expel"},
                 new double[]{}
         );
         frontIntakeGate = new BotServo("frontIntakeGate", Servo.Direction.FORWARD, 422, 5, 270, 90);
@@ -269,14 +271,14 @@ public class Inferno implements RobotConfig{
         limelightPitch.setTarget(limelightPitch.getPos("obelisk"));
 
         frontTransfer = new ParallelCommand(
-                frontIntake.setPowerCommand("transfer"),
-                backIntake.setPowerCommand("otherSideTransfer"),
+                new InstantCommand(()->frontIntake.setVelocity(TRANSFER_VEL)),
+                new InstantCommand(()->backIntake.setVelocity(OPPOSITE_TRANSFER_VEL)),
                 frontIntakeGate.instantSetTargetCommand("closed"),
                 backIntakeGate.instantSetTargetCommand("closed")
         );
         backTransfer = new ParallelCommand(
-                backIntake.setPowerCommand("transfer"),
-                frontIntake.setPowerCommand("otherSideTransfer"),
+                new InstantCommand(()->backIntake.setVelocity(TRANSFER_VEL)),
+                new InstantCommand(()->frontIntake.setVelocity(OPPOSITE_TRANSFER_VEL)),
                 frontIntakeGate.instantSetTargetCommand("closed"),
                 backIntakeGate.instantSetTargetCommand("closed")
         );
