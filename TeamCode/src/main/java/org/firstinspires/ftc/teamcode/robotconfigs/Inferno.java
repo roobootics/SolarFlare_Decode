@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.robotconfigs;
 
 import static org.firstinspires.ftc.teamcode.base.Components.timer;
+import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
 
 import org.apache.commons.lang3.tuple.Triple;
 
@@ -30,6 +31,7 @@ public class Inferno implements RobotConfig{
     public static SyncedActuators<BotMotor> flywheel;
     public static double targetFlywheelVelocity;
     public static SyncedActuators<BotServo> turretYaw;
+    public static double turretFrontPosition;
     public static SyncedActuators<BotServo> turretPitch;
     public static BotMotor frontIntake;
     public static BotMotor backIntake;
@@ -108,7 +110,7 @@ public class Inferno implements RobotConfig{
 
         int shotLength = 0;
         boolean transferDirection = true;
-        boolean leaveRollersOn = true;
+        boolean leaveRollersOn;
         ArrayList<Color> balls = new ArrayList<>(Arrays.asList(ballStorage));
         for (Color color : shotSequence){
             if (balls.contains(color)){
@@ -144,8 +146,24 @@ public class Inferno implements RobotConfig{
         return Triple.of(ballPaths,transferDirection,leaveRollersOn);
     }
     private static void aprilTagRelocalize(){}
-    private void calcFlywheelVelocity(){}
-    private void calcTurretPos(){}
+    private void calcFlywheelVelocity(){
+        targetFlywheelVelocity = 2000;
+    }
+    private void calcTurretPos(){
+        Pose currPose = follower.getPose();
+        Pose targetPoint = new Pose(0,0,0);
+        turretYaw.call(
+                (BotServo servo)->servo.setTarget(
+                        Math.toDegrees(Math.atan2(targetPoint.getX()-currPose.getX(),targetPoint.getY()-currPose.getY()))
+                        + turretFrontPosition - Math.toDegrees(currPose.getHeading())
+                )
+        );
+        if (currentBallPath==BallPath.LOW){
+            turretPitch.call((BotServo servo)->servo.setTarget(50));
+        } else {
+            turretPitch.call((BotServo servo)->servo.setTarget(120));
+        }
+    }
     public static Command setState(RobotState robotState){
         return new InstantCommand(()->Inferno.robotState=robotState);
     }
@@ -198,7 +216,7 @@ public class Inferno implements RobotConfig{
                 ballPaths.remove(0);
             }
             else if (ballPaths.isEmpty() && !leaveRollersOn){
-                setState(RobotState.NONE);
+                robotState = RobotState.NONE;
             }
             return true;
         }
