@@ -307,7 +307,10 @@ public abstract class Components {
             this.device = (E) hardwareMap.get(actuatorName);
             this.defaultMovementTimeout = defaultMovementTimeout;
             this.errorTol=errorTol;
-            CachedReader<Double> reader = new CachedReader<>(()->(getCurrentPosition.apply(device)),currentPosPollingInterval);
+            CachedReader<Double> reader;
+            if (!Objects.isNull(device)){
+                reader = new CachedReader<>(()->(getCurrentPosition.apply(device)),currentPosPollingInterval);
+            } else{reader = new CachedReader<>(()->(0.0),currentPosPollingInterval);}
             this.getCurrentPosition=reader::cachedRead;
             resetCurrentPositionCache = reader::resetCache;
             for (int i=0;i< controlFuncKeys.length;i++){
@@ -391,7 +394,9 @@ public abstract class Components {
             }
         }
         public void runControl(){
-            Objects.requireNonNull(controlSystemMap.get(currControlFuncKey)).run();
+            if (!Objects.isNull(device)){
+                Objects.requireNonNull(controlSystemMap.get(currControlFuncKey)).run();
+            }
         }
         public double getPos(String key){ //Returns one of the key positions based on the inputted key
             return Objects.requireNonNull(keyPositions.get(key));
@@ -591,7 +596,7 @@ public abstract class Components {
         }
         @Actuate
         public void setPower(double power){
-            if (actuationStateUnlocked){
+            if (actuationStateUnlocked && !Objects.isNull(getDevice())){
                 power=Math.max(Math.min(power, maxPowerFunc.get()), minPowerFunc.get());
                 E device=getDevice();
                 if (Math.abs(power-device.getPower())>0.03) {
@@ -605,7 +610,11 @@ public abstract class Components {
             }
         }
         public double getPower(){
-            return getDevice().getPower();
+            if (!Objects.isNull(getDevice())){
+                return getDevice().getPower();
+            } else{
+                return 0;
+            }
         }
         public class SetPowerCommand extends InstantCommand{ //Command to set the power of all synchronized parts
             public SetPowerCommand(Supplier<Double> powerFunc) {
@@ -685,11 +694,16 @@ public abstract class Components {
         @SafeVarargs
         public BotMotor(String name, DcMotorSimple.Direction direction, Function<DcMotorEx, Double> getCurrentPosition, int currentPosPollingInterval, double errorTol, double defaultTimeout, String[] controlFuncKeys, ControlSystem<BotMotor>... controlFuncs) {
             super(name,direction,getCurrentPosition, currentPosPollingInterval, errorTol, defaultTimeout,controlFuncKeys,controlFuncs);
-            DcMotorEx device=getDevice();
-            velocityReader=new CachedReader<>(device::getVelocity,1)::cachedRead;
-            currentReader=new CachedReader<>(()->device.getCurrent(CurrentUnit.AMPS),3)::cachedRead;
-            device.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-            device.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            if (!Objects.isNull(getDevice())) {
+                DcMotorEx device = getDevice();
+                velocityReader = new CachedReader<>(device::getVelocity, 1)::cachedRead;
+                currentReader = new CachedReader<>(() -> device.getCurrent(CurrentUnit.AMPS), 3)::cachedRead;
+                device.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+                device.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            } else{
+                velocityReader = new CachedReader<>(()->0.0, 1)::cachedRead;
+                currentReader = new CachedReader<>(()->0.0, 3)::cachedRead;
+            }
             for (ControlSystem<BotMotor> system:controlFuncs){
                 system.registerToActuator(this);
             }
@@ -742,7 +756,9 @@ public abstract class Components {
         }
 
         public void setMode(DcMotorEx.RunMode mode) {
-            getDevice().setMode(mode);
+            if (!Objects.isNull(getDevice())){
+                getDevice().setMode(mode);
+            }
         }
 
         public class StallResetCommand extends Command { //Stall resets encoders, and offsets the position if you want to reset at a non-zero position.
@@ -799,7 +815,7 @@ public abstract class Components {
         }
         @Actuate
         public void setVelocity(double velocity){ //Sets the velocity of the motor. Like setPower, but with velocity control
-            if (actuationStateUnlocked){
+            if (actuationStateUnlocked && !Objects.isNull(getDevice())){
                 velocity=Math.max(minVelocityFunc.get(),Math.min(velocity, maxVelocityFunc.get()));
                 if (Math.abs(velocity-getVelocity())>1) {
                     getDevice().setVelocity(velocity);
@@ -823,7 +839,9 @@ public abstract class Components {
             for (ControlSystem<BotServo> system:controlFuncs){
                 system.registerToActuator(this);
             }
-            getDevice().setDirection(direction);
+            if (!Objects.isNull(getDevice())){
+                getDevice().setDirection(direction);
+            }
         }
         public BotServo(String name, Servo.Direction direction, double servoSpeedDPS, double defaultTimeout, double range, double initialTarget) {
             this(name,direction, new TimeBasedLocalizers.ServoTimeBasedLocalizer(servoSpeedDPS/range,initialTarget,range)::getCurrentPosition,1,1.5,defaultTimeout,range, initialTarget, new String[]{"setPos"}, new ControlSystem<>(new ServoControl()));
@@ -835,7 +853,7 @@ public abstract class Components {
         @Actuate
         public void setPosition(double position){ //Accepts position in degrees by default and sets the servos position to that.
             position=Math.max(minTargetFunc.get(),Math.min(position, maxTargetFunc.get()));
-            if (actuationStateUnlocked && (Math.abs(currCommandedPos-position)>0.07||ignoreSetPosCaching)){
+            if (actuationStateUnlocked && (Math.abs(currCommandedPos-position)>0.07||ignoreSetPosCaching) && !Objects.isNull(getDevice())){
                 currCommandedPos=position;
                 getDevice().setPosition(setPositionConversion.apply(position));
                 if (getTimeBasedLocalization()){
