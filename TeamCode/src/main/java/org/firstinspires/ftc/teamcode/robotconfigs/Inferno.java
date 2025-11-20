@@ -51,8 +51,7 @@ public class Inferno implements RobotConfig{
     }
     public enum BallPath {
         LOW,
-        HIGH,
-        BLANK
+        HIGH
     }
     public enum ShotType{
         MOTIF,
@@ -130,7 +129,7 @@ public class Inferno implements RobotConfig{
                 ballPaths.add(BallPath.LOW);
                 shotChecklist.remove(0);
             } else if (Objects.isNull(ballStorage[1])){
-                ballPaths.add(BallPath.BLANK);
+                ballPaths.add(null);
             } else{ ballPaths.add(BallPath.HIGH);}
             if (shotLength>=2){
                 transferDirection = !(ballStorage[2]==shotChecklist.get(0));
@@ -148,6 +147,7 @@ public class Inferno implements RobotConfig{
         return Triple.of(ballPaths,transferDirection,leaveRollersOn);
     }
     private static void aprilTagRelocalize(){}
+    private static void findMotif(){}
     private void calcFlywheelVelocity(){
         targetFlywheelVelocity = 2000;
     }
@@ -194,7 +194,7 @@ public class Inferno implements RobotConfig{
 
             if (timer.time() - startTime > currentBallShotTiming && !ballPaths.isEmpty()) {
                 startTime = timer.time();
-                if (ballPaths.get(0)!=currentBallPath && ballPaths.get(0)!=BallPath.BLANK) {
+                if (ballPaths.get(0)!=currentBallPath && !Objects.isNull(ballPaths.get(0))) {
                     if (transferDirection) {
                         frontIntake.setVelocity(TRANSFER_VEL * TRANSFER_SLOWDOWN);
                         backIntake.setVelocity(OPPOSITE_TRANSFER_VEL * TRANSFER_SLOWDOWN);
@@ -214,7 +214,7 @@ public class Inferno implements RobotConfig{
                     }
                     currentBallShotTiming = BALL_SHOT_TIMING;
                 }
-                if (ballPaths.get(0)!=BallPath.BLANK) currentBallPath = ballPaths.get(0); else currentBallPath = ballPaths.get(1);
+                if (!Objects.isNull(ballPaths.get(0))) currentBallPath = ballPaths.get(0); else currentBallPath = ballPaths.get(1);
                 ballPaths.remove(0);
             }
             else if (ballPaths.isEmpty() && !leaveRollersOn){
@@ -355,5 +355,6 @@ public class Inferno implements RobotConfig{
                 new InstantCommand(()->{if (robotState!=RobotState.SHOOTING){currentBallPath =BallPath.LOW;}}),
                 physics
         );
+        findMotif();
     }
 }

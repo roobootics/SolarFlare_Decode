@@ -19,20 +19,22 @@ public class DecodeTeleOp extends LinearOpMode {
     boolean autoReset = true;
     @Override
     public void runOpMode(){
-        executor.setCommands(
+        executor.setCommands(new RunResettingLoop(
             new ConditionalCommand(
                 new IfThen(
                       ()->(!autoReset&&gamepad1.a),
                       new InstantCommand(()->autoReset=true)
                 )
             ),
-            new ConditionalCommand(
-                new IfThen()
+            new PressCommand(
+                new IfThen(
+                        ()->autoReset,
+                        new InstantCommand(()-> Components.initialize(hardwareMap,telemetry,new Inferno(),autoReset))
+                )
             )
-        );
+        ));
         executor.runLoop(this::opModeInInit);
         executor.setWriteToTelemetry(()->telemetryAddData("Reset Odometry Pos",autoReset));
-        new InstantCommand(()-> Components.initialize(hardwareMap,telemetry,new Inferno(),autoReset));
 
         executor.setCommands(
                 new RunResettingLoop(
@@ -43,9 +45,6 @@ public class DecodeTeleOp extends LinearOpMode {
                                 new IfThen(()->gamepad1.left_trigger>0.8, setState(Inferno.RobotState.INTAKE_BACK_AND_SHOOT)),
                                 new IfThen(()->gamepad1.x, setState(Inferno.RobotState.SHOOTING)),
                                 new IfThen(()->gamepad1.y, setState(Inferno.RobotState.NONE))
-                        ),
-                        new ConditionalCommand(
-
                         ),
                         loopFSM
                 )
