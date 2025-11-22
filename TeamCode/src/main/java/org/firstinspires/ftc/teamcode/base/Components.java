@@ -84,6 +84,7 @@ public abstract class Components {
     }
     public interface RobotConfig {
         void init();
+        default void reset(){}
     }
     public static class CachedReader<E>{
         //Allows for the optimized reading of values. The return of a read is cached and re-returned every time the read is called, until the cache is cleared so fresh values can be obtained.
@@ -131,6 +132,7 @@ public abstract class Components {
             Components.config=config;
             config.init();
         }
+        Components.config.reset();
     }
     public abstract static class ControlFunc<E extends Actuator<?>>{ //Control functions extend this subclass
         protected E parentActuator;

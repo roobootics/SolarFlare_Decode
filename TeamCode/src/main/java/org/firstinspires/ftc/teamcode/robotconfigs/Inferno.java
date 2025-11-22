@@ -67,7 +67,7 @@ public class Inferno implements RobotConfig{
     }
     public static Color[] ballStorage = new Color[3];
     private static BallPath currentBallPath = BallPath.LOW;
-    public static RobotState robotState;
+    public static RobotState robotState = RobotState.NONE;
     public static ShotType shotType = ShotType.NORMAL;
     private final static double BALL_SHOT_TIMING = 0;
     private final static double SLOWED_BALL_SHOT_TIMING = 0;
@@ -146,7 +146,9 @@ public class Inferno implements RobotConfig{
         }
         return Triple.of(ballPaths,transferDirection,leaveRollersOn);
     }
-    private static void aprilTagRelocalize(){}
+    public static void aprilTagRelocalize(){}
+    public static void findBalls(){}
+    public static void countClassifier(){}
     private static void findMotif(){}
     private void calcFlywheelVelocity(){
         targetFlywheelVelocity = 2000;
@@ -172,6 +174,10 @@ public class Inferno implements RobotConfig{
     public static Command setShotType(ShotType shotType){
         return new InstantCommand(()->Inferno.shotType=shotType);
     }
+    public static Command toggleShotType(){
+        return new InstantCommand(()->{if (Inferno.shotType==ShotType.MOTIF) shotType=ShotType.NORMAL; else shotType=ShotType.MOTIF;});
+    }
+
     public static Command loopFSM;
 
     private static ParallelCommand frontTransfer;
@@ -227,10 +233,10 @@ public class Inferno implements RobotConfig{
     @Override
     public void init() {
         Pedro.createFollower(new Pose(0, 0, 0));
-        leftFront = new BotMotor("leftFront", DcMotorSimple.Direction.FORWARD);
-        leftRear = new BotMotor("leftRear", DcMotorSimple.Direction.FORWARD);
-        rightFront = new BotMotor("rightFront", DcMotorSimple.Direction.REVERSE);
-        rightRear = new BotMotor("rightRear", DcMotorSimple.Direction.REVERSE);
+        leftFront = new BotMotor("leftFront", DcMotorSimple.Direction.REVERSE);
+        leftRear = new BotMotor("leftRear", DcMotorSimple.Direction.REVERSE);
+        rightFront = new BotMotor("rightFront", DcMotorSimple.Direction.FORWARD);
+        rightRear = new BotMotor("rightRear", DcMotorSimple.Direction.FORWARD);
         flywheel = new SyncedActuators<>(
                 new BotMotor("flywheelLeft", DcMotorSimple.Direction.FORWARD, 0, 0, new String[]{"VelocityPID"},
                         new ControlSystem<>(new String[]{"targetVelocity"}, List.of(() -> targetFlywheelVelocity),
@@ -267,7 +273,7 @@ public class Inferno implements RobotConfig{
         sensors[2] = Components.getHardwareMap().get(RevColorSensorV3.class, "sensor3");
         limelight = Components.getHardwareMap().get(Limelight3A.class, "limelight");
         limelightPitch = new BotServo("limelightPitch", Servo.Direction.FORWARD, 422, 5, 270, 90);
-        limelightPitch.setKeyPositions(new String[]{"balls", "apriltag", "obelisk"}, new double[]{});
+        limelightPitch.setKeyPositions(new String[]{"balls", "apriltag", "obelisk","classifier"}, new double[]{});
         limelightPitch.setTarget(limelightPitch.getPos("obelisk"));
 
         frontTransfer = new ParallelCommand(
@@ -356,5 +362,11 @@ public class Inferno implements RobotConfig{
                 physics
         );
         findMotif();
+        classifierBallCount=0;
+    }
+    public void reset(){
+        shotType=ShotType.NORMAL;
+        robotState=RobotState.NONE;
+        currentBallPath = BallPath.LOW;
     }
 }
