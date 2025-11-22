@@ -4,14 +4,21 @@ import static org.firstinspires.ftc.teamcode.base.Commands.executor;
 import static org.firstinspires.ftc.teamcode.base.Components.initialize;
 import static org.firstinspires.ftc.teamcode.base.Components.telemetryAddData;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.backIntake;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.backIntakeGate;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.ballStorage;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.classifierBallCount;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.currentBallPath;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.frontIntake;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.frontIntakeGate;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftFront;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftRear;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.limelightPitch;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.loopFSM;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.motif;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.rightFront;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.rightRear;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.robotState;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.setState;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.shotType;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.toggleShotType;
@@ -31,6 +38,9 @@ public class DecodeTeleOp extends LinearOpMode {
     boolean autoReset = true;
     @Override
     public void runOpMode(){
+        initialize(hardwareMap,telemetry,new Inferno(),false);
+        ballStorage = new Color[]{Color.GREEN,Color.PURPLE,Color.PURPLE};
+        motif = new Color[]{Color.PURPLE,Color.GREEN,Color.PURPLE};
         executor.setCommands(new RunResettingLoop(
             new ConditionalCommand(
                 new IfThen(
@@ -55,7 +65,7 @@ public class DecodeTeleOp extends LinearOpMode {
                                 new IfThen(()->gamepad1.x, setState(RobotState.SHOOTING)),
                                 new IfThen(()->gamepad1.y, setState(RobotState.NONE))
                         ),
-                        new ConditionalCommand(
+                        new PressCommand(
                                 new IfThen(()->gamepad2.y,toggleShotType()),
                                 new IfThen(()->gamepad2.x,new InstantCommand(()->classifierBallCount=0)),
                                 new IfThen(()->gamepad2.a,new InstantCommand(()->classifierBallCount+=1)),
@@ -64,7 +74,7 @@ public class DecodeTeleOp extends LinearOpMode {
                         new InstantCommand(()->{if (classifierBallCount>9) classifierBallCount=9; else if (classifierBallCount<0) classifierBallCount=0;}),
                         new FieldCentricMecanumCommand(
                                 new BotMotor[]{leftFront,leftRear,rightFront,rightRear},
-                                ()->(follower.getPose().getHeading()),1,
+                                ()->(/*follower.getPose().getHeading()*/0.0),1,
                                 ()-> (double) gamepad1.left_stick_x, ()-> (double) gamepad1.left_stick_y, ()-> (double) gamepad1.right_stick_x
                         ),
                         loopFSM
@@ -72,8 +82,14 @@ public class DecodeTeleOp extends LinearOpMode {
         );
         executor.setWriteToTelemetry(()->{
             telemetryAddData("Shot Type:",shotType);
+            telemetryAddData("Robot State:",robotState);
             telemetryAddData("Classifier Count",classifierBallCount);
             telemetryAddData("Ball Storage",ballStorage);
+            telemetryAddData("Front Power:",frontIntake.getPower());
+            telemetryAddData("Back Power:",backIntake.getPower());
+            telemetryAddData("Front Intake Gate:",frontIntakeGate.getPosition());
+            telemetryAddData("Back Intake Gate:",backIntakeGate.getPosition());
+            telemetryAddData("Current Shot Height:",currentBallPath);
         });
         executor.runLoop(this::opModeIsActive);
     }
