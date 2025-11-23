@@ -740,17 +740,23 @@ public abstract class Components {
             return velocityReader.get();
         }
         public void resetEncoder() { //Reset motor encoder to 0
-            getDevice().setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-            getDevice().setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-            resetCurrentPositionCache();
+            if (!Objects.isNull(getDevice())) {
+                getDevice().setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+                getDevice().setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+                resetCurrentPositionCache();
+            }
         }
 
         public void setZeroPowerFloat() { //Set ZeroPowerBehavior to float
-            getDevice().setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+            if (!Objects.isNull(getDevice())){
+                getDevice().setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+            }
         }
 
         public void setZeroPowerBrake() {
-            getDevice().setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            if (!Objects.isNull(getDevice())){
+                getDevice().setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+            }
         }
         public double getCurrentAmps() { //Get the current of the motor in amps
             return currentReader.get();
