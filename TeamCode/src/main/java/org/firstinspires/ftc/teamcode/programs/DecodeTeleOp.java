@@ -4,13 +4,9 @@ import static org.firstinspires.ftc.teamcode.base.Commands.executor;
 import static org.firstinspires.ftc.teamcode.base.Components.initialize;
 import static org.firstinspires.ftc.teamcode.base.Components.telemetryAddData;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
-import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.backIntake;
-import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.backIntakeGate;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.ballStorage;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.classifierBallCount;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.currentBallPath;
-import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.frontIntake;
-import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.frontIntakeGate;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftFront;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftRear;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.limelightPitch;
@@ -32,6 +28,8 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import org.firstinspires.ftc.teamcode.base.Components.*;
 import org.firstinspires.ftc.teamcode.robotconfigs.Inferno;
 import org.firstinspires.ftc.teamcode.robotconfigs.Inferno.*;
+
+import java.util.Arrays;
 
 @TeleOp
 public class DecodeTeleOp extends LinearOpMode {
@@ -84,11 +82,7 @@ public class DecodeTeleOp extends LinearOpMode {
             telemetryAddData("Shot Type:",shotType);
             telemetryAddData("Robot State:",robotState);
             telemetryAddData("Classifier Count",classifierBallCount);
-            telemetryAddData("Ball Storage",ballStorage);
-            telemetryAddData("Front Power:",frontIntake.getPower());
-            telemetryAddData("Back Power:",backIntake.getPower());
-            telemetryAddData("Front Intake Gate:",frontIntakeGate.getPosition());
-            telemetryAddData("Back Intake Gate:",backIntakeGate.getPosition());
+            telemetryAddData("Ball Storage", Arrays.asList(ballStorage));
             telemetryAddData("Current Shot Height:",currentBallPath);
         });
         executor.runLoop(this::opModeIsActive);
