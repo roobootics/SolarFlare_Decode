@@ -31,8 +31,9 @@ public class Inferno implements RobotConfig{
     public static SyncedActuators<BotMotor> flywheel;
     public static double targetFlywheelVelocity;
     public static SyncedActuators<BotServo> turretYaw;
-    public static double turretFrontPosition;
+    private static final double TURRET_YAW_RATIO = 1;
     public static SyncedActuators<BotServo> turretPitch;
+    private static final double TURRET_PITCH_RATIO = 1;
     public static BotMotor frontIntake;
     public static BotMotor backIntake;
     private static final double TRANSFER_VEL = 2000;
@@ -158,12 +159,9 @@ public class Inferno implements RobotConfig{
     private void calcTurretPos(){
         Pose currPose = follower.getPose();
         Pose targetPoint = new Pose(0,0,0);
-        turretYaw.call(
-                (BotServo servo)->servo.setTarget(
-                        Math.toDegrees(Math.atan2(targetPoint.getX()-currPose.getX(),targetPoint.getY()-currPose.getY()))
-                        + turretFrontPosition - Math.toDegrees(currPose.getHeading())
-                )
-        );
+        double absoluteAngle = Math.toDegrees(Math.atan2(targetPoint.getX()-currPose.getX(),targetPoint.getY()-currPose.getY()));
+        double relativeAngle = absoluteAngle - Math.toDegrees(currPose.getHeading());
+        turretYaw.call((BotServo servo)->servo.setTarget(relativeAngle*TURRET_YAW_RATIO));
         if (currentBallPath==BallPath.LOW){
             turretPitch.call((BotServo servo)->servo.setTarget(50));
         } else {
