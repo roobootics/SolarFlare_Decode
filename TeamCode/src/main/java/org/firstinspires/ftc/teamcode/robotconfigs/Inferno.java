@@ -268,11 +268,11 @@ public class Inferno implements RobotConfig{
         backIntake = new BotMotor("backIntake", DcMotorSimple.Direction.FORWARD);
         frontIntake.setKeyPowers(
                 new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel"},
-                new double[]{1.0,-1.0,1.0,0.7,0.0,-1.0}
+                new double[]{1.0,-1.0,1.0,0.7,-0.2,-1.0}
         );
         backIntake.setKeyPowers(
                 new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel"},
-                new double[]{1.0,-1.0,1.0,0.7,0.0,-1.0}
+                new double[]{1.0,-1.0,1.0,0.7,-0.2,-1.0}
         );
         frontIntakeGate = new BotServo("frontIntakeGate", Servo.Direction.FORWARD, 422, 5, 180, 50);
         backIntakeGate = new BotServo("backIntakeGate", Servo.Direction.FORWARD, 422, 5, 180, 50);
@@ -293,8 +293,8 @@ public class Inferno implements RobotConfig{
                 transferGate.instantSetTargetCommand("open"),
                 frontIntake.setPowerCommand("transfer"),
                 backIntake.setPowerCommand("otherSideTransfer"),
-                frontIntakeGate.instantSetTargetCommand("open"),
-                backIntakeGate.instantSetTargetCommand("open")
+                frontIntakeGate.instantSetTargetCommand("closed"),
+                backIntakeGate.instantSetTargetCommand("closed")
         );
         backTransfer = new ParallelCommand(
                 //new InstantCommand(()->backIntake.setVelocity(TRANSFER_VEL)),
@@ -302,15 +302,15 @@ public class Inferno implements RobotConfig{
                 transferGate.instantSetTargetCommand("open"),
                 backIntake.setPowerCommand("transfer"),
                 frontIntake.setPowerCommand("otherSideTransfer"),
-                frontIntakeGate.instantSetTargetCommand("open"),
-                backIntakeGate.instantSetTargetCommand("open")
+                frontIntakeGate.instantSetTargetCommand("closed"),
+                backIntakeGate.instantSetTargetCommand("closed")
         );
         midTransfer = new ParallelCommand(
                 transferGate.instantSetTargetCommand("open"),
                 backIntake.setPowerCommand("transfer"),
                 frontIntake.setPowerCommand("transfer"),
-                frontIntakeGate.instantSetTargetCommand("open"),
-                backIntakeGate.instantSetTargetCommand("open")
+                frontIntakeGate.instantSetTargetCommand("closed"),
+                backIntakeGate.instantSetTargetCommand("closed")
         );
         ParallelCommand frontIntakeAction = new ParallelCommand(
                 transferGate.instantSetTargetCommand("closed"),
