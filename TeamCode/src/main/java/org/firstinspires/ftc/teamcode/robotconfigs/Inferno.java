@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Function;
 
 public class Inferno implements RobotConfig{
     public static BotMotor leftFront;
@@ -77,6 +78,7 @@ public class Inferno implements RobotConfig{
     public static Color[] motif = new Color[3];
     public static double classifierBallCount = 0;
     private static final Pose targetPoint = new Pose(0,0,0);
+
     private static Color colorSensorRead(int index){
         RevColorSensorV3 sensor = sensors[index];
         double [] greenCenter = new double[]{0,255,0};
@@ -84,10 +86,11 @@ public class Inferno implements RobotConfig{
         double greenTolerance = 75;
         double purpleTolerance = 75;
         Color color = null;
-        if ((sensor.red()-greenCenter[0])*(sensor.red()-greenCenter[0]) + (sensor.green()-greenCenter[1])*(sensor.green()-greenCenter[1]) + (sensor.blue()-greenCenter[2])*(sensor.blue()-greenCenter[2])>greenTolerance*greenTolerance){
+        double red = sensor.red(); double green = sensor.green(); double blue = sensor.blue();
+        if ((red-greenCenter[0])*(red-greenCenter[0]) + (green-greenCenter[1])*(green-greenCenter[1]) + (blue-greenCenter[2])*(blue-greenCenter[2])>greenTolerance*greenTolerance){
             color = Color.GREEN;
         }
-        else if ((sensor.red()-purpleCenter[0])*(sensor.red()-purpleCenter[0]) + (sensor.red()-purpleCenter[1])*(sensor.red()-purpleCenter[1]) + (sensor.red()-purpleCenter[2])*(sensor.red()-purpleCenter[2])>purpleTolerance*purpleTolerance){
+        else if ((red-purpleCenter[0])*(red-purpleCenter[0]) + (green-purpleCenter[1])*(green-purpleCenter[1]) + (blue-purpleCenter[2])*(blue-purpleCenter[2])>purpleTolerance*purpleTolerance){
             color = Color.PURPLE;
         }
         return color;
@@ -322,6 +325,10 @@ public class Inferno implements RobotConfig{
                 new SequentialCommand(
                         new SleepUntilTrue(()->!Objects.isNull(colorSensorRead(2))),
                         backIntake.setPowerCommand("stopped")
+                ),
+                new SequentialCommand(
+                        new SleepUntilTrue(()->!Objects.isNull(colorSensorRead(0))&&!Objects.isNull(colorSensorRead(1))&&!Objects.isNull(colorSensorRead(2))),
+                        frontIntake.setPowerCommand("stopped")
                 )
                 */
         );
@@ -335,6 +342,10 @@ public class Inferno implements RobotConfig{
                 new SequentialCommand(
                         new SleepUntilTrue(()->!Objects.isNull(colorSensorRead(0))),
                         frontIntake.setPowerCommand("stopped")
+                ),
+                new SequentialCommand(
+                        new SleepUntilTrue(()->!Objects.isNull(colorSensorRead(0))&&!Objects.isNull(colorSensorRead(1))&&!Objects.isNull(colorSensorRead(2))),
+                        backIntake.setPowerCommand("stopped")
                 )
                 */
         );
