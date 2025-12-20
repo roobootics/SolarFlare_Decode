@@ -324,11 +324,10 @@ public class Inferno implements RobotConfig{
                 /*
                 new SequentialCommand(
                         new SleepUntilTrue(()->!Objects.isNull(colorSensorRead(2))),
-                        backIntake.setPowerCommand("stopped")
-                ),
-                new SequentialCommand(
-                        new SleepUntilTrue(()->!Objects.isNull(colorSensorRead(0))&&!Objects.isNull(colorSensorRead(1))&&!Objects.isNull(colorSensorRead(2))),
-                        frontIntake.setPowerCommand("stopped")
+                        backIntake.setPowerCommand("stopped"),
+                        new SleepUntilTrue(()->!Objects.isNull(colorSensorRead(1))),
+                        new SleepUntilTrue(()->!Objects.isNull(colorSensorRead(0))),
+                        setState(RobotState.NONE)
                 )
                 */
         );
@@ -341,11 +340,10 @@ public class Inferno implements RobotConfig{
                 /*
                 new SequentialCommand(
                         new SleepUntilTrue(()->!Objects.isNull(colorSensorRead(0))),
-                        frontIntake.setPowerCommand("stopped")
-                ),
-                new SequentialCommand(
-                        new SleepUntilTrue(()->!Objects.isNull(colorSensorRead(0))&&!Objects.isNull(colorSensorRead(1))&&!Objects.isNull(colorSensorRead(2))),
-                        backIntake.setPowerCommand("stopped")
+                        frontIntake.setPowerCommand("stopped"),
+                        new SleepUntilTrue(()->!Objects.isNull(colorSensorRead(1))),
+                        new SleepUntilTrue(()->!Objects.isNull(colorSensorRead(2))),
+                        setState(RobotState.NONE)
                 )
                 */
         );
@@ -354,7 +352,8 @@ public class Inferno implements RobotConfig{
                 frontIntake.setPowerCommand("stopped"),
                 backIntake.setPowerCommand("stopped"),
                 frontIntakeGate.instantSetTargetCommand("open"),
-                backIntakeGate.instantSetTargetCommand("open")
+                backIntakeGate.instantSetTargetCommand("open"),
+                new InstantCommand(()->currentBallPath=findMotifShotPlan().getLeft().get(0))
         );
         ParallelCommand frontIntakeAndTransfer = new ParallelCommand(
                 new InstantCommand(() -> shotType = ShotType.NORMAL),
@@ -381,9 +380,7 @@ public class Inferno implements RobotConfig{
                 )
         );
         ContinuousCommand physics = new ContinuousCommand(()->{
-            //calcTurretPos();
-            if (robotState==RobotState.SHOOTING || robotState==RobotState.INTAKE_BACK_AND_SHOOT || robotState==RobotState.INTAKE_FRONT_AND_SHOOT){calcFlywheelVelocity();}
-            else {targetFlywheelVelocity=0;}
+            //calcTurretPos(); calcFlywheelVelocity();
         });
 
         loopFSM = new RunResettingLoop(
@@ -411,7 +408,7 @@ public class Inferno implements RobotConfig{
                         new IfThen(()->robotState==RobotState.INTAKE_FRONT_AND_SHOOT, frontIntakeAndTransfer),
                         new IfThen(()->robotState==RobotState.SHOOTING, transfer)
                 ),
-                new InstantCommand(()->{if (robotState!=RobotState.SHOOTING){currentBallPath=BallPath.LOW;}}),
+                new InstantCommand(()->{if (robotState!=RobotState.SHOOTING || shotType==ShotType.NORMAL){currentBallPath=BallPath.LOW;}}),
                 physics
         );
         findMotif();
