@@ -12,6 +12,7 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftRear;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.limelightPitch;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.loopFSM;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.motif;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.motifShootAll;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.rightFront;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.rightRear;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.robotState;
@@ -67,7 +68,8 @@ public class DecodeTeleOp extends LinearOpMode {
                                 new IfThen(()->gamepad2.y,toggleShotType()),
                                 new IfThen(()->gamepad2.x,new InstantCommand(()->classifierBallCount=0)),
                                 new IfThen(()->gamepad2.a,new InstantCommand(()->classifierBallCount+=1)),
-                                new IfThen(()->gamepad2.b,new InstantCommand(()->classifierBallCount-=1))
+                                new IfThen(()->gamepad2.b,new InstantCommand(()->classifierBallCount-=1)),
+                                new IfThen(()->gamepad2.back,new InstantCommand(()->motifShootAll=!motifShootAll))
                         ),
                         new InstantCommand(()->{if (classifierBallCount>9) classifierBallCount=9; else if (classifierBallCount<0) classifierBallCount=0;}),
                         new FieldCentricMecanumCommand(
@@ -85,6 +87,7 @@ public class DecodeTeleOp extends LinearOpMode {
             telemetryAddData("Classifier Count",classifierBallCount);
             telemetryAddData("Ball Storage", Arrays.asList(ballStorage));
             telemetryAddData("Current Shot Height:",currentBallPath);
+            telemetryAddData("Shoot All Motif:",motifShootAll);
         });
         executor.runLoop(this::opModeIsActive);
     }
