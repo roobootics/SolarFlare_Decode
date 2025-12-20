@@ -58,9 +58,9 @@ public class DecodeTeleOp extends LinearOpMode {
                         new ConditionalCommand(
                                 new IfThen(()->gamepad1.right_bumper, setState(RobotState.INTAKE_FRONT)),
                                 new IfThen(()->gamepad1.left_bumper, setState(RobotState.INTAKE_BACK)),
-                                new IfThen(()->gamepad1.right_trigger>0.8, setState(RobotState.INTAKE_FRONT_AND_SHOOT)),
-                                new IfThen(()->gamepad1.left_trigger>0.8, setState(RobotState.INTAKE_BACK_AND_SHOOT)),
-                                new IfThen(()->gamepad1.x, setState(RobotState.SHOOTING)),
+                                new IfThen(()->gamepad1.b, setState(RobotState.INTAKE_FRONT_AND_SHOOT)),
+                                new IfThen(()->gamepad1.x, setState(RobotState.INTAKE_BACK_AND_SHOOT)),
+                                new IfThen(()->gamepad1.right_trigger>0.8, setState(RobotState.SHOOTING)),
                                 new IfThen(()->gamepad1.y, setState(RobotState.NONE))
                         ),
                         new PressCommand(
@@ -73,7 +73,8 @@ public class DecodeTeleOp extends LinearOpMode {
                         new FieldCentricMecanumCommand(
                                 new BotMotor[]{leftFront,leftRear,rightFront,rightRear},
                                 ()->(/*follower.getPose().getHeading()*/0.0),1,
-                                ()-> (double) gamepad1.left_stick_x, ()-> (double) gamepad1.left_stick_y, ()-> (double) gamepad1.right_stick_x
+                                ()-> (double) gamepad1.left_stick_x, ()-> (double) gamepad1.left_stick_y, ()-> (double) gamepad1.right_stick_x,
+                                ()->{if (gamepad1.left_trigger > 0.8) return 0.75; else return 1.0;}
                         ),
                         loopFSM
                 )
