@@ -96,13 +96,13 @@ public class Inferno implements RobotConfig{
         }
         return color;
     }
-    private static void readBallStorage(){
+    public static void readBallStorage(){
         for (int i=0;i<3;i++){
             ballStorage[i] = colorSensorRead(i);
         }
     }
     public static Triple<ArrayList<BallPath>,Integer,Boolean> findMotifShotPlan(boolean shootAll){
-        //readBallStorage();
+        readBallStorage();
         ArrayList<BallPath> ballPaths = new ArrayList<>();
         Color[] shotSequence = new Color[3];
         if (classifierBallCount%3==0){
@@ -300,9 +300,9 @@ public class Inferno implements RobotConfig{
         backIntakeGate = new BotServo("backIntakeGate", Servo.Direction.FORWARD, 422, 5, 180, 50);
         frontIntakeGate.setKeyPositions(new String[]{"open", "closed"}, new double[]{40,0});
         backIntakeGate.setKeyPositions(new String[]{"open", "closed"}, new double[]{50,10});
-        //sensors[0] = Components.getHardwareMap().get(RevColorSensorV3.class, "sensor1");
-        //sensors[1] = Components.getHardwareMap().get(RevColorSensorV3.class, "sensor2");
-        //sensors[2] = Components.getHardwareMap().get(RevColorSensorV3.class, "sensor3");
+        sensors[0] = Components.getHardwareMap().get(RevColorSensorV3.class, "sensor1");
+        sensors[1] = Components.getHardwareMap().get(RevColorSensorV3.class, "sensor2");
+        sensors[2] = Components.getHardwareMap().get(RevColorSensorV3.class, "sensor3");
         //limelight = Components.getHardwareMap().get(Limelight3A.class, "limelight");
         limelightPitch = new BotServo("limelightPitch", Servo.Direction.FORWARD, 422, 5, 270, 90);
         limelightPitch.setKeyPositions(new String[]{"balls", "apriltag", "obelisk","classifier"}, new double[]{0,0,0,0});
@@ -339,8 +339,7 @@ public class Inferno implements RobotConfig{
                 frontIntake.setPowerCommand("intake"),
                 backIntake.setPowerCommand("otherSideIntake"),
                 frontIntakeGate.instantSetTargetCommand("open"),
-                backIntakeGate.instantSetTargetCommand("closed")
-                /*
+                backIntakeGate.instantSetTargetCommand("closed"),
                 new SequentialCommand(
                         new SleepUntilTrue(()->!Objects.isNull(colorSensorRead(2))),
                         backIntake.setPowerCommand("stopped"),
@@ -348,15 +347,13 @@ public class Inferno implements RobotConfig{
                         new SleepUntilTrue(()->!Objects.isNull(colorSensorRead(0))),
                         setState(RobotState.NONE)
                 )
-                */
         );
         ParallelCommand backIntakeAction = new ParallelCommand(
                 transferGate.instantSetTargetCommand("closed"),
                 backIntake.setPowerCommand("intake"),
                 frontIntake.setPowerCommand("otherSideIntake"),
                 backIntakeGate.instantSetTargetCommand("open"),
-                frontIntakeGate.instantSetTargetCommand("closed")
-                /*
+                frontIntakeGate.instantSetTargetCommand("closed"),
                 new SequentialCommand(
                         new SleepUntilTrue(()->!Objects.isNull(colorSensorRead(0))),
                         frontIntake.setPowerCommand("stopped"),
@@ -364,7 +361,6 @@ public class Inferno implements RobotConfig{
                         new SleepUntilTrue(()->!Objects.isNull(colorSensorRead(2))),
                         setState(RobotState.NONE)
                 )
-                */
         );
         ParallelCommand stopIntake = new ParallelCommand(
                 transferGate.instantSetTargetCommand("open"),
@@ -372,7 +368,7 @@ public class Inferno implements RobotConfig{
                 backIntake.setPowerCommand("stopped"),
                 frontIntakeGate.instantSetTargetCommand("open"),
                 backIntakeGate.instantSetTargetCommand("open"),
-                new InstantCommand(()->currentBallPath=findMotifShotPlan(motifShootAll).getLeft().get(0))
+                new InstantCommand(()->{if (!findMotifShotPlan(motifShootAll).getLeft().isEmpty()) {currentBallPath=findMotifShotPlan(motifShootAll).getLeft().get(0);} else {currentBallPath=BallPath.LOW;}})
         );
         ParallelCommand frontIntakeAndTransfer = new ParallelCommand(
                 new InstantCommand(() -> shotType = ShotType.NORMAL),
