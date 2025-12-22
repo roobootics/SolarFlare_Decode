@@ -9,6 +9,7 @@ import com.pedropathing.geometry.Pose;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.hardware.rev.RevColorSensorV3;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.NormalizedRGBA;
 import com.qualcomm.robotcore.hardware.Servo;
 
 
@@ -22,7 +23,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Function;
 
 public class Inferno implements RobotConfig{
     public static BotMotor leftFront;
@@ -87,11 +87,12 @@ public class Inferno implements RobotConfig{
         double greenTolerance = 75;
         double purpleTolerance = 75;
         Color color = null;
-        double red = sensor.red(); double green = sensor.green(); double blue = sensor.blue();
-        if ((red-greenCenter[0])*(red-greenCenter[0]) + (green-greenCenter[1])*(green-greenCenter[1]) + (blue-greenCenter[2])*(blue-greenCenter[2])>greenTolerance*greenTolerance){
+        NormalizedRGBA normal = sensor.getNormalizedColors();
+        double red = normal.red*255; double green = normal.green*255; double blue = normal.blue*255;
+        if ((red-greenCenter[0])*(red-greenCenter[0]) + (green-greenCenter[1])*(green-greenCenter[1]) + (blue-greenCenter[2])*(blue-greenCenter[2])<=greenTolerance*greenTolerance){
             color = Color.GREEN;
         }
-        else if ((red-purpleCenter[0])*(red-purpleCenter[0]) + (green-purpleCenter[1])*(green-purpleCenter[1]) + (blue-purpleCenter[2])*(blue-purpleCenter[2])>purpleTolerance*purpleTolerance){
+        else if ((red-purpleCenter[0])*(red-purpleCenter[0]) + (green-purpleCenter[1])*(green-purpleCenter[1]) + (blue-purpleCenter[2])*(blue-purpleCenter[2])<=purpleTolerance*purpleTolerance){
             color = Color.PURPLE;
         }
         return color;
