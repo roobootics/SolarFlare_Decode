@@ -194,10 +194,10 @@ public class Inferno implements RobotConfig{
         return new InstantCommand(()->{if (Inferno.shotType==ShotType.MOTIF) shotType=ShotType.NORMAL; else shotType=ShotType.MOTIF;});
     }
     public static Command loopFSM;
-    private static ParallelCommand frontTransfer;
-    private static ParallelCommand backTransfer;
+    private static SequentialCommand frontTransfer;
+    private static SequentialCommand backTransfer;
     public static class MotifShoot extends Command{
-        private double startTime;
+        private double startTime; private double firstStartTime;
         private ArrayList<BallPath> ballPaths; private boolean leaveRollersOn; private int transferDirection;
         private double currentBallShotTiming = BALL_SHOT_TIMING;
         @Override
@@ -205,11 +205,9 @@ public class Inferno implements RobotConfig{
 
             if (isStart()) {
                 startTime = -9999;
+                firstStartTime = timer.time();
                 Triple<ArrayList<BallPath>, Integer, Boolean> plan = findMotifShotPlan(motifShootAll);
                 ballPaths = plan.getLeft(); transferDirection = plan.getMiddle(); leaveRollersOn = plan.getRight();
-                if (!ballPaths.isEmpty()){
-                    if (transferDirection==0 || transferDirection==1){frontTransfer.reset(); frontTransfer.run();} else if (transferDirection==2){backTransfer.reset(); backTransfer.run();}
-                }
             }
 
             if (timer.time() - startTime > currentBallShotTiming && !ballPaths.isEmpty()) {
@@ -241,6 +239,10 @@ public class Inferno implements RobotConfig{
             }
             else if (timer.time() - startTime > currentBallShotTiming && ballPaths.isEmpty() && !leaveRollersOn){
                 robotState = RobotState.NONE;
+            }
+            if (timer.time()-firstStartTime>0.15){
+                frontIntakeGate.setTarget(frontIntakeGate.getPos("closed"));
+                backIntakeGate.setTarget(backIntakeGate.getPos("closed"));
             }
             return true;
         }
@@ -285,12 +287,14 @@ public class Inferno implements RobotConfig{
         rightFront = new BotMotor("rightFront", DcMotorSimple.Direction.FORWARD);
         rightRear = new BotMotor("rightRear", DcMotorSimple.Direction.FORWARD);
         flywheel = new SyncedActuators<>(
-                new BotMotor("flywheelLeft", DcMotorSimple.Direction.FORWARD, 0, 0, new String[]{"VelocityPID"},
-                        new ControlSystem<>(new String[]{"targetVelocity"}, List.of(() -> targetFlywheelVelocity),
-                                new VelocityPID(0, 0, 0), new BasicFeedforward(0, "targetVelocity"))),
-                new BotMotor("flywheelRight", DcMotorSimple.Direction.REVERSE, 0, 0, new String[]{"VelocityPID"},
-                        new ControlSystem<>(new String[]{"targetVelocity"}, List.of(() -> targetFlywheelVelocity),
-                                new VelocityPID(0, 0, 0), new BasicFeedforward(0, "targetVelocity")))
+                new BotMotor("flywheelLeft", DcMotorSimple.Direction.FORWARD, 0, 0, new String[]{"setVelocity","VelocityPID"},
+                        new ControlSystem<>(new String[]{"targetVelocity"}, List.of(() -> targetFlywheelVelocity), new SetVelocity()),
+                        new ControlSystem<>(new String[]{"targetVelocity"}, List.of(() -> targetFlywheelVelocity), new VelocityPID(0, 0, 0), new BasicFeedforward(0, "targetVelocity"))
+                ),
+                new BotMotor("flywheelRight", DcMotorSimple.Direction.REVERSE, 0, 0, new String[]{"setVelocity","VelocityPID"},
+                        new ControlSystem<>(new String[]{"targetVelocity"}, List.of(() -> targetFlywheelVelocity), new SetVelocity()),
+                        new ControlSystem<>(new String[]{"targetVelocity"}, List.of(() -> targetFlywheelVelocity), new VelocityPID(0, 0, 0), new BasicFeedforward(0, "targetVelocity"))
+                )
         );
         turretPitch = new SyncedActuators<>(
                 new BotServo("turretPitchLeft", Servo.Direction.FORWARD, 422, 5, 270, 90),
@@ -321,23 +325,35 @@ public class Inferno implements RobotConfig{
         //limelight = Components.getHardwareMap().get(Limelight3A.class, "limelight");
         transferGate = new BotServo("transferGate", Servo.Direction.FORWARD,422,5,270,90);
         transferGate.setKeyPositions(new String[]{"open","closed"},new double[]{148.5,86.4});
-        frontTransfer = new ParallelCommand(
-                //new InstantCommand(()->frontIntake.setVelocity(TRANSFER_VEL)),
-                //new InstantCommand(()->backIntake.setVelocity(OPPOSITE_TRANSFER_VEL)),
-                transferGate.instantSetTargetCommand("open"),
-                frontIntake.setPowerCommand("transfer"),
-                backIntake.setPowerCommand("otherSideTransfer"),
-                frontIntakeGate.instantSetTargetCommand("closed"),
-                backIntakeGate.instantSetTargetCommand("closed")
+        frontTransfer = new SequentialCommand(
+                new ParallelCommand(
+                    //new InstantCommand(()->frontIntake.setVelocity(TRANSFER_VEL)),
+                    //new InstantCommand(()->backIntake.setVelocity(OPPOSITE_TRANSFER_VEL)),
+                    transferGate.instantSetTargetCommand("open"),
+                    frontIntake.setPowerCommand("transfer"),
+                    backIntake.setPowerCommand("otherSideTransfer"),
+                    frontIntakeGate.instantSetTargetCommand("closed"),
+                    backIntakeGate.instantSetTargetCommand("closed")
+                ),
+                new SleepCommand(0.15),
+                new ParallelCommand(
+                    frontIntakeGate.instantSetTargetCommand("closed"),
+                    backIntakeGate.instantSetTargetCommand("closed")
+                )
         );
-        backTransfer = new ParallelCommand(
-                //new InstantCommand(()->backIntake.setVelocity(TRANSFER_VEL)),
-                //new InstantCommand(()->frontIntake.setVelocity(OPPOSITE_TRANSFER_VEL)),
-                transferGate.instantSetTargetCommand("open"),
-                backIntake.setPowerCommand("transfer"),
-                frontIntake.setPowerCommand("otherSideTransfer"),
-                frontIntakeGate.instantSetTargetCommand("closed"),
-                backIntakeGate.instantSetTargetCommand("closed")
+        backTransfer = new SequentialCommand(
+                new ParallelCommand(
+                    //new InstantCommand(()->backIntake.setVelocity(TRANSFER_VEL)),
+                    //new InstantCommand(()->frontIntake.setVelocity(OPPOSITE_TRANSFER_VEL)),
+                    transferGate.instantSetTargetCommand("open"),
+                    backIntake.setPowerCommand("transfer"),
+                    frontIntake.setPowerCommand("otherSideTransfer")
+                ),
+                new SleepCommand(0.15),
+                new ParallelCommand(
+                    frontIntakeGate.instantSetTargetCommand("closed"),
+                    backIntakeGate.instantSetTargetCommand("closed")
+                )
         );
         ParallelCommand frontIntakeAction = new ParallelCommand(
                 transferGate.instantSetTargetCommand("closed"),
@@ -418,11 +434,13 @@ public class Inferno implements RobotConfig{
                         new IfThen(()->robotState==RobotState.INTAKE_FRONT_AND_SHOOT, frontIntakeAndTransfer),
                         new IfThen(()->robotState==RobotState.SHOOTING, transfer)
                 ),
-                new InstantCommand(()->{if ((robotState!=RobotState.SHOOTING && robotState!=RobotState.NONE) || shotType==ShotType.NORMAL){currentBallPath=BallPath.LOW;}})
+                new InstantCommand(()->{if ((robotState!=RobotState.SHOOTING && robotState!=RobotState.NONE) || shotType==ShotType.NORMAL){currentBallPath=BallPath.LOW;}}),
+                flywheel.command((BotMotor motor)->motor.setPowerCommand(1.0))
                 //setShooter
         );
         findMotif();
         Components.activateActuatorControl();
+        flywheel.call((BotMotor motor) -> motor.switchControl("controlOff"));
     }
     public void reset(){
         shotType=ShotType.NORMAL;

@@ -5,9 +5,11 @@ import static org.firstinspires.ftc.teamcode.base.Components.initialize;
 import static org.firstinspires.ftc.teamcode.base.Components.telemetryAddData;
 import static org.firstinspires.ftc.teamcode.base.Components.telemetryAddLine;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.backIntake;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.ballStorage;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.classifierBallCount;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.currentBallPath;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.frontIntake;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftFront;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftRear;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.loopFSM;
@@ -91,6 +93,8 @@ public class DecodeTeleOp extends LinearOpMode {
             telemetryAddData("Classifier Count:",classifierBallCount);
             telemetryAddData("Current Shot Height:",currentBallPath);
             telemetryAddData("Shoot All Motif:",motifShootAll);
+            telemetryAddData("Front Velocity:",frontIntake.getVelocity());
+            telemetryAddData("Back Velocity:",backIntake.getVelocity());
         });
         executor.runLoop(this::opModeIsActive);
     }
