@@ -3,13 +3,13 @@ package org.firstinspires.ftc.teamcode.programs;
 import static org.firstinspires.ftc.teamcode.base.Commands.executor;
 import static org.firstinspires.ftc.teamcode.base.Components.initialize;
 import static org.firstinspires.ftc.teamcode.base.Components.telemetryAddData;
+import static org.firstinspires.ftc.teamcode.base.Components.telemetryAddLine;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.ballStorage;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.classifierBallCount;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.currentBallPath;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftFront;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftRear;
-import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.limelightPitch;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.loopFSM;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.motif;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.motifShootAll;
@@ -56,7 +56,6 @@ public class DecodeTeleOp extends LinearOpMode {
         initialize(hardwareMap,telemetry,new Inferno(),autoReset);
 
         executor.setCommands(
-                limelightPitch.instantSetTargetCommand("apriltag"),
                 new RunResettingLoop(
                         new ConditionalCommand(
                                 new IfThen(()->gamepad1.right_bumper, setState(RobotState.INTAKE_FRONT)),
@@ -76,22 +75,20 @@ public class DecodeTeleOp extends LinearOpMode {
                         new InstantCommand(()->{if (classifierBallCount>9) classifierBallCount=9; else if (classifierBallCount<0) classifierBallCount=0;}),
                         new FieldCentricMecanumCommand(
                                 new BotMotor[]{leftFront,leftRear,rightFront,rightRear},
-                                ()->(/*follower.getPose().getHeading()*/0.0),1,
+                                ()->(follower.getHeading()),1,
                                 ()-> (double) gamepad1.left_stick_x, ()-> (double) gamepad1.left_stick_y, ()-> (double) gamepad1.right_stick_x,
                                 ()->{if (gamepad1.left_trigger > 0.8) return 0.75; else return 1.0;}
-                        )
-                        //loopFSM
+                        ),
+                        loopFSM
                 )
         );
         executor.setWriteToTelemetry(()->{
             readBallStorage();
-            telemetryAddData("Shot Type:",shotType);
+            telemetryAddData("Ball Storage:", Arrays.asList(ballStorage));
             telemetryAddData("Robot State:",robotState);
-            telemetryAddData("Classifier Count",classifierBallCount);
-            telemetryAddData("Ball Storage", Arrays.asList(ballStorage));
-            telemetryAddData("sensor2 red",sensors[1].red());
-            telemetryAddData("sensor2 green",sensors[1].green());
-            telemetryAddData("sensor2 blue",sensors[1].blue());
+            telemetryAddData("Shot Type:",shotType);
+            telemetryAddLine("");
+            telemetryAddData("Classifier Count:",classifierBallCount);
             telemetryAddData("Current Shot Height:",currentBallPath);
             telemetryAddData("Shoot All Motif:",motifShootAll);
         });

@@ -37,8 +37,6 @@ public class Inferno implements RobotConfig{
     public static double targetFlywheelVelocity;
     public static SyncedActuators<BotServo> turretYaw;
     private static final double TURRET_YAW_RATIO = 1;
-    public static double turretYawIncrementPos = 0;
-    public static double[] turretYawBounds = new double[]{-360,360};
     public static SyncedActuators<BotServo> turretPitch;
     private static final double TURRET_PITCH_RATIO = 1;
     public static BotMotor frontIntake;
@@ -49,7 +47,6 @@ public class Inferno implements RobotConfig{
     public static BotServo backIntakeGate;
     public static RevColorSensorV3[] sensors = new RevColorSensorV3[3];
     public static Limelight3A limelight;
-    public static BotServo limelightPitch;
     public static BotServo transferGate;
     public enum Color{
         PURPLE,
@@ -81,10 +78,10 @@ public class Inferno implements RobotConfig{
     public static boolean motifShootAll = false;
     private final static double BALL_SHOT_TIMING = 5;
     private final static double SLOWED_BALL_SHOT_TIMING = 5;
-    private final static double TRANSFER_SLOWDOWN = 11;
+    private final static double TRANSFER_SLOWDOWN = 0.67;
     public static Color[] motif = new Color[3];
     public static double classifierBallCount = 0;
-    private static final double[] targetPoint = new double[]{0,0,0};
+    private static final double[] targetPoint = new double[]{144,12,38.7};
 
     private static Color colorSensorRead(int index){
         RevColorSensorV3 sensor = sensors[index];
@@ -250,7 +247,7 @@ public class Inferno implements RobotConfig{
     }
     private abstract static class Fisiks {
         final static double GRAVITY = -386.089;
-        final static double FRICTION = 1;
+        final static double FRICTION = 0.67;
         final static double HEIGHT = 18;
         final static double TICKS_TO_RAD = 151;
         final static double WHEEL_RAD = 1.41732;
@@ -275,7 +272,8 @@ public class Inferno implements RobotConfig{
                     initSpeed*shotTime*(xDist - TOTAL_RAD) + TOTAL_RAD*(yDist - 0.5*GRAVITY*shotTime*shotTime)
             );
             double turretYaw = atan2(targetPoint[0] - shotTime*xVel - xPos, targetPoint[1] - shotTime*yVel - yPos);
-            return new double[]{turretPitch,turretYaw};
+            if (turretYaw<=0) turretYaw+=2*Math.PI; if (turretPitch<=0) turretPitch+=2*Math.PI;
+            return new double[]{Math.toDegrees(turretPitch),Math.toDegrees(turretYaw)};
         }
     }
 
@@ -307,25 +305,22 @@ public class Inferno implements RobotConfig{
         backIntake = new BotMotor("backIntake", DcMotorSimple.Direction.FORWARD);
         frontIntake.setKeyPowers(
                 new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel"},
-                new double[]{1.0,-1.0,1.0,0.7,-0.2,-1.0}
+                new double[]{1.0,-1.0,1.0,0.55,-0.15,-1.0}
         );
         backIntake.setKeyPowers(
                 new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel"},
-                new double[]{1.0,-1.0,1.0,0.7,-0.2,-1.0}
+                new double[]{1.0,-1.0,1.0,0.55,-0.15,-1.0}
         );
         frontIntakeGate = new BotServo("frontIntakeGate", Servo.Direction.FORWARD, 422, 5, 180, 50);
         backIntakeGate = new BotServo("backIntakeGate", Servo.Direction.FORWARD, 422, 5, 180, 50);
-        frontIntakeGate.setKeyPositions(new String[]{"open", "closed"}, new double[]{40,0});
-        backIntakeGate.setKeyPositions(new String[]{"open", "closed"}, new double[]{50,10});
+        frontIntakeGate.setKeyPositions(new String[]{"open", "closed"}, new double[]{99,28.8});
+        backIntakeGate.setKeyPositions(new String[]{"open", "closed"}, new double[]{93.6,23.4});
         sensors[0] = Components.getHardwareMap().get(RevColorSensorV3.class, "sensor1");
         sensors[1] = Components.getHardwareMap().get(RevColorSensorV3.class, "sensor2");
         sensors[2] = Components.getHardwareMap().get(RevColorSensorV3.class, "sensor3");
         //limelight = Components.getHardwareMap().get(Limelight3A.class, "limelight");
-        limelightPitch = new BotServo("limelightPitch", Servo.Direction.FORWARD, 422, 5, 270, 90);
-        limelightPitch.setKeyPositions(new String[]{"balls", "apriltag", "obelisk","classifier"}, new double[]{0,0,0,0});
-        limelightPitch.setTarget(limelightPitch.getPos("obelisk"));
         transferGate = new BotServo("transferGate", Servo.Direction.FORWARD,422,5,270,90);
-        transferGate.setKeyPositions(new String[]{"open","closed"},new double[]{0.0,0.0});
+        transferGate.setKeyPositions(new String[]{"open","closed"},new double[]{148.5,86.4});
         frontTransfer = new ParallelCommand(
                 //new InstantCommand(()->frontIntake.setVelocity(TRANSFER_VEL)),
                 //new InstantCommand(()->backIntake.setVelocity(OPPOSITE_TRANSFER_VEL)),
@@ -404,30 +399,17 @@ public class Inferno implements RobotConfig{
                         new MotifShoot()
                 )
         );
-        ContinuousCommand physics = new ContinuousCommand(()->{
+        ContinuousCommand setShooter = new ContinuousCommand(()->{
             targetFlywheelVelocity = 3000;
-            double[] turret = Fisiks.runPhysics();
-            turretPitch.command((BotServo servo)->servo.instantSetTargetCommand(turret[0]*TURRET_PITCH_RATIO)).run();
-
+            if (robotState != RobotState.INTAKE_FRONT && robotState!= RobotState.INTAKE_BACK){
+                double heading = Math.toDegrees(follower.getHeading());
+                double[] turret = Fisiks.runPhysics();
+                turretPitch.command((BotServo servo)->servo.instantSetTargetCommand(turret[0]*TURRET_PITCH_RATIO)).run();
+                turretYaw.command((BotServo servo)->servo.instantSetTargetCommand((turret[1] - heading)*TURRET_YAW_RATIO)).run();
+            }
         });
 
         loopFSM = new RunResettingLoop(
-                /*
-                new PressCommand(
-                        new IfThen(
-                                ()->limelightPitch.getTarget()==limelightPitch.getPos("obelisk"),
-                                new InstantCommand(()->limelight.pipelineSwitch(0))
-                        ),
-                        new IfThen(
-                                ()->limelightPitch.getTarget()==limelightPitch.getPos("apriltag"),
-                                new InstantCommand(()->limelight.pipelineSwitch(1))
-                        ),
-                        new IfThen(
-                                ()->limelightPitch.getTarget()==limelightPitch.getPos("balls"),
-                                new InstantCommand(()->limelight.pipelineSwitch(2))
-                        )
-                ),
-                */
                 new PressCommand(
                         new IfThen(()->robotState==RobotState.NONE, stopIntake),
                         new IfThen(()->robotState==RobotState.INTAKE_BACK, backIntakeAction),
@@ -436,8 +418,8 @@ public class Inferno implements RobotConfig{
                         new IfThen(()->robotState==RobotState.INTAKE_FRONT_AND_SHOOT, frontIntakeAndTransfer),
                         new IfThen(()->robotState==RobotState.SHOOTING, transfer)
                 ),
-                new InstantCommand(()->{if (robotState!=RobotState.SHOOTING || shotType==ShotType.NORMAL){currentBallPath=BallPath.LOW;}}),
-                physics
+                new InstantCommand(()->{if ((robotState!=RobotState.SHOOTING && robotState!=RobotState.NONE) || shotType==ShotType.NORMAL){currentBallPath=BallPath.LOW;}})
+                //setShooter
         );
         findMotif();
         Components.activateActuatorControl();
