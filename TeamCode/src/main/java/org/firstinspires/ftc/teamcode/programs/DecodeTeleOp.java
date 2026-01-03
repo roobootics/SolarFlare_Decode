@@ -95,6 +95,8 @@ public class DecodeTeleOp extends LinearOpMode {
             telemetryAddData("Shoot All Motif:",motifShootAll);
             telemetryAddData("Front Velocity:",frontIntake.getVelocity());
             telemetryAddData("Back Velocity:",backIntake.getVelocity());
+            telemetryAddData("Front Power:",frontIntake.getPower());
+            telemetryAddData("Back Power:",backIntake.getPower());
         });
         executor.runLoop(this::opModeIsActive);
     }

@@ -271,7 +271,7 @@ public abstract class Components {
             }
         }
         public Command command(Function<E,Command> commandMethod){ //Get a ParallelAction that performs an action on all actuators. Provide a function that accepts an actuator and returns the desired action.
-            return new Commands.ParallelCommand((Command[]) actuators.values().stream().map(commandMethod).toArray());
+            return new Commands.ParallelCommand(actuators.values().stream().map(commandMethod).toArray(Command[]::new));
         }
         public HashMap<String,E> getActuators(){
             return actuators;
