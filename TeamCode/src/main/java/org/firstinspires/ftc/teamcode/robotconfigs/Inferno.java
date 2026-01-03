@@ -3,9 +3,13 @@ package org.firstinspires.ftc.teamcode.robotconfigs;
 import static org.firstinspires.ftc.teamcode.base.Components.timer;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
 
+import static java.lang.Math.atan2;
+import static java.lang.Math.sqrt;
+
 import org.apache.commons.lang3.tuple.Triple;
 
 import com.pedropathing.geometry.Pose;
+import com.pedropathing.math.Vector;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.hardware.rev.RevColorSensorV3;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
@@ -33,6 +37,8 @@ public class Inferno implements RobotConfig{
     public static double targetFlywheelVelocity;
     public static SyncedActuators<BotServo> turretYaw;
     private static final double TURRET_YAW_RATIO = 1;
+    public static double turretYawIncrementPos = 0;
+    public static double[] turretYawBounds = new double[]{-360,360};
     public static SyncedActuators<BotServo> turretPitch;
     private static final double TURRET_PITCH_RATIO = 1;
     public static BotMotor frontIntake;
@@ -78,7 +84,7 @@ public class Inferno implements RobotConfig{
     private final static double TRANSFER_SLOWDOWN = 11;
     public static Color[] motif = new Color[3];
     public static double classifierBallCount = 0;
-    private static final Pose targetPoint = new Pose(0,0,0);
+    private static final double[] targetPoint = new double[]{0,0,0};
 
     private static Color colorSensorRead(int index){
         RevColorSensorV3 sensor = sensors[index];
@@ -181,20 +187,6 @@ public class Inferno implements RobotConfig{
     public static void findBalls(){}
     public static void countClassifier(){}
     private static void findMotif(){}
-    private void calcFlywheelVelocity(){
-        targetFlywheelVelocity = 2000;
-    }
-    private void calcTurretPos(){
-        Pose currPose = follower.getPose();
-        double absoluteAngle = Math.toDegrees(Math.atan2(targetPoint.getX()-currPose.getX(),targetPoint.getY()-currPose.getY()));
-        double relativeAngle = absoluteAngle - Math.toDegrees(currPose.getHeading());
-        turretYaw.call((BotServo servo)->servo.setTarget(relativeAngle*TURRET_YAW_RATIO));
-        if (currentBallPath==BallPath.LOW){
-            turretPitch.call((BotServo servo)->servo.setTarget(50));
-        } else {
-            turretPitch.call((BotServo servo)->servo.setTarget(120));
-        }
-    }
     public static Command setState(RobotState robotState){
         return new InstantCommand(()->Inferno.robotState=robotState);
     }
@@ -207,7 +199,6 @@ public class Inferno implements RobotConfig{
     public static Command loopFSM;
     private static ParallelCommand frontTransfer;
     private static ParallelCommand backTransfer;
-    private static ParallelCommand midTransfer;
     public static class MotifShoot extends Command{
         private double startTime;
         private ArrayList<BallPath> ballPaths; private boolean leaveRollersOn; private int transferDirection;
@@ -220,14 +211,14 @@ public class Inferno implements RobotConfig{
                 Triple<ArrayList<BallPath>, Integer, Boolean> plan = findMotifShotPlan(motifShootAll);
                 ballPaths = plan.getLeft(); transferDirection = plan.getMiddle(); leaveRollersOn = plan.getRight();
                 if (!ballPaths.isEmpty()){
-                    if (transferDirection==0){frontTransfer.reset(); frontTransfer.run();} else if (transferDirection==2){backTransfer.reset(); backTransfer.run();} else {midTransfer.reset(); midTransfer.run();}
+                    if (transferDirection==0 || transferDirection==1){frontTransfer.reset(); frontTransfer.run();} else if (transferDirection==2){backTransfer.reset(); backTransfer.run();}
                 }
             }
 
             if (timer.time() - startTime > currentBallShotTiming && !ballPaths.isEmpty()) {
                 startTime = timer.time();
                 if (ballPaths.get(0)!=currentBallPath && !Objects.isNull(ballPaths.get(0))) {
-                    if (transferDirection==0) {
+                    if (transferDirection==0 || transferDirection == 1) {
                         //frontIntake.setVelocity(TRANSFER_VEL * TRANSFER_SLOWDOWN);
                         //backIntake.setVelocity(OPPOSITE_TRANSFER_VEL * TRANSFER_SLOWDOWN);
                         frontIntake.setPower(frontIntake.getKeyPower("transfer")*TRANSFER_SLOWDOWN);
@@ -237,19 +228,14 @@ public class Inferno implements RobotConfig{
                         frontIntake.setPower(frontIntake.getKeyPower("otherSideTransfer")*TRANSFER_SLOWDOWN);
                         //backIntake.setVelocity(TRANSFER_VEL * TRANSFER_SLOWDOWN);
                         //frontIntake.setVelocity(OPPOSITE_TRANSFER_VEL * TRANSFER_SLOWDOWN);
-                    } else{
-                        backIntake.setPower(backIntake.getKeyPower("transfer")*TRANSFER_SLOWDOWN);
-                        frontIntake.setPower(frontIntake.getKeyPower("transfer")*TRANSFER_SLOWDOWN);
                     }
                     currentBallShotTiming = SLOWED_BALL_SHOT_TIMING;
                 }
                 else{
-                    if (transferDirection==0) {
+                    if (transferDirection==0 || transferDirection == 1) {
                         frontTransfer.reset(); frontTransfer.run();
                     } else if (transferDirection==2){
                         backTransfer.reset(); backTransfer.run();
-                    } else{
-                        midTransfer.reset(); midTransfer.run();
                     }
                     currentBallShotTiming = BALL_SHOT_TIMING;
                 }
@@ -260,6 +246,36 @@ public class Inferno implements RobotConfig{
                 robotState = RobotState.NONE;
             }
             return true;
+        }
+    }
+    private abstract static class Fisiks {
+        final static double GRAVITY = -386.089;
+        final static double FRICTION = 1;
+        final static double HEIGHT = 18;
+        final static double TICKS_TO_RAD = 151;
+        final static double WHEEL_RAD = 1.41732;
+        final static double BALL_RAD = 2.5;
+        public static double[] runPhysics(){
+            Pose pos = follower.getPose();
+            Vector vel = follower.getVelocity();
+            double xPos = pos.getX();
+            double yPos = pos.getY();
+            double xVel = vel.getXComponent();
+            double yVel = vel.getYComponent();
+            double currWheelVel = TICKS_TO_RAD*(flywheel.getActuators().get("flywheelLeft").getVelocity() + flywheel.getActuators().get("flywheelRight").getVelocity())/2;
+            double initSpeed = FRICTION*currWheelVel*BALL_RAD;
+            double xDist = sqrt((targetPoint[0]-xPos)*(targetPoint[0]-xPos) + (targetPoint[1]-yPos)*(targetPoint[1]-yPos));
+            double yDist = targetPoint[2] - HEIGHT;
+            double TOTAL_RAD = WHEEL_RAD+BALL_RAD;
+            double discriminant = sqrt(initSpeed*initSpeed*initSpeed*initSpeed + 2*yDist*GRAVITY*initSpeed*initSpeed + GRAVITY*GRAVITY*(TOTAL_RAD*TOTAL_RAD - (xDist - TOTAL_RAD)*(xDist - TOTAL_RAD)));
+            if (currentBallPath == BallPath.LOW) discriminant*=-1;
+            double shotTime = sqrt(2*(initSpeed*initSpeed + yDist*GRAVITY + discriminant)/(GRAVITY*GRAVITY));
+            double turretPitch = atan2(
+                    initSpeed*shotTime*(yDist - 0.5*GRAVITY*shotTime*shotTime) - TOTAL_RAD*(xDist - TOTAL_RAD),
+                    initSpeed*shotTime*(xDist - TOTAL_RAD) + TOTAL_RAD*(yDist - 0.5*GRAVITY*shotTime*shotTime)
+            );
+            double turretYaw = atan2(targetPoint[0] - shotTime*xVel - xPos, targetPoint[1] - shotTime*yVel - yPos);
+            return new double[]{turretPitch,turretYaw};
         }
     }
 
@@ -328,13 +344,6 @@ public class Inferno implements RobotConfig{
                 frontIntakeGate.instantSetTargetCommand("closed"),
                 backIntakeGate.instantSetTargetCommand("closed")
         );
-        midTransfer = new ParallelCommand(
-                transferGate.instantSetTargetCommand("open"),
-                backIntake.setPowerCommand("transfer"),
-                frontIntake.setPowerCommand("transfer"),
-                frontIntakeGate.instantSetTargetCommand("closed"),
-                backIntakeGate.instantSetTargetCommand("closed")
-        );
         ParallelCommand frontIntakeAction = new ParallelCommand(
                 transferGate.instantSetTargetCommand("closed"),
                 frontIntake.setPowerCommand("intake"),
@@ -374,21 +383,21 @@ public class Inferno implements RobotConfig{
         ParallelCommand frontIntakeAndTransfer = new ParallelCommand(
                 new InstantCommand(() -> shotType = ShotType.NORMAL),
                 transferGate.instantSetTargetCommand("open"),
-                midTransfer,
+                frontTransfer,
                 frontIntakeGate.instantSetTargetCommand("open"),
                 backIntakeGate.instantSetTargetCommand("closed")
         );
         ParallelCommand backIntakeAndTransfer = new ParallelCommand(
                 new InstantCommand(() -> shotType = ShotType.NORMAL),
                 transferGate.instantSetTargetCommand("open"),
-                midTransfer,
+                backTransfer,
                 backIntakeGate.instantSetTargetCommand("open"),
                 frontIntakeGate.instantSetTargetCommand("closed")
         );
         ConditionalCommand transfer = new ConditionalCommand(
                 new IfThen(
                         () -> shotType == ShotType.NORMAL,
-                        new ParallelCommand(midTransfer,new InstantCommand(()-> currentBallPath = BallPath.LOW))
+                        new ParallelCommand(frontTransfer,new InstantCommand(()-> currentBallPath = BallPath.LOW))
                 ),
                 new IfThen(
                         () -> shotType == ShotType.MOTIF,
@@ -396,7 +405,10 @@ public class Inferno implements RobotConfig{
                 )
         );
         ContinuousCommand physics = new ContinuousCommand(()->{
-            //calcTurretPos(); calcFlywheelVelocity();
+            targetFlywheelVelocity = 3000;
+            double[] turret = Fisiks.runPhysics();
+            turretPitch.command((BotServo servo)->servo.instantSetTargetCommand(turret[0]*TURRET_PITCH_RATIO)).run();
+
         });
 
         loopFSM = new RunResettingLoop(

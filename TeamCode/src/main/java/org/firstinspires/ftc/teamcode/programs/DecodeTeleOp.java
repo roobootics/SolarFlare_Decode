@@ -61,8 +61,6 @@ public class DecodeTeleOp extends LinearOpMode {
                         new ConditionalCommand(
                                 new IfThen(()->gamepad1.right_bumper, setState(RobotState.INTAKE_FRONT)),
                                 new IfThen(()->gamepad1.left_bumper, setState(RobotState.INTAKE_BACK)),
-                                new IfThen(()->gamepad1.b, setState(RobotState.INTAKE_FRONT_AND_SHOOT)),
-                                new IfThen(()->gamepad1.x, setState(RobotState.INTAKE_BACK_AND_SHOOT)),
                                 new IfThen(()->gamepad1.right_trigger>0.8, setState(RobotState.SHOOTING)),
                                 new IfThen(()->gamepad1.y, setState(RobotState.NONE))
                         ),
@@ -71,6 +69,8 @@ public class DecodeTeleOp extends LinearOpMode {
                                 new IfThen(()->gamepad2.x,new InstantCommand(()->classifierBallCount=0)),
                                 new IfThen(()->gamepad2.a,new InstantCommand(()->classifierBallCount+=1)),
                                 new IfThen(()->gamepad2.b,new InstantCommand(()->classifierBallCount-=1)),
+                                new IfThen(()->gamepad2.dpad_up, setState(RobotState.INTAKE_FRONT_AND_SHOOT)),
+                                new IfThen(()->gamepad2.dpad_down, setState(RobotState.INTAKE_BACK_AND_SHOOT)),
                                 new IfThen(()->gamepad2.back,new InstantCommand(()->motifShootAll=!motifShootAll))
                         ),
                         new InstantCommand(()->{if (classifierBallCount>9) classifierBallCount=9; else if (classifierBallCount<0) classifierBallCount=0;}),
