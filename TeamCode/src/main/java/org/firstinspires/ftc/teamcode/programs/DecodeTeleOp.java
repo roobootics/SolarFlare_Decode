@@ -93,10 +93,17 @@ public class DecodeTeleOp extends LinearOpMode {
             telemetryAddData("Classifier Count:",classifierBallCount);
             telemetryAddData("Current Shot Height:",currentBallPath);
             telemetryAddData("Shoot All Motif:",motifShootAll);
-            telemetryAddData("Front Velocity:",frontIntake.getVelocity());
-            telemetryAddData("Back Velocity:",backIntake.getVelocity());
-            telemetryAddData("Front Power:",frontIntake.getPower());
-            telemetryAddData("Back Power:",backIntake.getPower());
+            telemetryAddData("sensor1 red:",sensors[0].getNormalizedColors().red*256);
+            telemetryAddData("sensor1 green:",sensors[0].getNormalizedColors().green*256);
+            telemetryAddData("sensor1 blue:",sensors[0].getNormalizedColors().blue*256);
+            telemetryAddData("sensor2 red:",sensors[1].getNormalizedColors().red*256);
+            telemetryAddData("sensor2 green:",sensors[1].getNormalizedColors().green*256);
+            telemetryAddData("sensor2 blue:",sensors[1].getNormalizedColors().blue*256);
+            telemetryAddData("sensor3 red:",sensors[2].getNormalizedColors().red*256);
+            telemetryAddData("sensor3 green:",sensors[2].getNormalizedColors().green*256);
+            telemetryAddData("sensor3 blue:",sensors[2].getNormalizedColors().blue*256);
+            telemetryAddData("Front Power",frontIntake.getPower());
+            telemetryAddData("Back Power",backIntake.getPower());
         });
         executor.runLoop(this::opModeIsActive);
     }

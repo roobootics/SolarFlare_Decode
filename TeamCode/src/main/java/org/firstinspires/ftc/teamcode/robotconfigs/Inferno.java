@@ -11,7 +11,7 @@ import org.apache.commons.lang3.tuple.Triple;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.math.Vector;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
-import com.qualcomm.hardware.rev.RevColorSensorV3;
+import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.NormalizedRGBA;
 import com.qualcomm.robotcore.hardware.Servo;
@@ -45,7 +45,7 @@ public class Inferno implements RobotConfig{
     private static final double OPPOSITE_TRANSFER_VEL = 1500;
     public static BotServo frontIntakeGate;
     public static BotServo backIntakeGate;
-    public static RevColorSensorV3[] sensors = new RevColorSensorV3[3];
+    public static NormalizedColorSensor[] sensors = new NormalizedColorSensor[3];
     public static Limelight3A limelight;
     public static BotServo transferGate;
     public enum Color{
@@ -84,14 +84,14 @@ public class Inferno implements RobotConfig{
     private static final double[] targetPoint = new double[]{132,141.5,38.7};
 
     private static Color colorSensorRead(int index){
-        RevColorSensorV3 sensor = sensors[index];
+        NormalizedColorSensor sensor = sensors[index];
         double [] greenCenter = new double[]{0,255,0};
         double [] purpleCenter = new double[]{255,0,255};
         double greenTolerance = 75;
         double purpleTolerance = 75;
         Color color = null;
         NormalizedRGBA normal = sensor.getNormalizedColors();
-        double red = normal.red*255; double green = normal.green*255; double blue = normal.blue*255;
+        double red = normal.red*256; double green = normal.green*256; double blue = normal.blue*256;
         if ((red-greenCenter[0])*(red-greenCenter[0]) + (green-greenCenter[1])*(green-greenCenter[1]) + (blue-greenCenter[2])*(blue-greenCenter[2])<=greenTolerance*greenTolerance){
             color = Color.GREEN;
         }
@@ -215,12 +215,12 @@ public class Inferno implements RobotConfig{
             if (timer.time() - startTime > currentBallShotTiming && !ballPaths.isEmpty()) {
                 startTime = timer.time();
                 if (ballPaths.get(0)!=currentBallPath && !Objects.isNull(ballPaths.get(0))) {
-                    if (transferDirection==0 || transferDirection == 1) {
+                    if (transferDirection==0) {
                         //frontIntake.setVelocity(TRANSFER_VEL * TRANSFER_SLOWDOWN);
                         //backIntake.setVelocity(OPPOSITE_TRANSFER_VEL * TRANSFER_SLOWDOWN);
                         frontIntake.setPower(frontIntake.getKeyPower("transfer")*TRANSFER_SLOWDOWN);
                         backIntake.setPower(backIntake.getKeyPower("otherSideTransfer")*TRANSFER_SLOWDOWN);
-                    } else if (transferDirection==2){
+                    } else if (transferDirection == 1 || transferDirection==2){
                         backIntake.setPower(backIntake.getKeyPower("transfer")*TRANSFER_SLOWDOWN);
                         frontIntake.setPower(frontIntake.getKeyPower("otherSideTransfer")*TRANSFER_SLOWDOWN);
                         //backIntake.setVelocity(TRANSFER_VEL * TRANSFER_SLOWDOWN);
@@ -229,9 +229,9 @@ public class Inferno implements RobotConfig{
                     currentBallShotTiming = SLOWED_BALL_SHOT_TIMING;
                 }
                 else{
-                    if (transferDirection==0 || transferDirection == 1) {
+                    if (transferDirection==0) {
                         frontTransfer.reset(); frontTransfer.run();
-                    } else if (transferDirection==2){
+                    } else if (transferDirection == 1 || transferDirection==2){
                         backTransfer.reset(); backTransfer.run();
                     }
                     currentBallShotTiming = BALL_SHOT_TIMING;
@@ -307,21 +307,24 @@ public class Inferno implements RobotConfig{
         backIntake = new BotMotor("backIntake", DcMotorSimple.Direction.FORWARD);
         frontIntake.setKeyPowers(
                 new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel"},
-                new double[]{1.0,-0.5,1.0,0.61,-0.08,-1.0}
+                new double[]{1.0,-0.5,1.0,0.5,-0.08,-1.0}
         );
         backIntake.setKeyPowers(
                 new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel"},
-                new double[]{1.0,-0.5,1.0,0.61,-0.08,-1.0}
+                new double[]{1.0,-0.5,1.0,0.5,-0.08,-1.0}
         );
-        frontIntakeGate = new BotServo("frontIntakeGate", Servo.Direction.FORWARD, 422, 5, 180, 50);
-        backIntakeGate = new BotServo("backIntakeGate", Servo.Direction.FORWARD, 422, 5, 180, 50);
-        frontIntakeGate.setKeyPositions(new String[]{"open", "closed","push"}, new double[]{99,13.8,0});
-        backIntakeGate.setKeyPositions(new String[]{"open", "closed","push"}, new double[]{93.6,8.4,0});
-        sensors[0] = Components.getHardwareMap().get(RevColorSensorV3.class, "sensor1");
-        sensors[1] = Components.getHardwareMap().get(RevColorSensorV3.class, "sensor2");
-        sensors[2] = Components.getHardwareMap().get(RevColorSensorV3.class, "sensor3");
+        frontIntakeGate = new BotServo("frontIntakeGate", Servo.Direction.FORWARD, 422, 5, 180, 90.8);
+        backIntakeGate = new BotServo("backIntakeGate", Servo.Direction.FORWARD, 422, 5, 180, 99.5);
+        frontIntakeGate.setKeyPositions(new String[]{"open", "closed","push"}, new double[]{180,72.8,67.8});
+        backIntakeGate.setKeyPositions(new String[]{"open", "closed","push"}, new double[]{180,81.5,76.5});
+        sensors[0] = Components.getHardwareMap().get(NormalizedColorSensor.class, "sensor1");
+        sensors[1] = Components.getHardwareMap().get(NormalizedColorSensor.class, "sensor2");
+        sensors[2] = Components.getHardwareMap().get(NormalizedColorSensor.class, "sensor3");
+        sensors[0].setGain((float) 8.0);
+        sensors[1].setGain((float) 8.0);
+        sensors[2].setGain((float) 8.0);
         //limelight = Components.getHardwareMap().get(Limelight3A.class, "limelight");
-        transferGate = new BotServo("transferGate", Servo.Direction.FORWARD,422,5,270,90);
+        transferGate = new BotServo("transferGate", Servo.Direction.FORWARD,422,5,270,148.5);
         transferGate.setKeyPositions(new String[]{"open","closed"},new double[]{148.5,86.4});
         frontTransfer = new SequentialCommand(
                 new ParallelCommand(
@@ -398,7 +401,7 @@ public class Inferno implements RobotConfig{
         ConditionalCommand transfer = new ConditionalCommand(
                 new IfThen(
                         () -> shotType == ShotType.NORMAL,
-                        new ParallelCommand(frontTransfer,new InstantCommand(()-> currentBallPath = BallPath.LOW))
+                        new ParallelCommand(backTransfer,new InstantCommand(()-> currentBallPath = BallPath.LOW))
                 ),
                 new IfThen(
                         () -> shotType == ShotType.MOTIF,
