@@ -81,7 +81,7 @@ public class Inferno implements RobotConfig{
     private final static double TRANSFER_SLOWDOWN = 0.67;
     public static Color[] motif = new Color[3];
     public static double classifierBallCount = 0;
-    private static final double[] targetPoint = new double[]{144,12,38.7};
+    private static final double[] targetPoint = new double[]{132,141.5,38.7};
 
     private static Color colorSensorRead(int index){
         RevColorSensorV3 sensor = sensors[index];
@@ -248,7 +248,7 @@ public class Inferno implements RobotConfig{
     private abstract static class Fisiks {
         final static double GRAVITY = -386.089;
         final static double FRICTION = 0.67;
-        final static double HEIGHT = 18;
+        final static double HEIGHT = 10.748;
         final static double TICKS_TO_RAD = 151;
         final static double WHEEL_RAD = 1.41732;
         final static double BALL_RAD = 2.5;
@@ -307,11 +307,11 @@ public class Inferno implements RobotConfig{
         backIntake = new BotMotor("backIntake", DcMotorSimple.Direction.FORWARD);
         frontIntake.setKeyPowers(
                 new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel"},
-                new double[]{1.0,-0.5,1.0,0.61,-0.25,-1.0}
+                new double[]{1.0,-0.5,1.0,0.61,-0.08,-1.0}
         );
         backIntake.setKeyPowers(
                 new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel"},
-                new double[]{1.0,-0.5,1.0,0.61,-0.25,-1.0}
+                new double[]{1.0,-0.5,1.0,0.61,-0.08,-1.0}
         );
         frontIntakeGate = new BotServo("frontIntakeGate", Servo.Direction.FORWARD, 422, 5, 180, 50);
         backIntakeGate = new BotServo("backIntakeGate", Servo.Direction.FORWARD, 422, 5, 180, 50);
@@ -406,7 +406,8 @@ public class Inferno implements RobotConfig{
                 )
         );
         ContinuousCommand setShooter = new ContinuousCommand(()->{
-            targetFlywheelVelocity = 3000;
+            //targetFlywheelVelocity = 3000;
+            flywheel.call((BotMotor motor)->motor.setPower(1.0));
             if (robotState != RobotState.INTAKE_FRONT && robotState!= RobotState.INTAKE_BACK){
                 double heading = Math.toDegrees(follower.getHeading());
                 double[] turret = Fisiks.runPhysics();
