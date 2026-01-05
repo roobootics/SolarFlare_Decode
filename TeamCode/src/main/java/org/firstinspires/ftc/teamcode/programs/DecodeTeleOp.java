@@ -53,12 +53,16 @@ public class DecodeTeleOp extends LinearOpMode {
                       ()->(!autoReset&&gamepad1.x),
                       new InstantCommand(()->autoReset=true)
                 )
+            ),
+            new PressCommand(
+                new IfThen(
+                        ()->autoReset,
+                        new InstantCommand(()->initialize(hardwareMap,telemetry,new Inferno(),true))
+                )
             )
         ));
         executor.setWriteToTelemetry(()->telemetryAddData("Reset Odometry Pos",autoReset));
         executor.runLoop(this::opModeInInit);
-
-        initialize(hardwareMap,telemetry,new Inferno(),autoReset);
 
         executor.setCommands(
                 new RunResettingLoop(

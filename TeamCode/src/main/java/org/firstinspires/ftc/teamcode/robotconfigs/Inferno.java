@@ -41,8 +41,6 @@ public class Inferno implements RobotConfig{
     private static final double TURRET_PITCH_RATIO = 1;
     public static BotMotor frontIntake;
     public static BotMotor backIntake;
-    private static final double TRANSFER_VEL = 2000;
-    private static final double OPPOSITE_TRANSFER_VEL = 1500;
     public static BotServo frontIntakeGate;
     public static BotServo backIntakeGate;
     public static NormalizedColorSensor[] sensors = new NormalizedColorSensor[3];
@@ -93,8 +91,8 @@ public class Inferno implements RobotConfig{
     private static Color colorSensorRead(int index){
         double [] greenCenter = new double[]{0.23,0.54,0.23};
         double [] purpleCenter = new double[]{0.4,0.2,0.4};
-        double greenTolerance = 0.2;
-        double purpleTolerance = 0.2;
+        double greenTolerance = 0.16;
+        double purpleTolerance = 0.16;
         double[] output = colorSensorNormalizedOutput(index);
         Color color = null;
         double red = output[0]; double green = output[1]; double blue = output[2];
@@ -221,15 +219,11 @@ public class Inferno implements RobotConfig{
                 startTime = timer.time();
                 if (ballPaths.get(0)!=currentBallPath && !Objects.isNull(ballPaths.get(0))) {
                     if (transferDirection==0) {
-                        //frontIntake.setVelocity(TRANSFER_VEL * TRANSFER_SLOWDOWN);
-                        //backIntake.setVelocity(OPPOSITE_TRANSFER_VEL * TRANSFER_SLOWDOWN);
                         frontIntake.setPower(frontIntake.getKeyPower("transfer")*TRANSFER_SLOWDOWN);
                         backIntake.setPower(backIntake.getKeyPower("otherSideTransfer")*TRANSFER_SLOWDOWN);
                     } else if (transferDirection == 1 || transferDirection==2){
                         backIntake.setPower(backIntake.getKeyPower("transfer")*TRANSFER_SLOWDOWN);
                         frontIntake.setPower(frontIntake.getKeyPower("otherSideTransfer")*TRANSFER_SLOWDOWN);
-                        //backIntake.setVelocity(TRANSFER_VEL * TRANSFER_SLOWDOWN);
-                        //frontIntake.setVelocity(OPPOSITE_TRANSFER_VEL * TRANSFER_SLOWDOWN);
                     }
                     currentBallShotTiming = SLOWED_BALL_SHOT_TIMING;
                 }
@@ -330,8 +324,6 @@ public class Inferno implements RobotConfig{
         transferGate.setKeyPositions(new String[]{"open","closed"},new double[]{148.5,86.4});
         frontTransfer = new SequentialCommand(
                 new ParallelCommand(
-                    //new InstantCommand(()->frontIntake.setVelocity(TRANSFER_VEL)),
-                    //new InstantCommand(()->backIntake.setVelocity(OPPOSITE_TRANSFER_VEL)),
                     transferGate.instantSetTargetCommand("open"),
                     frontIntake.setPowerCommand("transfer"),
                     backIntake.setPowerCommand("otherSideTransfer"),
@@ -341,8 +333,6 @@ public class Inferno implements RobotConfig{
         );
         backTransfer = new SequentialCommand(
                 new ParallelCommand(
-                    //new InstantCommand(()->backIntake.setVelocity(TRANSFER_VEL)),
-                    //new InstantCommand(()->frontIntake.setVelocity(OPPOSITE_TRANSFER_VEL)),
                     transferGate.instantSetTargetCommand("open"),
                     backIntake.setPowerCommand("transfer"),
                     frontIntake.setPowerCommand("otherSideTransfer"),
@@ -379,7 +369,7 @@ public class Inferno implements RobotConfig{
                     frontIntakeGate.instantSetTargetCommand("closed"),
                     backIntakeGate.instantSetTargetCommand("closed")
                 ),
-                new SleepCommand(0.1),
+                new SleepCommand(0.2),
                 new ParallelCommand(
                     transferGate.instantSetTargetCommand("open"),
                     frontIntake.setPowerCommand("stopped"),
@@ -412,7 +402,6 @@ public class Inferno implements RobotConfig{
                 )
         );
         ContinuousCommand setShooter = new ContinuousCommand(()->{
-            //targetFlywheelVelocity = 3000;
             flywheel.call((BotMotor motor)->motor.setPower(1.0));
             if (robotState != RobotState.INTAKE_FRONT && robotState!= RobotState.INTAKE_BACK){
                 double heading = Math.toDegrees(follower.getHeading());
@@ -435,7 +424,6 @@ public class Inferno implements RobotConfig{
                 flywheel.command((BotMotor motor)->motor.setPowerCommand(1.0))
                 //setShooter
         );
-        findMotif();
         Components.activateActuatorControl();
         flywheel.call((BotMotor motor) -> motor.switchControl("controlOff"));
     }
