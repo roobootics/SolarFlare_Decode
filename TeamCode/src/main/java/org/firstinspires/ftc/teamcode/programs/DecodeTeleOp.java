@@ -8,6 +8,7 @@ import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.backIntake;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.ballStorage;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.classifierBallCount;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.colorSensorNormalizedOutput;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.currentBallPath;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.frontIntake;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftFront;
@@ -34,7 +35,9 @@ import org.firstinspires.ftc.teamcode.base.Components.*;
 import org.firstinspires.ftc.teamcode.robotconfigs.Inferno;
 import org.firstinspires.ftc.teamcode.robotconfigs.Inferno.*;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 @TeleOp
 public class DecodeTeleOp extends LinearOpMode {
@@ -77,7 +80,7 @@ public class DecodeTeleOp extends LinearOpMode {
                         new InstantCommand(()->{if (classifierBallCount>9) classifierBallCount=9; else if (classifierBallCount<0) classifierBallCount=0;}),
                         new FieldCentricMecanumCommand(
                                 new BotMotor[]{leftFront,leftRear,rightFront,rightRear},
-                                ()->(follower.getHeading()),1,
+                                ()->(0.0),1,
                                 ()-> (double) gamepad1.left_stick_x, ()-> (double) gamepad1.left_stick_y, ()-> (double) gamepad1.right_stick_x,
                                 ()->{if (gamepad1.left_trigger > 0.8) return 0.75; else return 1.0;}
                         ),
@@ -93,15 +96,9 @@ public class DecodeTeleOp extends LinearOpMode {
             telemetryAddData("Classifier Count:",classifierBallCount);
             telemetryAddData("Current Shot Height:",currentBallPath);
             telemetryAddData("Shoot All Motif:",motifShootAll);
-            telemetryAddData("sensor1 red:",sensors[0].getNormalizedColors().red*256);
-            telemetryAddData("sensor1 green:",sensors[0].getNormalizedColors().green*256);
-            telemetryAddData("sensor1 blue:",sensors[0].getNormalizedColors().blue*256);
-            telemetryAddData("sensor2 red:",sensors[1].getNormalizedColors().red*256);
-            telemetryAddData("sensor2 green:",sensors[1].getNormalizedColors().green*256);
-            telemetryAddData("sensor2 blue:",sensors[1].getNormalizedColors().blue*256);
-            telemetryAddData("sensor3 red:",sensors[2].getNormalizedColors().red*256);
-            telemetryAddData("sensor3 green:",sensors[2].getNormalizedColors().green*256);
-            telemetryAddData("sensor3 blue:",sensors[2].getNormalizedColors().blue*256);
+            telemetryAddData("sensor1:", Arrays.toString(colorSensorNormalizedOutput(0)));
+            telemetryAddData("sensor2:", Arrays.toString(colorSensorNormalizedOutput(1)));
+            telemetryAddData("sensor3:", Arrays.toString(colorSensorNormalizedOutput(2)));
             telemetryAddData("Front Power",frontIntake.getPower());
             telemetryAddData("Back Power",backIntake.getPower());
         });

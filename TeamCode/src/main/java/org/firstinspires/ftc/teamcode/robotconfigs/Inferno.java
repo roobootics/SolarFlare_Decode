@@ -82,16 +82,22 @@ public class Inferno implements RobotConfig{
     public static Color[] motif = new Color[3];
     public static double classifierBallCount = 0;
     private static final double[] targetPoint = new double[]{132,141.5,38.7};
-
-    private static Color colorSensorRead(int index){
+    public static double[] colorSensorNormalizedOutput(int index){
         NormalizedColorSensor sensor = sensors[index];
-        double [] greenCenter = new double[]{0,255,0};
-        double [] purpleCenter = new double[]{255,0,255};
-        double greenTolerance = 75;
-        double purpleTolerance = 75;
-        Color color = null;
         NormalizedRGBA normal = sensor.getNormalizedColors();
         double red = normal.red*256; double green = normal.green*256; double blue = normal.blue*256;
+        double brightness = red+green+blue; red/=brightness; green/=brightness; blue/=brightness;
+        return new double[]{red,green,blue};
+    }
+
+    private static Color colorSensorRead(int index){
+        double [] greenCenter = new double[]{0.23,0.54,0.23};
+        double [] purpleCenter = new double[]{0.4,0.2,0.4};
+        double greenTolerance = 0.2;
+        double purpleTolerance = 0.2;
+        double[] output = colorSensorNormalizedOutput(index);
+        Color color = null;
+        double red = output[0]; double green = output[1]; double blue = output[2];
         if ((red-greenCenter[0])*(red-greenCenter[0]) + (green-greenCenter[1])*(green-greenCenter[1]) + (blue-greenCenter[2])*(blue-greenCenter[2])<=greenTolerance*greenTolerance){
             color = Color.GREEN;
         }
@@ -197,7 +203,7 @@ public class Inferno implements RobotConfig{
     private static SequentialCommand frontTransfer;
     private static SequentialCommand backTransfer;
     public static class MotifShoot extends Command{
-        private double startTime; private double firstStartTime;
+        private double startTime;
         private ArrayList<BallPath> ballPaths; private boolean leaveRollersOn; private int transferDirection;
         private double currentBallShotTiming = BALL_SHOT_TIMING;
         @Override
@@ -205,7 +211,6 @@ public class Inferno implements RobotConfig{
 
             if (isStart()) {
                 startTime = -9999;
-                firstStartTime = timer.time();
                 Triple<ArrayList<BallPath>, Integer, Boolean> plan = findMotifShotPlan(motifShootAll);
                 ballPaths = plan.getLeft(); transferDirection = plan.getMiddle(); leaveRollersOn = plan.getRight();
                 frontIntakeGate.setTarget(frontIntakeGate.getPos("push"));
@@ -307,11 +312,11 @@ public class Inferno implements RobotConfig{
         backIntake = new BotMotor("backIntake", DcMotorSimple.Direction.FORWARD);
         frontIntake.setKeyPowers(
                 new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel"},
-                new double[]{1.0,-0.5,1.0,0.5,-0.08,-1.0}
+                new double[]{1.0,-0.75,1.0,0.5,0.0,-1.0}
         );
         backIntake.setKeyPowers(
                 new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel"},
-                new double[]{1.0,-0.5,1.0,0.5,-0.08,-1.0}
+                new double[]{1.0,-0.75,1.0,0.5,0.0,-1.0}
         );
         frontIntakeGate = new BotServo("frontIntakeGate", Servo.Direction.FORWARD, 422, 5, 180, 90.8);
         backIntakeGate = new BotServo("backIntakeGate", Servo.Direction.FORWARD, 422, 5, 180, 99.5);
@@ -320,9 +325,6 @@ public class Inferno implements RobotConfig{
         sensors[0] = Components.getHardwareMap().get(NormalizedColorSensor.class, "sensor1");
         sensors[1] = Components.getHardwareMap().get(NormalizedColorSensor.class, "sensor2");
         sensors[2] = Components.getHardwareMap().get(NormalizedColorSensor.class, "sensor3");
-        sensors[0].setGain((float) 8.0);
-        sensors[1].setGain((float) 8.0);
-        sensors[2].setGain((float) 8.0);
         //limelight = Components.getHardwareMap().get(Limelight3A.class, "limelight");
         transferGate = new BotServo("transferGate", Servo.Direction.FORWARD,422,5,270,148.5);
         transferGate.setKeyPositions(new String[]{"open","closed"},new double[]{148.5,86.4});
@@ -355,10 +357,8 @@ public class Inferno implements RobotConfig{
                 frontIntakeGate.instantSetTargetCommand("open"),
                 backIntakeGate.instantSetTargetCommand("closed"),
                 new SequentialCommand(
-                        new SleepUntilTrue(()->!Objects.isNull(colorSensorRead(2))),
-                        backIntake.setPowerCommand("stopped"),
-                        new SleepUntilTrue(()->!Objects.isNull(colorSensorRead(1))),
-                        new SleepUntilTrue(()->!Objects.isNull(colorSensorRead(0))),
+                        new SleepUntilTrue(()->!Objects.isNull(colorSensorRead(0))&&!Objects.isNull(colorSensorRead(1))&&!Objects.isNull(colorSensorRead(2))),
+                        new SleepCommand(0.3),
                         setState(RobotState.NONE)
                 )
         );
@@ -369,20 +369,23 @@ public class Inferno implements RobotConfig{
                 backIntakeGate.instantSetTargetCommand("open"),
                 frontIntakeGate.instantSetTargetCommand("closed"),
                 new SequentialCommand(
-                        new SleepUntilTrue(()->!Objects.isNull(colorSensorRead(0))),
-                        frontIntake.setPowerCommand("stopped"),
-                        new SleepUntilTrue(()->!Objects.isNull(colorSensorRead(1))),
-                        new SleepUntilTrue(()->!Objects.isNull(colorSensorRead(2))),
+                        new SleepUntilTrue(()->!Objects.isNull(colorSensorRead(0))&&!Objects.isNull(colorSensorRead(1))&&!Objects.isNull(colorSensorRead(2))),
+                        new SleepCommand(0.3),
                         setState(RobotState.NONE)
                 )
         );
-        ParallelCommand stopIntake = new ParallelCommand(
-                transferGate.instantSetTargetCommand("open"),
-                frontIntake.setPowerCommand("stopped"),
-                backIntake.setPowerCommand("stopped"),
-                frontIntakeGate.instantSetTargetCommand("closed"),
-                backIntakeGate.instantSetTargetCommand("closed"),
-                new InstantCommand(()->{if (!findMotifShotPlan(motifShootAll).getLeft().isEmpty()) {currentBallPath=findMotifShotPlan(motifShootAll).getLeft().get(0);} else {currentBallPath=BallPath.LOW;}})
+        SequentialCommand stopIntake = new SequentialCommand(
+                new ParallelCommand(
+                    frontIntakeGate.instantSetTargetCommand("closed"),
+                    backIntakeGate.instantSetTargetCommand("closed")
+                ),
+                new SleepCommand(0.1),
+                new ParallelCommand(
+                    transferGate.instantSetTargetCommand("open"),
+                    frontIntake.setPowerCommand("stopped"),
+                    backIntake.setPowerCommand("stopped"),
+                    new InstantCommand(()->{if (!findMotifShotPlan(motifShootAll).getLeft().isEmpty()) {currentBallPath=findMotifShotPlan(motifShootAll).getLeft().get(0);} else {currentBallPath=BallPath.LOW;}})
+                )
         );
         ParallelCommand frontIntakeAndTransfer = new ParallelCommand(
                 new InstantCommand(() -> shotType = ShotType.NORMAL),
