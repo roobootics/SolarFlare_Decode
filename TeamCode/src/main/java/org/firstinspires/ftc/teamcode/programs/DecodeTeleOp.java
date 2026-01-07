@@ -75,8 +75,7 @@ public class DecodeTeleOp extends LinearOpMode {
                                 new IfThen(()->gamepad2.b,new InstantCommand(()->classifierBallCount-=1)),
                                 new IfThen(()->gamepad2.dpad_up, setState(RobotState.INTAKE_FRONT_AND_SHOOT)),
                                 new IfThen(()->gamepad2.dpad_down, setState(RobotState.INTAKE_BACK_AND_SHOOT)),
-                                new IfThen(()->gamepad2.back,new InstantCommand(()->motifShootAll=!motifShootAll)),
-                                new IfThen(()->gamepad2.right_bumper,setState(RobotState.EXPEL))
+                                new IfThen(()->gamepad2.back,setState(RobotState.EXPEL))
                         ),
                         new InstantCommand(()->{if (classifierBallCount>9) classifierBallCount=9; else if (classifierBallCount<0) classifierBallCount=0;}),
                         new FieldCentricMecanumCommand(
@@ -97,11 +96,10 @@ public class DecodeTeleOp extends LinearOpMode {
             telemetryAddData("Classifier Count:",classifierBallCount);
             telemetryAddData("Current Shot Height:",currentBallPath);
             telemetryAddData("Shoot All Motif:",motifShootAll);
-            telemetryAddData("sensor1:", Arrays.toString(colorSensorNormalizedOutput(0)));
-            telemetryAddData("sensor2:", Arrays.toString(colorSensorNormalizedOutput(1)));
-            telemetryAddData("sensor3:", Arrays.toString(colorSensorNormalizedOutput(2)));
             telemetryAddData("Front Power",frontIntake.getPower());
             telemetryAddData("Back Power",backIntake.getPower());
+            telemetryAddData("Front Current",frontIntake.getCurrentAmps());
+            telemetryAddData("Back Current",frontIntake.getCurrentAmps());
         });
         executor.runLoop(this::opModeIsActive);
     }

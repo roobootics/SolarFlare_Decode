@@ -75,7 +75,7 @@ public class Inferno implements RobotConfig{
     public static BallPath currentBallPath = BallPath.LOW;
     public static RobotState robotState = RobotState.STOPPED;
     public static ShotType shotType = ShotType.NORMAL;
-    public static boolean motifShootAll = false;
+    public static boolean motifShootAll = true;
     private final static double BALL_SHOT_TIMING = 5;
     private final static double SLOWED_BALL_SHOT_TIMING = 5;
     private final static double TRANSFER_SLOWDOWN = 0.67;
