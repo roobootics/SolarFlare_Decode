@@ -4,7 +4,6 @@ import static org.firstinspires.ftc.teamcode.base.Commands.executor;
 import static org.firstinspires.ftc.teamcode.base.Components.initialize;
 import static org.firstinspires.ftc.teamcode.base.Components.telemetryAddData;
 import static org.firstinspires.ftc.teamcode.base.Components.telemetryAddLine;
-import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.backIntake;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.ballStorage;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.classifierBallCount;
@@ -20,7 +19,6 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.readBallStorag
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.rightFront;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.rightRear;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.robotState;
-import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.sensors;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.setState;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.shotType;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.toggleShotType;
@@ -35,9 +33,7 @@ import org.firstinspires.ftc.teamcode.base.Components.*;
 import org.firstinspires.ftc.teamcode.robotconfigs.Inferno;
 import org.firstinspires.ftc.teamcode.robotconfigs.Inferno.*;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 
 @TeleOp
 public class DecodeTeleOp extends LinearOpMode {
@@ -70,7 +66,7 @@ public class DecodeTeleOp extends LinearOpMode {
                                 new IfThen(()->gamepad1.right_bumper, setState(RobotState.INTAKE_FRONT)),
                                 new IfThen(()->gamepad1.left_bumper, setState(RobotState.INTAKE_BACK)),
                                 new IfThen(()->gamepad1.right_trigger>0.8, setState(RobotState.SHOOTING)),
-                                new IfThen(()->gamepad1.y, setState(RobotState.NONE))
+                                new IfThen(()->gamepad1.y, setState(RobotState.STOPPED))
                         ),
                         new PressCommand(
                                 new IfThen(()->gamepad2.y,toggleShotType()),
@@ -79,7 +75,8 @@ public class DecodeTeleOp extends LinearOpMode {
                                 new IfThen(()->gamepad2.b,new InstantCommand(()->classifierBallCount-=1)),
                                 new IfThen(()->gamepad2.dpad_up, setState(RobotState.INTAKE_FRONT_AND_SHOOT)),
                                 new IfThen(()->gamepad2.dpad_down, setState(RobotState.INTAKE_BACK_AND_SHOOT)),
-                                new IfThen(()->gamepad2.back,new InstantCommand(()->motifShootAll=!motifShootAll))
+                                new IfThen(()->gamepad2.back,new InstantCommand(()->motifShootAll=!motifShootAll)),
+                                new IfThen(()->gamepad2.right_bumper,setState(RobotState.EXPEL))
                         ),
                         new InstantCommand(()->{if (classifierBallCount>9) classifierBallCount=9; else if (classifierBallCount<0) classifierBallCount=0;}),
                         new FieldCentricMecanumCommand(
