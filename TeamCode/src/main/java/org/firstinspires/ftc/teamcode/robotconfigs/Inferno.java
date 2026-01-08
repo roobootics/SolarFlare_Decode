@@ -38,7 +38,7 @@ public class Inferno implements RobotConfig{
     public static SyncedActuators<BotServo> turretYaw;
     private static final double TURRET_YAW_RATIO = 1.127;
     public static SyncedActuators<BotServo> turretPitch;
-    private static final double TURRET_PITCH_RATIO = 48/40;
+    private static final double TURRET_PITCH_RATIO = (double) 48 /40;
     public static BotMotor frontIntake;
     public static BotMotor backIntake;
     public static BotServo frontIntakeGate;
@@ -75,13 +75,12 @@ public class Inferno implements RobotConfig{
     public static RobotState robotState = RobotState.STOPPED;
     public static ShotType shotType = ShotType.NORMAL;
     public static boolean motifShootAll = true;
-    private final static double BALL_SHOT_TIMING = 5;
-    private final static double SLOWED_BALL_SHOT_TIMING = 5;
-    private final static double TRANSFER_SLOWDOWN = 0.67;
+    private final static double BALL_SHOT_TIMING = 0.13;
+    private final static double TRANSFER_BOOST_DELAY = 0.32;
     public static Color[] motif = new Color[3];
     public static double classifierBallCount = 0;
     private static final double[] targetPoint = new double[]{132,141.5,38.7};
-    public static double[] colorSensorNormalizedOutput(int index){
+    private static double[] colorSensorNormalizedOutput(int index){
         NormalizedColorSensor sensor = sensors[index];
         NormalizedRGBA normal = sensor.getNormalizedColors();
         double red = normal.red*256; double green = normal.green*256; double blue = normal.blue*256;
@@ -92,8 +91,8 @@ public class Inferno implements RobotConfig{
     private static Color colorSensorRead(int index){
         double [] greenCenter = new double[]{0.23,0.54,0.23};
         double [] purpleCenter = new double[]{0.4,0.2,0.4};
-        double greenTolerance = 0.16;
-        double purpleTolerance = 0.16;
+        double greenTolerance = 0.165;
+        double purpleTolerance = 0.165;
         double[] output = colorSensorNormalizedOutput(index);
         Color color = null;
         double red = output[0]; double green = output[1]; double blue = output[2];
@@ -110,7 +109,7 @@ public class Inferno implements RobotConfig{
             ballStorage[i] = colorSensorRead(i);
         }
     }
-    public static Triple<ArrayList<BallPath>,Integer,Boolean> findMotifShotPlan(boolean shootAll){
+    private static Triple<ArrayList<BallPath>,Integer,Boolean> findMotifShotPlan(boolean shootAll){
         readBallStorage();
         ArrayList<BallPath> ballPaths = new ArrayList<>();
         Color[] shotSequence = new Color[3];
@@ -201,57 +200,56 @@ public class Inferno implements RobotConfig{
     public static Command loopFSM;
     private static SequentialCommand frontTransfer;
     private static SequentialCommand backTransfer;
-    public static class MotifShoot extends Command{
-        private double startTime;
-        private ArrayList<BallPath> ballPaths; private boolean leaveRollersOn; private int transferDirection;
-        private double currentBallShotTiming = BALL_SHOT_TIMING;
-        @Override
-        protected boolean runProcedure() {
-
-            if (isStart()) {
-                startTime = -9999;
-                Triple<ArrayList<BallPath>, Integer, Boolean> plan = findMotifShotPlan(motifShootAll);
-                ballPaths = plan.getLeft(); transferDirection = plan.getMiddle(); leaveRollersOn = plan.getRight();
-                frontIntakeGate.setTarget(frontIntakeGate.getPos("push"));
-                backIntakeGate.setTarget(backIntakeGate.getPos("push"));
+    private static abstract class MotifShoot{
+        private static ArrayList<BallPath> ballPaths; private static boolean leaveRollersOn; private static int transferDirection;
+        public static void getMotifShotPlan(){
+            Triple<ArrayList<BallPath>, Integer, Boolean> plan = findMotifShotPlan(motifShootAll);
+            ballPaths = plan.getLeft(); transferDirection = plan.getMiddle(); leaveRollersOn = plan.getRight();
+        }
+        public static class TransferCommand extends CompoundCommand{
+            public TransferCommand(){
+                setGroup(new ConditionalCommand(
+                        new IfThen(()->transferDirection==0, frontTransfer),
+                        new IfThen(()->transferDirection==2 || transferDirection==1, backTransfer)
+                ));
             }
-
-            if (timer.time() - startTime > currentBallShotTiming && !ballPaths.isEmpty()) {
-                startTime = timer.time();
-                if (ballPaths.get(0)!=currentBallPath && !Objects.isNull(ballPaths.get(0))) {
-                    if (transferDirection==0) {
-                        frontIntake.setPower(frontIntake.getKeyPower("transfer")*TRANSFER_SLOWDOWN);
-                        backIntake.setPower(backIntake.getKeyPower("otherSideTransfer")*TRANSFER_SLOWDOWN);
-                    } else if (transferDirection == 1 || transferDirection==2){
-                        backIntake.setPower(backIntake.getKeyPower("transfer")*TRANSFER_SLOWDOWN);
-                        frontIntake.setPower(frontIntake.getKeyPower("otherSideTransfer")*TRANSFER_SLOWDOWN);
-                    }
-                    currentBallShotTiming = SLOWED_BALL_SHOT_TIMING;
+        }
+        public static class HoodCommand extends Command{
+            private double startTime;
+            @Override
+            protected boolean runProcedure() {
+                if (isStart()) {
+                    startTime = -9999;
+                    frontIntakeGate.setTarget(frontIntakeGate.getPos("push"));
+                    backIntakeGate.setTarget(backIntakeGate.getPos("push"));
                 }
-                else{
-                    if (transferDirection==0) {
-                        frontTransfer.reset(); frontTransfer.run();
-                    } else if (transferDirection == 1 || transferDirection==2){
-                        backTransfer.reset(); backTransfer.run();
-                    }
-                    currentBallShotTiming = BALL_SHOT_TIMING;
+                if (timer.time() - startTime > BALL_SHOT_TIMING && !ballPaths.isEmpty()) {
+                    startTime = timer.time();
+                    if (!Objects.isNull(ballPaths.get(0))) currentBallPath = ballPaths.get(0); else currentBallPath = ballPaths.get(1);
+                    ballPaths.remove(0);
                 }
-                if (!Objects.isNull(ballPaths.get(0))) currentBallPath = ballPaths.get(0); else currentBallPath = ballPaths.get(1);
-                ballPaths.remove(0);
+                else if (timer.time() - startTime > BALL_SHOT_TIMING && ballPaths.isEmpty() && !leaveRollersOn){
+                    robotState = RobotState.STOPPED;
+                }
+                return true;
             }
-            else if (timer.time() - startTime > currentBallShotTiming && ballPaths.isEmpty() && !leaveRollersOn){
-                robotState = RobotState.STOPPED;
-            }
-            return true;
+        }
+        public static Command getFullMotifCommand(){
+            return new ParallelCommand(
+                new InstantCommand(MotifShoot::getMotifShotPlan),
+                new TransferCommand(),
+                new HoodCommand()
+            );
         }
     }
-    public static class CheckFull extends Command{
+    private static class CheckFull extends Command{
         private final static int COUNT = 4;
         private int counter = 0;
         @Override
         protected boolean runProcedure() {
             if (isStart()) counter = 0;
-            if (!Objects.isNull(colorSensorRead(0))&&!Objects.isNull(colorSensorRead(1))&&!Objects.isNull(colorSensorRead(2))) {counter+=1;} else {counter = 0;}
+            readBallStorage();
+            if (Objects.nonNull(ballStorage[0])&&Objects.nonNull(ballStorage[1])&&Objects.nonNull(ballStorage[2])) {counter+=1;} else {counter = 0;}
             return counter < COUNT;
         }
     }
@@ -317,11 +315,11 @@ public class Inferno implements RobotConfig{
         backIntake = new BotMotor("backIntake", DcMotorSimple.Direction.FORWARD);
         frontIntake.setKeyPowers(
                 new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel"},
-                new double[]{1.0,-0.85,1.0,0.25,0,-0.8}
+                new double[]{1.0,-0.65,1.0,0.25,0,-0.8}
         );
         backIntake.setKeyPowers(
                 new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel"},
-                new double[]{1.0,-0.85,1.0,0.25,0,-1.0}
+                new double[]{1.0,-0.65,1.0,0.25,0,-1.0}
         );
         frontIntakeGate = new BotServo("frontIntakeGate", Servo.Direction.FORWARD, 422, 5, 180, 90.8);
         backIntakeGate = new BotServo("backIntakeGate", Servo.Direction.FORWARD, 422, 5, 180, 99.5);
@@ -341,7 +339,7 @@ public class Inferno implements RobotConfig{
                     frontIntakeGate.instantSetTargetCommand("push"),
                     backIntakeGate.instantSetTargetCommand("push")
                 ),
-                new SleepCommand(0.32),
+                new SleepCommand(TRANSFER_BOOST_DELAY),
                 new ParallelCommand(
                         frontIntake.setPowerCommand("transfer"),
                         backIntake.setPowerCommand("transfer")
@@ -355,7 +353,7 @@ public class Inferno implements RobotConfig{
                     frontIntakeGate.instantSetTargetCommand("push"),
                     backIntakeGate.instantSetTargetCommand("push")
                 ),
-                new SleepCommand(0.32),
+                new SleepCommand(TRANSFER_BOOST_DELAY),
                 new ParallelCommand(
                         frontIntake.setPowerCommand("transfer"),
                         backIntake.setPowerCommand("transfer")
@@ -429,7 +427,7 @@ public class Inferno implements RobotConfig{
                 ),
                 new IfThen(
                         () -> shotType == ShotType.MOTIF,
-                        new MotifShoot()
+                        MotifShoot.getFullMotifCommand()
                 )
         );
         ContinuousCommand setShooter = new ContinuousCommand(()->{

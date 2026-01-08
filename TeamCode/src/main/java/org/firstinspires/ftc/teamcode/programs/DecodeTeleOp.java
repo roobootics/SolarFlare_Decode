@@ -5,10 +5,10 @@ import static org.firstinspires.ftc.teamcode.base.Components.initialize;
 import static org.firstinspires.ftc.teamcode.base.Components.initializeConfig;
 import static org.firstinspires.ftc.teamcode.base.Components.telemetryAddData;
 import static org.firstinspires.ftc.teamcode.base.Components.telemetryAddLine;
+import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.backIntake;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.ballStorage;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.classifierBallCount;
-import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.colorSensorNormalizedOutput;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.currentBallPath;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.frontIntake;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftFront;
@@ -31,6 +31,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 
 import org.firstinspires.ftc.teamcode.base.Components.*;
+import org.firstinspires.ftc.teamcode.pedroPathing.Pedro;
 import org.firstinspires.ftc.teamcode.robotconfigs.Inferno;
 import org.firstinspires.ftc.teamcode.robotconfigs.Inferno.*;
 
@@ -48,19 +49,13 @@ public class DecodeTeleOp extends LinearOpMode {
             new ConditionalCommand(
                 new IfThen(
                       ()->(!autoReset&&gamepad1.x),
-                      new InstantCommand(()->autoReset=true)
-                )
-            ),
-            new PressCommand(
-                new IfThen(
-                        ()->autoReset,
-                        new InstantCommand(()-> initializeConfig(new Inferno(),true))
+                      new InstantCommand(()->{autoReset=true; initializeConfig(new Inferno(),true);})
                 )
             )
         ));
         executor.setWriteToTelemetry(()->telemetryAddData("Reset Odometry Pos",autoReset));
         executor.runLoop(this::opModeInInit);
-
+        initializeConfig(new Inferno(),false);
         executor.setCommands(
                 new RunResettingLoop(
                         new ConditionalCommand(
@@ -79,14 +74,20 @@ public class DecodeTeleOp extends LinearOpMode {
                                 new IfThen(()->gamepad2.back,setState(RobotState.EXPEL))
                         ),
                         new InstantCommand(()->{if (classifierBallCount>9) classifierBallCount=9; else if (classifierBallCount<0) classifierBallCount=0;}),
-                        new FieldCentricMecanumCommand(
-                                new BotMotor[]{leftFront,leftRear,rightFront,rightRear},
-                                ()->(0.0),1,
-                                ()-> (double) gamepad1.left_stick_x, ()-> (double) gamepad1.left_stick_y, ()-> (double) gamepad1.right_stick_x,
-                                ()->{if (gamepad1.left_trigger > 0.8) return 0.75; else return 1.0;}
+                        new ConditionalCommand(
+                            new IfThen(
+                                    ()->!follower.isBusy(),
+                                    new FieldCentricMecanumCommand(
+                                            new BotMotor[]{leftFront,leftRear,rightFront,rightRear},
+                                            ()->(0.0),1,
+                                            ()-> (double) gamepad1.left_stick_x, ()-> (double) gamepad1.left_stick_y, ()-> (double) gamepad1.right_stick_x,
+                                            ()->{if (gamepad1.left_trigger > 0.8) return 0.75; else return 1.0;}
+                                    )
+                            )
                         ),
                         loopFSM
-                )
+                ),
+                Pedro.updateCommand()
         );
         executor.setWriteToTelemetry(()->{
             readBallStorage();
