@@ -303,14 +303,17 @@ public class Inferno implements RobotConfig{
                 )
         );
         turretPitch = new SyncedActuators<>(
-                new BotServo("turretPitchLeft", Servo.Direction.FORWARD, 422, 5, 270, 90),
-                new BotServo("turretPitchRight", Servo.Direction.REVERSE, 422, 5, 270, 90)
+                new BotServo("turretPitchLeft", Servo.Direction.REVERSE, 422, 5, 180, 0),
+                new BotServo("turretPitchRight", Servo.Direction.FORWARD, 422, 5, 180, 0)
         );
         turretYaw = new SyncedActuators<>(
-                new BotServo("turretYawFront", Servo.Direction.FORWARD, 422, 5, 355, 90),
-                new BotServo("turretYawBack", Servo.Direction.FORWARD, 422, 5, 355, 90)
+                new BotServo("turretYawFront", Servo.Direction.FORWARD, 422, 5, 355, 0),
+                new BotServo("turretYawBack", Servo.Direction.FORWARD, 422, 5, 355, 0)
         );
+        turretYaw.call((BotServo servo)->servo.setOffset(0.0));
+        turretPitch.call((BotServo servo)->servo.setOffset(0.0));
         turretYaw.call((BotServo servo) -> servo.setTargetBounds(() -> 355.0, () -> 0.0));
+        turretPitch.call((BotServo servo) -> servo.setTargetBounds(() -> 180.0, () -> 0.0));
         frontIntake = new BotMotor("frontIntake", DcMotorSimple.Direction.FORWARD);
         backIntake = new BotMotor("backIntake", DcMotorSimple.Direction.FORWARD);
         frontIntake.setKeyPowers(
