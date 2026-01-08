@@ -36,14 +36,13 @@ public class Inferno implements RobotConfig{
     public static SyncedActuators<BotMotor> flywheel;
     public static double targetFlywheelVelocity;
     public static SyncedActuators<BotServo> turretYaw;
-    private static final double TURRET_YAW_RATIO = 1;
+    private static final double TURRET_YAW_RATIO = 1.127;
     public static SyncedActuators<BotServo> turretPitch;
-    private static final double TURRET_PITCH_RATIO = 1;
+    private static final double TURRET_PITCH_RATIO = 48/40;
     public static BotMotor frontIntake;
     public static BotMotor backIntake;
     public static BotServo frontIntakeGate;
     public static BotServo backIntakeGate;
-    private static final double STALL_THRESHOLD = 5.0;
     public static NormalizedColorSensor[] sensors = new NormalizedColorSensor[3];
     public static Limelight3A limelight;
     public static BotServo transferGate;
@@ -318,16 +317,16 @@ public class Inferno implements RobotConfig{
         backIntake = new BotMotor("backIntake", DcMotorSimple.Direction.FORWARD);
         frontIntake.setKeyPowers(
                 new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel"},
-                new double[]{1.0,-0.75,1.0,0.5,0.0,-0.8}
+                new double[]{1.0,-0.85,1.0,0.25,0,-0.8}
         );
         backIntake.setKeyPowers(
                 new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel"},
-                new double[]{1.0,-0.75,1.0,0.5,0.0,-1.0}
+                new double[]{1.0,-0.85,1.0,0.25,0,-1.0}
         );
         frontIntakeGate = new BotServo("frontIntakeGate", Servo.Direction.FORWARD, 422, 5, 180, 90.8);
         backIntakeGate = new BotServo("backIntakeGate", Servo.Direction.FORWARD, 422, 5, 180, 99.5);
-        frontIntakeGate.setKeyPositions(new String[]{"open", "closed","push"}, new double[]{180,72.8,67.8});
-        backIntakeGate.setKeyPositions(new String[]{"open", "closed","push"}, new double[]{180,81.5,76.5});
+        frontIntakeGate.setKeyPositions(new String[]{"open", "closed","push"}, new double[]{180,69.8,64.8});
+        backIntakeGate.setKeyPositions(new String[]{"open", "closed","push"}, new double[]{180,78.5,73.5});
         sensors[0] = Components.getHardwareMap().get(NormalizedColorSensor.class, "sensor1");
         sensors[1] = Components.getHardwareMap().get(NormalizedColorSensor.class, "sensor2");
         sensors[2] = Components.getHardwareMap().get(NormalizedColorSensor.class, "sensor3");
@@ -341,6 +340,11 @@ public class Inferno implements RobotConfig{
                     backIntake.setPowerCommand("otherSideTransfer"),
                     frontIntakeGate.instantSetTargetCommand("push"),
                     backIntakeGate.instantSetTargetCommand("push")
+                ),
+                new SleepCommand(0.32),
+                new ParallelCommand(
+                        frontIntake.setPowerCommand("transfer"),
+                        backIntake.setPowerCommand("transfer")
                 )
         );
         backTransfer = new SequentialCommand(
@@ -350,6 +354,11 @@ public class Inferno implements RobotConfig{
                     frontIntake.setPowerCommand("otherSideTransfer"),
                     frontIntakeGate.instantSetTargetCommand("push"),
                     backIntakeGate.instantSetTargetCommand("push")
+                ),
+                new SleepCommand(0.32),
+                new ParallelCommand(
+                        frontIntake.setPowerCommand("transfer"),
+                        backIntake.setPowerCommand("transfer")
                 )
         );
         ParallelCommand frontIntakeAction = new ParallelCommand(
@@ -360,7 +369,7 @@ public class Inferno implements RobotConfig{
                 backIntakeGate.instantSetTargetCommand("closed"),
                 new SequentialCommand(
                         new CheckFull(),
-                        new SleepCommand(0.25),
+                        new SleepCommand(0.2),
                         setState(RobotState.STOPPED)
                 )
         );
@@ -372,7 +381,7 @@ public class Inferno implements RobotConfig{
                 frontIntakeGate.instantSetTargetCommand("closed"),
                 new SequentialCommand(
                         new CheckFull(),
-                        new SleepCommand(0.25),
+                        new SleepCommand(0.2),
                         setState(RobotState.STOPPED)
                 )
         );
@@ -381,7 +390,7 @@ public class Inferno implements RobotConfig{
                     frontIntakeGate.instantSetTargetCommand("closed"),
                     backIntakeGate.instantSetTargetCommand("closed")
                 ),
-                new SleepCommand(0.27),
+                new SleepCommand(0.26),
                 new ParallelCommand(
                     transferGate.instantSetTargetCommand("open"),
                     frontIntake.setPowerCommand("stopped"),
@@ -434,12 +443,6 @@ public class Inferno implements RobotConfig{
         });
 
         loopFSM = new RunResettingLoop(
-                new ConditionalCommand(
-                        new IfThen(
-                                ()->frontIntake.getCurrentAmps()>STALL_THRESHOLD || backIntake.getCurrentAmps()>STALL_THRESHOLD,
-                                setState(RobotState.EXPEL)
-                        )
-                ),
                 new PressCommand(
                         new IfThen(()->robotState==RobotState.STOPPED, stopIntake),
                         new IfThen(()->robotState==RobotState.EXPEL, expel),
