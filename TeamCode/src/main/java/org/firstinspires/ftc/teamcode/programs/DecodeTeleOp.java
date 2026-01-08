@@ -2,9 +2,9 @@ package org.firstinspires.ftc.teamcode.programs;
 
 import static org.firstinspires.ftc.teamcode.base.Commands.executor;
 import static org.firstinspires.ftc.teamcode.base.Components.initialize;
+import static org.firstinspires.ftc.teamcode.base.Components.initializeConfig;
 import static org.firstinspires.ftc.teamcode.base.Components.telemetryAddData;
 import static org.firstinspires.ftc.teamcode.base.Components.telemetryAddLine;
-import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.backIntake;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.ballStorage;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.classifierBallCount;
@@ -20,7 +20,6 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.readBallStorag
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.rightFront;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.rightRear;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.robotState;
-import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.sensors;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.setState;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.shotType;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.toggleShotType;
@@ -35,16 +34,14 @@ import org.firstinspires.ftc.teamcode.base.Components.*;
 import org.firstinspires.ftc.teamcode.robotconfigs.Inferno;
 import org.firstinspires.ftc.teamcode.robotconfigs.Inferno.*;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 
 @TeleOp
 public class DecodeTeleOp extends LinearOpMode {
     boolean autoReset = true;
     @Override
     public void runOpMode(){
-        initialize(hardwareMap,telemetry,new Inferno(),false);
+        initialize(hardwareMap,telemetry);
         ballStorage = new Color[]{Color.GREEN,Color.PURPLE,Color.PURPLE};
         motif = new Color[]{Color.PURPLE,Color.GREEN,Color.PURPLE};
         executor.setCommands(new RunResettingLoop(
@@ -57,7 +54,7 @@ public class DecodeTeleOp extends LinearOpMode {
             new PressCommand(
                 new IfThen(
                         ()->autoReset,
-                        new InstantCommand(()->initialize(hardwareMap,telemetry,new Inferno(),true))
+                        new InstantCommand(()-> initializeConfig(new Inferno(),true))
                 )
             )
         ));

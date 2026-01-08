@@ -91,8 +91,8 @@ public class Inferno implements RobotConfig{
     private static Color colorSensorRead(int index){
         double [] greenCenter = new double[]{0.23,0.54,0.23};
         double [] purpleCenter = new double[]{0.4,0.2,0.4};
-        double greenTolerance = 0.16;
-        double purpleTolerance = 0.16;
+        double greenTolerance = 0.17;
+        double purpleTolerance = 0.17;
         double[] output = colorSensorNormalizedOutput(index);
         Color color = null;
         double red = output[0]; double green = output[1]; double blue = output[2];
@@ -348,7 +348,7 @@ public class Inferno implements RobotConfig{
                 backIntakeGate.instantSetTargetCommand("closed"),
                 new SequentialCommand(
                         new SleepUntilTrue(()->!Objects.isNull(colorSensorRead(0))&&!Objects.isNull(colorSensorRead(1))&&!Objects.isNull(colorSensorRead(2))),
-                        new SleepCommand(0.3),
+                        new SleepCommand(0.26),
                         setState(RobotState.NONE)
                 )
         );
@@ -360,7 +360,7 @@ public class Inferno implements RobotConfig{
                 frontIntakeGate.instantSetTargetCommand("closed"),
                 new SequentialCommand(
                         new SleepUntilTrue(()->!Objects.isNull(colorSensorRead(0))&&!Objects.isNull(colorSensorRead(1))&&!Objects.isNull(colorSensorRead(2))),
-                        new SleepCommand(0.3),
+                        new SleepCommand(0.26),
                         setState(RobotState.NONE)
                 )
         );

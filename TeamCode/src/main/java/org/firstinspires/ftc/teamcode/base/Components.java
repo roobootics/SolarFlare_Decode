@@ -119,13 +119,15 @@ public abstract class Components {
     }
     @Target(ElementType.METHOD)
     public @interface Actuate{} //Used to denote methods that actually move a part, like setPower or setPosition
-    public static void initialize(HardwareMap hardwareMap, Telemetry telemetry, RobotConfig config, boolean alwaysReInit){ //Method to initialize hardwareMap, telemetry, and a RobotConfig.
+    public static void initialize(HardwareMap hardwareMap, Telemetry telemetry){
         Components.hardwareMap=hardwareMap;
         Components.telemetry=telemetry;
         timer.reset(); //Static variables are preserved between runs, so timer needs to be reset
         telemetryOutput.clear();
         prevTelemetryOutput.clear();
         executor.clearCommands();
+    }
+    public static void initializeConfig(RobotConfig config, boolean alwaysReInit){ //Method to initialize hardwareMap, telemetry, and a RobotConfig.
         if (Objects.isNull(Components.config) || alwaysReInit || config.getClass()!=Components.config.getClass()){
             CachedReader.readers.clear();
             actuators.clear();
