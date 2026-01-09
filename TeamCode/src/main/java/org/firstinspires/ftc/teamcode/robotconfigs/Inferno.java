@@ -70,6 +70,10 @@ public class Inferno implements RobotConfig{
         INTAKE_FRONT_AND_SHOOT,
         INTAKE_BACK_AND_SHOOT
     }
+    public enum Alliance{
+        RED,
+        BLUE
+    }
     public static Color[] ballStorage = new Color[3];
     public static BallPath currentBallPath = BallPath.LOW;
     public static RobotState robotState = RobotState.STOPPED;
@@ -79,7 +83,8 @@ public class Inferno implements RobotConfig{
     private final static double TRANSFER_BOOST_DELAY = 0.32;
     public static Color[] motif = new Color[3];
     public static double classifierBallCount = 0;
-    private static final double[] targetPoint = new double[]{132,141.5,38.7};
+    private static double[] targetPoint;
+    private static Alliance alliance = Alliance.RED;
     private static double[] colorSensorNormalizedOutput(int index){
         NormalizedColorSensor sensor = sensors[index];
         NormalizedRGBA normal = sensor.getNormalizedColors();
@@ -459,6 +464,7 @@ public class Inferno implements RobotConfig{
         );
         Components.activateActuatorControl();
         flywheel.call((BotMotor motor) -> motor.switchControl("controlOff"));
+        if (alliance==Alliance.RED) targetPoint = new double[]{132,141.5,38.7}; else targetPoint = new double[]{12,141.5,38.7};
     }
     public void reset(){
         shotType=ShotType.NORMAL;
