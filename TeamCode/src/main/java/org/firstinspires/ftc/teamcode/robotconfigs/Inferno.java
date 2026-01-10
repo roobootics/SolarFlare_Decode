@@ -38,8 +38,10 @@ public class Inferno implements RobotConfig{
     public static double targetFlywheelVelocity;
     public static SyncedActuators<BotServo> turretYaw;
     private static final double TURRET_YAW_RATIO = -0.8867521367;
+    private static final double TURRET_YAW_OFFSET = -48;
     public static SyncedActuators<BotServo> turretPitch;
     private static final double TURRET_PITCH_RATIO = (double) 48/40;
+    private static final double TURRET_PITCH_OFFSET = 0;
     public static BotMotor frontIntake;
     public static BotMotor backIntake;
     public static BotServo frontIntakeGate;
@@ -274,7 +276,7 @@ public class Inferno implements RobotConfig{
             double xVel = vel.getXComponent();
             double yVel = vel.getYComponent();
             double currWheelVel = TICKS_TO_RAD*(flywheel.getActuators().get("flywheelLeft").getVelocity() + flywheel.getActuators().get("flywheelRight").getVelocity())/2;
-            double initSpeed = FRICTION*currWheelVel*BALL_RAD;
+            double initSpeed = FRICTION*currWheelVel*WHEEL_RAD;
             double xDist = sqrt((targetPoint[0]-xPos)*(targetPoint[0]-xPos) + (targetPoint[1]-yPos)*(targetPoint[1]-yPos));
             double yDist = targetPoint[2] - HEIGHT;
             double TOTAL_RAD = WHEEL_RAD+BALL_RAD;
@@ -316,8 +318,6 @@ public class Inferno implements RobotConfig{
                 new BotServo("turretYawFront", Servo.Direction.FORWARD, 422, 5, 355, -180*TURRET_YAW_RATIO),
                 new BotServo("turretYawBack", Servo.Direction.FORWARD, 422, 5, 355, -180*TURRET_YAW_RATIO)
         );
-        turretYaw.call((BotServo servo)->servo.setOffset(48));
-        turretPitch.call((BotServo servo)->servo.setOffset(0.0));
         turretYaw.call((BotServo servo) -> servo.setTargetBounds(() -> (-225-48)*TURRET_YAW_RATIO, () -> -48*TURRET_YAW_RATIO));
         turretPitch.call((BotServo servo) -> servo.setTargetBounds(() -> 180.0, () -> 150.0));
         frontIntake = new BotMotor("frontIntake", DcMotorSimple.Direction.FORWARD);
@@ -447,9 +447,9 @@ public class Inferno implements RobotConfig{
                 telemetryAddData("Hood Angle Desired",turret[0]);
                 telemetryAddData("Yaw Angle Desired",turret[1]);
                 telemetryAddData("Hood Servo Pos",turret[0]*TURRET_PITCH_RATIO);
-                telemetryAddData("Turret Pos",(turret[1] - 180- heading)-48); //don't know if we r adding or subtracting heading here - will test tmrw
-                turretPitch.command((BotServo servo)->servo.instantSetTargetCommand(turret[0]*TURRET_PITCH_RATIO)).run();
-                turretYaw.command((BotServo servo)->servo.instantSetTargetCommand(180-turret[1]+heading)).run();
+                telemetryAddData("Turret Pos",(turret[1] - 180 - heading)-48);
+                turretPitch.command((BotServo servo)->servo.instantSetTargetCommand((turret[0]+TURRET_PITCH_OFFSET)*TURRET_PITCH_RATIO)).run();
+                turretYaw.command((BotServo servo)->servo.instantSetTargetCommand(180-turret[1]+heading+TURRET_YAW_OFFSET)).run();
             }
         });
 
