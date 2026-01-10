@@ -89,6 +89,7 @@ public class DecodeTeleOp extends LinearOpMode {
                             )
                         ),
                         loopFSM
+
                 ),
                 Pedro.updateCommand()
         );
