@@ -288,6 +288,7 @@ public class Inferno implements RobotConfig{
                     initSpeed*shotTime*(yDist - 0.5*GRAVITY*shotTime*shotTime) - TOTAL_RAD*(xDist - TOTAL_RAD)
             );
             double turretYaw = atan2(targetPoint[1] - shotTime*yVel - yPos,targetPoint[0] - shotTime*xVel - xPos);
+            if (Double.isNaN(turretPitch)) turretPitch = 180; if (Double.isNaN(turretYaw)) turretYaw = atan2(targetPoint[1] - yPos,targetPoint[0] - xPos);
             if (turretYaw<=0) turretYaw+=2*Math.PI; if (turretPitch<=0) turretPitch+=2*Math.PI;
             return new double[]{Math.toDegrees(turretPitch),Math.toDegrees(turretYaw)};
         }
