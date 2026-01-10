@@ -10,6 +10,7 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.backIntake;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.ballStorage;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.classifierBallCount;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.currentBallPath;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.flywheel;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.frontIntake;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftFront;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftRear;
@@ -23,6 +24,8 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.robotState;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.setState;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.shotType;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.toggleShotType;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretPitch;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretYaw;
 
 import org.firstinspires.ftc.teamcode.base.Commands.*;
 
@@ -46,9 +49,9 @@ public class DecodeTeleOp extends LinearOpMode {
         ballStorage = new Color[]{Color.GREEN,Color.PURPLE,Color.PURPLE};
         motif = new Color[]{Color.PURPLE,Color.GREEN,Color.PURPLE};
         executor.setCommands(new RunResettingLoop(
-            new ConditionalCommand(
+            new PressCommand(
                 new IfThen(
-                      ()->(!autoReset&&gamepad1.x),
+                      ()->(autoReset || gamepad1.x),
                       new InstantCommand(()->{autoReset=true; initializeConfig(new Inferno(),true);})
                 )
             )
@@ -98,10 +101,12 @@ public class DecodeTeleOp extends LinearOpMode {
             telemetryAddData("Classifier Count:",classifierBallCount);
             telemetryAddData("Current Shot Height:",currentBallPath);
             telemetryAddData("Shoot All Motif:",motifShootAll);
-            telemetryAddData("Front Power",frontIntake.getPower());
-            telemetryAddData("Back Power",backIntake.getPower());
-            telemetryAddData("Front Current",frontIntake.getCurrentAmps());
-            telemetryAddData("Back Current",frontIntake.getCurrentAmps());
+            telemetryAddData("Flywheel Velocity",flywheel.getActuators().get("flywheelLeft").getVelocity());
+            telemetryAddData("Yaw",turretYaw.getActuators().get("turretYawFront").getTarget());
+            telemetryAddData("Hood",turretPitch.getActuators().get("turretPitchLeft").getTarget());
+            telemetryAddData("PoseX",follower.getPose().getX());
+            telemetryAddData("PoseY",follower.getPose().getY());
+            telemetryAddData("PoseHeading",follower.getPose().getHeading());
         });
         executor.runLoop(this::opModeIsActive);
     }

@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.robotconfigs;
 
+import static org.firstinspires.ftc.teamcode.base.Components.telemetryAddData;
 import static org.firstinspires.ftc.teamcode.base.Components.timer;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
 
@@ -36,9 +37,9 @@ public class Inferno implements RobotConfig{
     public static SyncedActuators<BotMotor> flywheel;
     public static double targetFlywheelVelocity;
     public static SyncedActuators<BotServo> turretYaw;
-    private static final double TURRET_YAW_RATIO = 1.127;
+    private static final double TURRET_YAW_RATIO = -0.8867521367;
     public static SyncedActuators<BotServo> turretPitch;
-    private static final double TURRET_PITCH_RATIO = (double) 48 /40;
+    private static final double TURRET_PITCH_RATIO = (double) 48/40;
     public static BotMotor frontIntake;
     public static BotMotor backIntake;
     public static BotServo frontIntakeGate;
@@ -79,8 +80,8 @@ public class Inferno implements RobotConfig{
     public static RobotState robotState = RobotState.STOPPED;
     public static ShotType shotType = ShotType.NORMAL;
     public static boolean motifShootAll = true;
-    private final static double BALL_SHOT_TIMING = 0.13;
-    private final static double TRANSFER_BOOST_DELAY = 0.32;
+    private final static double BALL_SHOT_TIMING = 0.17;
+    private final static double TRANSFER_BOOST_DELAY = 0.33;
     public static Color[] motif = new Color[3];
     public static double classifierBallCount = 0;
     private static double[] targetPoint;
@@ -248,7 +249,7 @@ public class Inferno implements RobotConfig{
         }
     }
     private static class CheckFull extends Command{
-        private final static int COUNT = 4;
+        private final static int COUNT = 3;
         private int counter = 0;
         @Override
         protected boolean runProcedure() {
@@ -262,7 +263,7 @@ public class Inferno implements RobotConfig{
         final static double GRAVITY = -386.089;
         final static double FRICTION = 0.67;
         final static double HEIGHT = 10.748;
-        final static double TICKS_TO_RAD = 151;
+        final static double TICKS_TO_RAD = 2*Math.PI/20;
         final static double WHEEL_RAD = 1.41732;
         final static double BALL_RAD = 2.5;
         public static double[] runPhysics(){
@@ -292,47 +293,47 @@ public class Inferno implements RobotConfig{
 
     @Override
     public void init() {
-        Pedro.createFollower(new Pose(0, 0, 0));
+        Pedro.createFollower(new Pose(102.5, 7, 0));
         leftFront = new BotMotor("leftFront", DcMotorSimple.Direction.REVERSE);
         leftRear = new BotMotor("leftRear", DcMotorSimple.Direction.REVERSE);
         rightFront = new BotMotor("rightFront", DcMotorSimple.Direction.FORWARD);
         rightRear = new BotMotor("rightRear", DcMotorSimple.Direction.FORWARD);
         flywheel = new SyncedActuators<>(
-                new BotMotor("flywheelLeft", DcMotorSimple.Direction.FORWARD, 0, 0, new String[]{"setVelocity","VelocityPID"},
+                new BotMotor("flywheelLeft", DcMotorSimple.Direction.REVERSE, 0, 0, new String[]{"setVelocity","VelocityPID"},
                         new ControlSystem<>(new String[]{"targetVelocity"}, List.of(() -> targetFlywheelVelocity), new SetVelocity()),
                         new ControlSystem<>(new String[]{"targetVelocity"}, List.of(() -> targetFlywheelVelocity), new VelocityPID(0, 0, 0), new BasicFeedforward(0, "targetVelocity"))
                 ),
-                new BotMotor("flywheelRight", DcMotorSimple.Direction.REVERSE, 0, 0, new String[]{"setVelocity","VelocityPID"},
+                new BotMotor("flywheelRight", DcMotorSimple.Direction.FORWARD, 0, 0, new String[]{"setVelocity","VelocityPID"},
                         new ControlSystem<>(new String[]{"targetVelocity"}, List.of(() -> targetFlywheelVelocity), new SetVelocity()),
                         new ControlSystem<>(new String[]{"targetVelocity"}, List.of(() -> targetFlywheelVelocity), new VelocityPID(0, 0, 0), new BasicFeedforward(0, "targetVelocity"))
                 )
         );
         turretPitch = new SyncedActuators<>(
-                new BotServo("turretPitchLeft", Servo.Direction.REVERSE, 422, 5, 180, 0),
-                new BotServo("turretPitchRight", Servo.Direction.FORWARD, 422, 5, 180, 0)
+                new BotServo("turretPitchLeft", Servo.Direction.REVERSE, 422, 5, 180, 180),
+                new BotServo("turretPitchRight", Servo.Direction.FORWARD, 422, 5, 180, 180)
         );
         turretYaw = new SyncedActuators<>(
-                new BotServo("turretYawFront", Servo.Direction.FORWARD, 422, 5, 355, 0),
-                new BotServo("turretYawBack", Servo.Direction.FORWARD, 422, 5, 355, 0)
+                new BotServo("turretYawFront", Servo.Direction.FORWARD, 422, 5, 355, -180*TURRET_YAW_RATIO),
+                new BotServo("turretYawBack", Servo.Direction.FORWARD, 422, 5, 355, -180*TURRET_YAW_RATIO)
         );
-        turretYaw.call((BotServo servo)->servo.setOffset(0.0));
+        turretYaw.call((BotServo servo)->servo.setOffset(48*TURRET_YAW_RATIO));
         turretPitch.call((BotServo servo)->servo.setOffset(0.0));
-        turretYaw.call((BotServo servo) -> servo.setTargetBounds(() -> 355.0, () -> 0.0));
-        turretPitch.call((BotServo servo) -> servo.setTargetBounds(() -> 180.0, () -> 0.0));
+        turretYaw.call((BotServo servo) -> servo.setTargetBounds(() -> (-225-48)*TURRET_YAW_RATIO, () -> -48*TURRET_YAW_RATIO));
+        turretPitch.call((BotServo servo) -> servo.setTargetBounds(() -> 180.0, () -> 150.0));
         frontIntake = new BotMotor("frontIntake", DcMotorSimple.Direction.FORWARD);
         backIntake = new BotMotor("backIntake", DcMotorSimple.Direction.FORWARD);
         frontIntake.setKeyPowers(
                 new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel"},
-                new double[]{1.0,-0.65,1.0,0.25,0,-0.8}
+                new double[]{1.0,-0.75,1.0,0.13,0,-0.8}
         );
         backIntake.setKeyPowers(
                 new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel"},
-                new double[]{1.0,-0.65,1.0,0.25,0,-1.0}
+                new double[]{1.0,-0.75,1.0,0.13,0,-1.0}
         );
         frontIntakeGate = new BotServo("frontIntakeGate", Servo.Direction.FORWARD, 422, 5, 180, 90.8);
         backIntakeGate = new BotServo("backIntakeGate", Servo.Direction.FORWARD, 422, 5, 180, 99.5);
-        frontIntakeGate.setKeyPositions(new String[]{"open", "closed","push"}, new double[]{180,69.8,64.8});
-        backIntakeGate.setKeyPositions(new String[]{"open", "closed","push"}, new double[]{180,78.5,73.5});
+        frontIntakeGate.setKeyPositions(new String[]{"open", "closed","push"}, new double[]{180,67.8,62.8});
+        backIntakeGate.setKeyPositions(new String[]{"open", "closed","push"}, new double[]{180,74.5,69.5});
         sensors[0] = Components.getHardwareMap().get(NormalizedColorSensor.class, "sensor1");
         sensors[1] = Components.getHardwareMap().get(NormalizedColorSensor.class, "sensor2");
         sensors[2] = Components.getHardwareMap().get(NormalizedColorSensor.class, "sensor3");
@@ -443,8 +444,12 @@ public class Inferno implements RobotConfig{
             if (robotState != RobotState.INTAKE_FRONT && robotState!= RobotState.INTAKE_BACK){
                 double heading = Math.toDegrees(follower.getHeading());
                 double[] turret = Fisiks.runPhysics();
+                telemetryAddData("Hood Angle Desired",turret[0]);
+                telemetryAddData("Yaw Angle Desired",turret[1]);
+                telemetryAddData("Hood Servo Pos",turret[0]*TURRET_PITCH_RATIO);
+                telemetryAddData("Yaw Servo Pos",(turret[1] - heading-360)*TURRET_YAW_RATIO+48*TURRET_YAW_RATIO);
                 turretPitch.command((BotServo servo)->servo.instantSetTargetCommand(turret[0]*TURRET_PITCH_RATIO)).run();
-                turretYaw.command((BotServo servo)->servo.instantSetTargetCommand((turret[1] - heading)*TURRET_YAW_RATIO)).run();
+                turretYaw.command((BotServo servo)->servo.instantSetTargetCommand((turret[1] - heading-360)*TURRET_YAW_RATIO)).run();
             }
         });
 
