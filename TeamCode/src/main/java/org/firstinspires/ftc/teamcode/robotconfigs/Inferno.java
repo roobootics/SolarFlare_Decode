@@ -334,8 +334,8 @@ public class Inferno implements RobotConfig{
         );
         frontIntakeGate = new BotServo("frontIntakeGate", Servo.Direction.FORWARD, 422, 5, 180, 90.8);
         backIntakeGate = new BotServo("backIntakeGate", Servo.Direction.FORWARD, 422, 5, 180, 99.5);
-        frontIntakeGate.setKeyPositions(new String[]{"open", "closed","push"}, new double[]{180,67.8,62.8});
-        backIntakeGate.setKeyPositions(new String[]{"open", "closed","push"}, new double[]{180,70.5,65.5});
+        frontIntakeGate.setKeyPositions(new String[]{"open", "closed","push"}, new double[]{180,69.8,62.8});
+        backIntakeGate.setKeyPositions(new String[]{"open", "closed","push"}, new double[]{180,77.5,65.5});
         sensors[0] = Components.getHardwareMap().get(NormalizedColorSensor.class, "sensor1");
         sensors[1] = Components.getHardwareMap().get(NormalizedColorSensor.class, "sensor2");
         sensors[2] = Components.getHardwareMap().get(NormalizedColorSensor.class, "sensor3");
