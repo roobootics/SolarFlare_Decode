@@ -11,6 +11,7 @@ import org.firstinspires.ftc.teamcode.base.Components.ControlFunc;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 public abstract class PresetControl { //Holds control functions that actuators can use. Note that more control functions, like other types of motion profiling, can be coded and used.
@@ -100,7 +101,13 @@ public abstract class PresetControl { //Holds control functions that actuators c
     }
     public static class VelocityPID extends ControlFunc<BotMotor>{ //Position PIDF controller for CRActuators
         private final GenericPID PID;
+        private final Function<BotMotor,Double> getVelocity;
+        public VelocityPID(Function<BotMotor,Double> getVelocity, double kP, double kI, double kD){
+            this.getVelocity = getVelocity;
+            this.PID=new GenericPID(kP,kI,kD);
+        }
         public VelocityPID(double kP, double kI, double kD){
+            this.getVelocity = BotMotor::getVelocity;
             this.PID=new GenericPID(kP,kI,kD);
         }
         @Override
@@ -112,7 +119,7 @@ public abstract class PresetControl { //Holds control functions that actuators c
             if (system.isNewReference("targetVelocity")){
                 PID.clearIntegral();
             }
-            double output=PID.getPIDOutput(system.getInstantReference("targetVelocity"), parentActuator.getVelocity());
+            double output=PID.getPIDOutput(system.getInstantReference("targetVelocity"), getVelocity.apply(parentActuator));
             system.setOutput(system.getOutput()+output);
         }
         @Override
