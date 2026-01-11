@@ -294,7 +294,19 @@ public class Inferno implements RobotConfig{
             return new double[]{Math.toDegrees(turretPitch),Math.toDegrees(turretYaw)};
         }
     }
-
+    public abstract static class Regression{
+        private static final double M = 0;
+        private static final double B = 0;
+        public static double[] runRegression(BallPath currentBallPath){
+            Pose pos = follower.getPose();
+            double xPos = pos.getX();
+            double yPos = pos.getY();
+            return new double[]{
+                    M*sqrt((targetPoint[0]-xPos)*(targetPoint[0]-xPos) + (targetPoint[1]-yPos)*(targetPoint[1]-yPos))+B,
+                    atan2(targetPoint[1] - yPos,targetPoint[0] - xPos)
+            };
+        }
+    }
     @Override
     public void init() {
         Pedro.createFollower(new Pose(102.5, 7, 0));
@@ -442,17 +454,17 @@ public class Inferno implements RobotConfig{
                 )
         );
         ContinuousCommand setShooter = new ContinuousCommand(()->{
-            flywheel.call((BotMotor motor)->motor.setPower(0.9));
+            targetFlywheelVelocity = 2100;
             if (robotState != RobotState.INTAKE_FRONT && robotState!= RobotState.INTAKE_BACK){
                 double heading = Math.toDegrees(follower.getHeading());
                 double[] turret = Fisiks.runPhysics(BallPath.LOW);
                 double[] turret1 = Fisiks.runPhysics(BallPath.HIGH);
+                turretPitch.command((BotServo servo)->servo.instantSetTargetCommand((turret[0]+TURRET_PITCH_OFFSET)*TURRET_PITCH_RATIO)).run();
+                turretYaw.command((BotServo servo)->servo.instantSetTargetCommand((228-(turret[1]-heading))*TURRET_YAW_RATIO)).run();
                 telemetryAddData("Low Hood Angle Desired",turret[0]);
                 telemetryAddData("Low Yaw Angle Desired",turret[1]);
                 telemetryAddData("High Hood Angle Desired",turret1[0]);
                 telemetryAddData("High Yaw Angle Desired",turret1[1]);
-                turretPitch.command((BotServo servo)->servo.instantSetTargetCommand((turret[0]+TURRET_PITCH_OFFSET)*TURRET_PITCH_RATIO)).run();
-                turretYaw.command((BotServo servo)->servo.instantSetTargetCommand((228-(turret[1]-heading))*TURRET_YAW_RATIO)).run();
             }
         });
 
@@ -471,7 +483,7 @@ public class Inferno implements RobotConfig{
         );
         Components.activateActuatorControl();
         flywheel.call((BotMotor motor)->motor.switchControl("controlOff"));
-        if (alliance==Alliance.RED) targetPoint = new double[]{129.5,129.5,60}; else targetPoint = new double[]{129.5,129.5,60};
+        if (alliance==Alliance.RED) targetPoint = new double[]{14.5,129.5,60}; else targetPoint = new double[]{129.5,129.5,60};
     }
     public void reset(){
         shotType=ShotType.NORMAL;
