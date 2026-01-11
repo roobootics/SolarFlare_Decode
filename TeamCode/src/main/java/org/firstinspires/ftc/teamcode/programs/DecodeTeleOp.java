@@ -96,13 +96,16 @@ public class DecodeTeleOp extends LinearOpMode {
         executor.setWriteToTelemetry(()->{
             readBallStorage();
             telemetryAddData("Ball Storage:", Arrays.asList(ballStorage));
+            telemetryAddLine("");
             telemetryAddData("Robot State:",robotState);
+            telemetryAddLine("");
             telemetryAddData("Shot Type:",shotType);
             telemetryAddLine("");
             telemetryAddData("Classifier Count:",classifierBallCount);
             telemetryAddData("Current Shot Height:",currentBallPath);
             telemetryAddData("Shoot All Motif:",motifShootAll);
-            telemetryAddData("Flywheel Velocity",Math.max(-flywheel.getActuators().get("flywheelLeft").getVelocity(),flywheel.getActuators().get("flywheelRight").getVelocity()));
+            telemetryAddLine("");
+            telemetryAddData("Flywheel Velocity",-flywheel.getActuators().get("flywheelLeft").getVelocity());
             telemetryAddData("Yaw",turretYaw.getActuators().get("turretYawFront").getTarget());
             telemetryAddData("Hood",turretPitch.getActuators().get("turretPitchLeft").getTarget());
             telemetryAddData("PoseX",follower.getPose().getX());
@@ -110,6 +113,7 @@ public class DecodeTeleOp extends LinearOpMode {
             telemetryAddData("PoseHeading",follower.getPose().getHeading());
             telemetryAddData("Flywheel Left Power",flywheel.getActuators().get("flywheelLeft").getPower());
             telemetryAddData("Flywheel Right Power",flywheel.getActuators().get("flywheelRight").getPower());
+            telemetryAddData("Turret Target",turretYaw.getActuators().get("turretYawFront").getTarget());
         });
         executor.runLoop(this::opModeIsActive);
     }
