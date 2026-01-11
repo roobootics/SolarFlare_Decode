@@ -702,7 +702,7 @@ public abstract class Components {
             super(name,direction,getCurrentPosition, currentPosPollingInterval, errorTol, defaultTimeout,controlFuncKeys,controlFuncs);
             if (!Objects.isNull(getDevice())) {
                 DcMotorEx device = getDevice();
-                velocityReader = new CachedReader<>(device::getVelocity, 1)::cachedRead;
+                velocityReader = new CachedReader<>(()->{double vel = device.getVelocity(); if (device.getDirection()==DcMotorSimple.Direction.REVERSE) vel*=-1; return vel;}, 1)::cachedRead;
                 currentReader = new CachedReader<>(() -> device.getCurrent(CurrentUnit.AMPS), 3)::cachedRead;
                 device.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
                 device.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);

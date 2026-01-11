@@ -79,7 +79,13 @@ public abstract class PresetControl { //Holds control functions that actuators c
     }
     public static class PositionPID extends ControlFunc<CRActuator<?>>{ //Position PIDF controller for CRActuators
         private final GenericPID PID;
+        private final Function<CRActuator<?>,Double> getPosition;
+        public PositionPID(Function<CRActuator<?>,Double> getPosition, double kP, double kI, double kD){
+            this.getPosition = getPosition;
+            this.PID=new GenericPID(kP,kI,kD);
+        }
         public PositionPID(double kP, double kI, double kD){
+            this.getPosition = CRActuator::getCurrentPosition;
             this.PID=new GenericPID(kP,kI,kD);
         }
         @Override
@@ -91,8 +97,11 @@ public abstract class PresetControl { //Holds control functions that actuators c
             if (system.isNewReference("targetPosition")){
                 PID.clearIntegral();
             }
-            double output=PID.getPIDOutput(system.getInstantReference("targetPosition"), parentActuator.getCurrentPosition());
+            double output=PID.getPIDOutput(system.getInstantReference("targetPosition"), getPosition.apply(parentActuator));
             system.setOutput(system.getOutput()+output);
+        }
+        public void clearIntegral(){
+            PID.clearIntegral();
         }
         @Override
         public void stopProcedure(){
@@ -121,6 +130,9 @@ public abstract class PresetControl { //Holds control functions that actuators c
             }
             double output=PID.getPIDOutput(system.getInstantReference("targetVelocity"), getVelocity.apply(parentActuator));
             system.setOutput(system.getOutput()+output);
+        }
+        public void clearIntegral(){
+            PID.clearIntegral();
         }
         @Override
         public void stopProcedure(){

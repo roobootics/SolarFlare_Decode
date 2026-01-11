@@ -6,12 +6,11 @@ import static org.firstinspires.ftc.teamcode.base.Components.initializeConfig;
 import static org.firstinspires.ftc.teamcode.base.Components.telemetryAddData;
 import static org.firstinspires.ftc.teamcode.base.Components.telemetryAddLine;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
-import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.backIntake;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.ballStorage;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.classifierBallCount;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.clearIntegralAtPeak;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.currentBallPath;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.flywheel;
-import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.frontIntake;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftFront;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftRear;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.loopFSM;
@@ -89,8 +88,8 @@ public class DecodeTeleOp extends LinearOpMode {
                             )
                         ),
                         loopFSM
-
                 ),
+                clearIntegralAtPeak,
                 Pedro.updateCommand()
         );
         executor.setWriteToTelemetry(()->{
@@ -105,7 +104,7 @@ public class DecodeTeleOp extends LinearOpMode {
             telemetryAddData("Current Shot Height:",currentBallPath);
             telemetryAddData("Shoot All Motif:",motifShootAll);
             telemetryAddLine("");
-            telemetryAddData("Flywheel Velocity",-flywheel.getActuators().get("flywheelLeft").getVelocity());
+            telemetryAddData("Flywheel Velocity",flywheel.getActuators().get("flywheelLeft").getVelocity());
             telemetryAddData("Yaw",turretYaw.getActuators().get("turretYawFront").getTarget());
             telemetryAddData("Hood",turretPitch.getActuators().get("turretPitchLeft").getTarget());
             telemetryAddData("PoseX",follower.getPose().getX());
