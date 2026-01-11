@@ -84,7 +84,7 @@ public class DecodeTeleOp extends LinearOpMode {
                                             new BotMotor[]{leftFront,leftRear,rightFront,rightRear},
                                             ()->(0.0),1,
                                             ()-> (double) gamepad1.left_stick_x, ()-> (double) gamepad1.left_stick_y, ()-> (double) gamepad1.right_stick_x,
-                                            ()->{if (gamepad1.left_trigger > 0.8) return 0.75; else return 1.0;}
+                                            ()->{if (gamepad1.left_trigger > 0.3) return 0.75; else return 1.0;}
                                     )
                             )
                         ),
@@ -102,12 +102,14 @@ public class DecodeTeleOp extends LinearOpMode {
             telemetryAddData("Classifier Count:",classifierBallCount);
             telemetryAddData("Current Shot Height:",currentBallPath);
             telemetryAddData("Shoot All Motif:",motifShootAll);
-            telemetryAddData("Flywheel Velocity",flywheel.getActuators().get("flywheelLeft").getVelocity());
+            telemetryAddData("Flywheel Velocity",Math.max(-flywheel.getActuators().get("flywheelLeft").getVelocity(),flywheel.getActuators().get("flywheelRight").getVelocity()));
             telemetryAddData("Yaw",turretYaw.getActuators().get("turretYawFront").getTarget());
             telemetryAddData("Hood",turretPitch.getActuators().get("turretPitchLeft").getTarget());
             telemetryAddData("PoseX",follower.getPose().getX());
             telemetryAddData("PoseY",follower.getPose().getY());
             telemetryAddData("PoseHeading",follower.getPose().getHeading());
+            telemetryAddData("Flywheel Left Power",flywheel.getActuators().get("flywheelLeft").getPower());
+            telemetryAddData("Flywheel Right Power",flywheel.getActuators().get("flywheelRight").getPower());
         });
         executor.runLoop(this::opModeIsActive);
     }
