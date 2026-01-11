@@ -304,11 +304,11 @@ public class Inferno implements RobotConfig{
         flywheel = new SyncedActuators<>(
                 new BotMotor("flywheelLeft", DcMotorSimple.Direction.REVERSE, 0, 0, new String[]{"setVelocity","VelocityPID"},
                         new ControlSystem<>(new String[]{"targetVelocity"}, List.of(() -> targetFlywheelVelocity), new SetVelocity()),
-                        new ControlSystem<>(new String[]{"targetVelocity"}, List.of(() -> targetFlywheelVelocity), new VelocityPID(0, 0, 0), new BasicFeedforward(0, "targetVelocity"))
+                        new ControlSystem<>(new String[]{"targetVelocity"}, List.of(() -> targetFlywheelVelocity), new VelocityPID(BotMotor::getVelocity,0, 0.0001, 0), new BasicFeedforward((double) 1 /2600, "targetVelocity"))
                 ),
                 new BotMotor("flywheelRight", DcMotorSimple.Direction.FORWARD, 0, 0, new String[]{"setVelocity","VelocityPID"},
                         new ControlSystem<>(new String[]{"targetVelocity"}, List.of(() -> targetFlywheelVelocity), new SetVelocity()),
-                        new ControlSystem<>(new String[]{"targetVelocity"}, List.of(() -> targetFlywheelVelocity), new VelocityPID(0, 0, 0), new BasicFeedforward(0, "targetVelocity"))
+                        new ControlSystem<>(new String[]{"targetVelocity"}, List.of(() -> targetFlywheelVelocity), new VelocityPID((BotMotor motor)->flywheel.getActuators().get("flywheelLeft").getVelocity(),0, 0.0001, 0), new BasicFeedforward((double) 1 /2600, "targetVelocity"))
                 )
         );
         turretPitch = new SyncedActuators<>(
