@@ -209,8 +209,8 @@ public class Inferno implements RobotConfig{
     public static Command toggleShotType(){
         return new InstantCommand(()->{if (Inferno.shotType==ShotType.MOTIF) shotType=ShotType.NORMAL; else shotType=ShotType.MOTIF;});
     }
-    private static final VelocityPID leftVelocityPID = new VelocityPID(BotMotor::getVelocity,0, 0.0005, 0);
-    private static final VelocityPID rightVelocityPID = new VelocityPID((BotMotor motor)->flywheel.getActuators().get("flywheelLeft").getVelocity(),0, 0.0005, 0);
+    private static final VelocityPID leftVelocityPID = new VelocityPID(BotMotor::getVelocity,0, 0.0007, 0);
+    private static final VelocityPID rightVelocityPID = new VelocityPID((BotMotor motor)->flywheel.getActuators().get("flywheelLeft").getVelocity(),0, 0.0007, 0);
     public static Command loopFSM;
     private static SequentialCommand frontTransfer;
     private static SequentialCommand backTransfer;
