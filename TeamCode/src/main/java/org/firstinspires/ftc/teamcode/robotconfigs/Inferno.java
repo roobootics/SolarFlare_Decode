@@ -207,13 +207,14 @@ public class Inferno implements RobotConfig{
     public static Command toggleShotType(){
         return new InstantCommand(()->{if (Inferno.shotType==ShotType.MOTIF) shotType=ShotType.NORMAL; else shotType=ShotType.MOTIF;});
     }
-    private static final VelocityPID velocityPID = new VelocityPID(BotMotor::getVelocity,0, 0.0, 0);
+    private static final VelocityPID leftVelocityPID = new VelocityPID(BotMotor::getVelocity,0, 0.0, 0);
+    private static final VelocityPID rightVelocityPID = new VelocityPID((BotMotor motor)->flywheel.getActuators().get("flywheelLeft").getVelocity(),0, 0.0, 0);
     public static Command loopFSM;
     private static SequentialCommand frontTransfer;
     private static SequentialCommand backTransfer;
     public static Command clearIntegralAtPeak = new SequentialCommand(
             new SleepUntilTrue(()->flywheel.getActuators().get("flywheelLeft").getVelocity()>=targetFlywheelVelocity-100),
-            new InstantCommand(velocityPID::clearIntegral)
+            new InstantCommand(()->{leftVelocityPID.clearIntegral();rightVelocityPID.clearIntegral();})
     );
     private static abstract class MotifShoot{
         private static ArrayList<BallPath> ballPaths; private static boolean leaveRollersOn; private static int transferDirection;
@@ -338,9 +339,9 @@ public class Inferno implements RobotConfig{
         rightRear = new BotMotor("rightRear", DcMotorSimple.Direction.FORWARD);
         flywheel = new SyncedActuators<>(
                 new BotMotor("flywheelLeft", DcMotorSimple.Direction.REVERSE, 0, 0, new String[]{"VelocityPIDF"},
-                        new ControlSystem<>(new String[]{"targetVelocity"}, List.of(() -> targetFlywheelVelocity), velocityPID, new CustomFeedforward((double) 11.21/2320, ()->targetFlywheelVelocity/voltageSensor.getVoltage()))),
+                        new ControlSystem<>(new String[]{"targetVelocity"}, List.of(() -> targetFlywheelVelocity), leftVelocityPID, new CustomFeedforward((double) 11.21/2320, ()->targetFlywheelVelocity/voltageSensor.getVoltage()))),
                 new BotMotor("flywheelRight", DcMotorSimple.Direction.FORWARD, 0, 0, new String[]{"VelocityPIDF"},
-                        new ControlSystem<>(new String[]{"targetVelocity"}, List.of(() -> targetFlywheelVelocity), velocityPID, new CustomFeedforward((double) 11.21/2320, ()->targetFlywheelVelocity/voltageSensor.getVoltage())))
+                        new ControlSystem<>(new String[]{"targetVelocity"}, List.of(() -> targetFlywheelVelocity), rightVelocityPID, new CustomFeedforward((double) 11.21/2320, ()->targetFlywheelVelocity/voltageSensor.getVoltage())))
         );
         turretPitch = new SyncedActuators<>(
                 new BotServo("turretPitchLeft", Servo.Direction.REVERSE, 422, 5, 180, 180),
