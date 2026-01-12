@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.robotconfigs;
 
+import static org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion.gamepad1;
 import static org.firstinspires.ftc.teamcode.base.Components.getHardwareMap;
 import static org.firstinspires.ftc.teamcode.base.Components.telemetryAddData;
 import static org.firstinspires.ftc.teamcode.base.Components.timer;
@@ -20,6 +21,7 @@ import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
 
 
+import org.firstinspires.ftc.teamcode.base.Commands;
 import org.firstinspires.ftc.teamcode.base.Commands.*;
 import org.firstinspires.ftc.teamcode.base.Components;
 import org.firstinspires.ftc.teamcode.base.Components.*;
@@ -90,6 +92,7 @@ public class Inferno implements RobotConfig{
     public static Color[] motif = new Color[3];
     public static double classifierBallCount = 0;
     private static Alliance alliance = Alliance.RED;
+    public static double hoodAngle = 45;
     private static double[] colorSensorNormalizedOutput(int index){
         NormalizedColorSensor sensor = sensors[index];
         NormalizedRGBA normal = sensor.getNormalizedColors();
@@ -207,8 +210,8 @@ public class Inferno implements RobotConfig{
     public static Command toggleShotType(){
         return new InstantCommand(()->{if (Inferno.shotType==ShotType.MOTIF) shotType=ShotType.NORMAL; else shotType=ShotType.MOTIF;});
     }
-    private static final VelocityPID leftVelocityPID = new VelocityPID(BotMotor::getVelocity,0, 0.0, 0);
-    private static final VelocityPID rightVelocityPID = new VelocityPID((BotMotor motor)->flywheel.getActuators().get("flywheelLeft").getVelocity(),0, 0.0, 0);
+    private static final VelocityPID leftVelocityPID = new VelocityPID(BotMotor::getVelocity,0, 0.0005, 0);
+    private static final VelocityPID rightVelocityPID = new VelocityPID((BotMotor motor)->flywheel.getActuators().get("flywheelLeft").getVelocity(),0, 0.0005, 0);
     public static Command loopFSM;
     private static SequentialCommand frontTransfer;
     private static SequentialCommand backTransfer;
@@ -323,7 +326,7 @@ public class Inferno implements RobotConfig{
             };
         }
     }
-    private static double[] getTargetPoint(){
+    public static double[] getTargetPoint(){
         if (alliance==Alliance.RED){
             return new double[]{139,141.5,44};
         } else {
@@ -339,9 +342,9 @@ public class Inferno implements RobotConfig{
         rightRear = new BotMotor("rightRear", DcMotorSimple.Direction.FORWARD);
         flywheel = new SyncedActuators<>(
                 new BotMotor("flywheelLeft", DcMotorSimple.Direction.REVERSE, 0, 0, new String[]{"VelocityPIDF"},
-                        new ControlSystem<>(new String[]{"targetVelocity"}, List.of(() -> targetFlywheelVelocity), leftVelocityPID, new CustomFeedforward((double) 11.21/2320, ()->targetFlywheelVelocity/voltageSensor.getVoltage()))),
+                        new ControlSystem<>(new String[]{"targetVelocity"}, List.of(() -> targetFlywheelVelocity), leftVelocityPID, new CustomFeedforward(1, ()->targetFlywheelVelocity/(80/0.58 * voltageSensor.getVoltage() + 673.793)))),
                 new BotMotor("flywheelRight", DcMotorSimple.Direction.FORWARD, 0, 0, new String[]{"VelocityPIDF"},
-                        new ControlSystem<>(new String[]{"targetVelocity"}, List.of(() -> targetFlywheelVelocity), rightVelocityPID, new CustomFeedforward((double) 11.21/2320, ()->targetFlywheelVelocity/voltageSensor.getVoltage())))
+                        new ControlSystem<>(new String[]{"targetVelocity"}, List.of(() -> targetFlywheelVelocity), rightVelocityPID, new CustomFeedforward(1, ()->targetFlywheelVelocity/(80/0.58 * voltageSensor.getVoltage() + 673.793))))
         );
         turretPitch = new SyncedActuators<>(
                 new BotServo("turretPitchLeft", Servo.Direction.REVERSE, 422, 5, 180, 180),
@@ -476,7 +479,7 @@ public class Inferno implements RobotConfig{
                 )
         );
         ContinuousCommand setShooter = new ContinuousCommand(()->{
-            targetFlywheelVelocity = 2080;
+            targetFlywheelVelocity = 1800;
             //flywheel.call((BotMotor motor)->motor.setPower(1.0));
             if (robotState != RobotState.INTAKE_FRONT && robotState!= RobotState.INTAKE_BACK){
                 double[] targetPoint = getTargetPoint();
@@ -484,7 +487,7 @@ public class Inferno implements RobotConfig{
                 Pose pos = follower.getPose();
                 double xPos = pos.getX();
                 double yPos = pos.getY();
-                double[] turret = new double[]{45,Math.toDegrees(atan2(targetPoint[1] - yPos,targetPoint[0] - xPos))};
+                double[] turret = new double[]{hoodAngle,Math.toDegrees(atan2(targetPoint[1] - yPos,targetPoint[0] - xPos))};
                 turretPitch.command((BotServo servo)->servo.instantSetTargetCommand((turret[0]+TURRET_PITCH_OFFSET)*TURRET_PITCH_RATIO)).run();
                 turretYaw.command((BotServo servo)->servo.instantSetTargetCommand((228-(turret[1]-heading))*TURRET_YAW_RATIO)).run();
                 telemetryAddData("Turret Angle Desired",turret[1]);

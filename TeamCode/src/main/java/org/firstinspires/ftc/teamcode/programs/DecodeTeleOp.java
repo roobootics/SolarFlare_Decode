@@ -11,6 +11,8 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.classifierBall
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.clearIntegralAtPeak;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.currentBallPath;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.flywheel;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.getTargetPoint;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.hoodAngle;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftFront;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftRear;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.loopFSM;
@@ -23,9 +25,8 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.robotState;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.setState;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.shotType;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.toggleShotType;
-import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretPitch;
-import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretYaw;
 
+import org.firstinspires.ftc.teamcode.base.Commands;
 import org.firstinspires.ftc.teamcode.base.Commands.*;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -87,6 +88,7 @@ public class DecodeTeleOp extends LinearOpMode {
                                     )
                             )
                         ),
+                        Commands.triggeredDynamicCommand(()->gamepad1.dpad_up,()->gamepad1.dpad_down,new InstantCommand(()->hoodAngle+=0.1),new InstantCommand(()->hoodAngle-=0.1)),
                         loopFSM
                 ),
                 clearIntegralAtPeak,
@@ -104,15 +106,14 @@ public class DecodeTeleOp extends LinearOpMode {
             telemetryAddData("Current Shot Height:",currentBallPath);
             telemetryAddData("Shoot All Motif:",motifShootAll);
             telemetryAddLine("");
+            telemetryAddData("Distance", Math.sqrt((follower.getPose().getX() - getTargetPoint()[0])*(follower.getPose().getX() - getTargetPoint()[0]) + (follower.getPose().getY() - getTargetPoint()[1])*(follower.getPose().getY() - getTargetPoint()[1])));
+            telemetryAddData("Hood Angle",hoodAngle);
             telemetryAddData("Flywheel Velocity",flywheel.getActuators().get("flywheelLeft").getVelocity());
-            telemetryAddData("Yaw",turretYaw.getActuators().get("turretYawFront").getTarget());
-            telemetryAddData("Hood",turretPitch.getActuators().get("turretPitchLeft").getTarget());
             telemetryAddData("PoseX",follower.getPose().getX());
             telemetryAddData("PoseY",follower.getPose().getY());
             telemetryAddData("PoseHeading",follower.getPose().getHeading());
             telemetryAddData("Flywheel Left Power",flywheel.getActuators().get("flywheelLeft").getPower());
             telemetryAddData("Flywheel Right Power",flywheel.getActuators().get("flywheelRight").getPower());
-            telemetryAddData("Turret Target",turretYaw.getActuators().get("turretYawFront").getTarget());
         });
         executor.runLoop(this::opModeIsActive);
     }
