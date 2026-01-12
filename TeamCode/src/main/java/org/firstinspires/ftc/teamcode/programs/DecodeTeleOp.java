@@ -24,6 +24,8 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.rightRear;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.robotState;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.setState;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.shotType;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.targetFlywheelVelocity;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.targetVelocity;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.toggleShotType;
 
 import org.firstinspires.ftc.teamcode.base.Commands;
@@ -89,6 +91,7 @@ public class DecodeTeleOp extends LinearOpMode {
                             )
                         ),
                         Commands.triggeredDynamicCommand(()->gamepad1.dpad_up,()->gamepad1.dpad_down,new InstantCommand(()->hoodAngle+=0.1),new InstantCommand(()->hoodAngle-=0.1)),
+                        Commands.triggeredDynamicCommand(()->gamepad1.dpad_right,()->gamepad1.dpad_left,new InstantCommand(()->targetVelocity+=2),new InstantCommand(()->targetVelocity-=2)),
                         loopFSM
                 ),
                 clearIntegralAtPeak,
@@ -108,6 +111,7 @@ public class DecodeTeleOp extends LinearOpMode {
             telemetryAddLine("");
             telemetryAddData("Distance", Math.sqrt((follower.getPose().getX() - getTargetPoint()[0])*(follower.getPose().getX() - getTargetPoint()[0]) + (follower.getPose().getY() - getTargetPoint()[1])*(follower.getPose().getY() - getTargetPoint()[1])));
             telemetryAddData("Hood Angle",hoodAngle);
+            telemetryAddData("Target Flywheel Velocity",targetFlywheelVelocity);
             telemetryAddData("Flywheel Velocity",flywheel.getActuators().get("flywheelLeft").getVelocity());
             telemetryAddData("PoseX",follower.getPose().getX());
             telemetryAddData("PoseY",follower.getPose().getY());
