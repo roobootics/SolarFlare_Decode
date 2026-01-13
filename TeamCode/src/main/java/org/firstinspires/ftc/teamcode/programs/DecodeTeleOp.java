@@ -12,7 +12,6 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.clearIntegralA
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.currentBallPath;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.flywheel;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.getTargetPoint;
-import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.hoodAngle;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftFront;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftRear;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.loopFSM;
@@ -25,7 +24,6 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.robotState;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.setState;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.shotType;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.targetFlywheelVelocity;
-import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.targetVelocity;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.toggleShotType;
 
 import org.firstinspires.ftc.teamcode.base.Commands;
@@ -90,15 +88,12 @@ public class DecodeTeleOp extends LinearOpMode {
                                     )
                             )
                         ),
-                        Commands.triggeredDynamicCommand(()->gamepad1.dpad_up,()->gamepad1.dpad_down,new InstantCommand(()->hoodAngle+=0.1),new InstantCommand(()->hoodAngle-=0.1)),
-                        Commands.triggeredDynamicCommand(()->gamepad1.dpad_right,()->gamepad1.dpad_left,new InstantCommand(()->targetVelocity+=2),new InstantCommand(()->targetVelocity-=2)),
                         loopFSM
                 ),
                 clearIntegralAtPeak,
                 Pedro.updateCommand()
         );
         executor.setWriteToTelemetry(()->{
-            readBallStorage();
             telemetryAddData("Ball Storage:", Arrays.asList(ballStorage));
             telemetryAddLine("");
             telemetryAddData("Robot State:",robotState);
@@ -110,8 +105,6 @@ public class DecodeTeleOp extends LinearOpMode {
             telemetryAddData("Shoot All Motif:",motifShootAll);
             telemetryAddLine("");
             telemetryAddData("Distance", Math.sqrt((follower.getPose().getX() - getTargetPoint()[0])*(follower.getPose().getX() - getTargetPoint()[0]) + (follower.getPose().getY() - getTargetPoint()[1])*(follower.getPose().getY() - getTargetPoint()[1])));
-            telemetryAddData("Hood Angle",hoodAngle);
-            telemetryAddData("Target Flywheel Velocity",targetFlywheelVelocity);
             telemetryAddData("Flywheel Velocity",flywheel.getActuators().get("flywheelLeft").getVelocity());
             telemetryAddData("PoseX",follower.getPose().getX());
             telemetryAddData("PoseY",follower.getPose().getY());
