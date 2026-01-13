@@ -111,11 +111,19 @@ public abstract class PresetControl { //Holds control functions that actuators c
     public static class VelocityPID extends ControlFunc<BotMotor>{ //Position PIDF controller for CRActuators
         private final GenericPID PID;
         private final Function<BotMotor,Double> getVelocity;
+        private final boolean clearIntegral;
+        public VelocityPID(boolean clearIntegral,Function<BotMotor,Double> getVelocity, double kP, double kI, double kD){
+            this.clearIntegral=clearIntegral;
+            this.getVelocity = getVelocity;
+            this.PID=new GenericPID(kP,kI,kD);
+        }
         public VelocityPID(Function<BotMotor,Double> getVelocity, double kP, double kI, double kD){
+            this.clearIntegral = true;
             this.getVelocity = getVelocity;
             this.PID=new GenericPID(kP,kI,kD);
         }
         public VelocityPID(double kP, double kI, double kD){
+            this.clearIntegral=true;
             this.getVelocity = BotMotor::getVelocity;
             this.PID=new GenericPID(kP,kI,kD);
         }
@@ -125,18 +133,18 @@ public abstract class PresetControl { //Holds control functions that actuators c
                 PID.clearIntegral();
                 PID.clearFivePointStencil();
             }
-            if (system.isNewReference("targetVelocity")){
+            if (system.isNewReference("targetVelocity")&&clearIntegral){
                 PID.clearIntegral();
             }
             double output=PID.getPIDOutput(system.getInstantReference("targetVelocity"), getVelocity.apply(parentActuator));
             system.setOutput(system.getOutput()+output);
         }
-        public void clearIntegral(){
-            PID.clearIntegral();
-        }
         @Override
         public void stopProcedure(){
             parentActuator.setPower(0);
+        }
+        public void clearIntegral(){
+            PID.clearIntegral();
         }
     }
     public static class BasicFeedforward extends ControlFunc<CRActuator<?>>{
