@@ -36,6 +36,7 @@ public class HoodTest extends LinearOpMode {
             telemetryAddData("hood",turretPitch.getActuators().get("turretPitchLeft").getTarget());
             telemetryAddData("yaw pos",turretYaw.getActuators().get("turretYawFront").getTarget());
             telemetryAddData("yaw angle",targetYaw);
+            telemetryAddData("pinpoint heading",follower.getHeading());
         });
         waitForStart();
         executor.runLoop(this::opModeIsActive);
