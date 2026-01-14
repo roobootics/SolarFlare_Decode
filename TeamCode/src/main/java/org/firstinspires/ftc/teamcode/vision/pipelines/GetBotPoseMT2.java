@@ -19,13 +19,14 @@ public class GetBotPoseMT2 {
     }
     public Pose3D getBotPoseMT2(){
         pinpoint.update();
-        double robotYaw = pinpoint.getHeading(AngleUnit.RADIANS);
-        telemetry.addData("pinpoint radians", robotYaw);
-        telemetry.addData("pinpoint degrees", Math.toDegrees(robotYaw));
-        limelight.updateRobotOrientation(robotYaw);
+        double robotYawRadians = pinpoint.getHeading(AngleUnit.RADIANS);
+        double robotYawDegrees = Math.toDegrees(robotYawRadians);
+        telemetry.addData("pinpoint radians", robotYawRadians);
+        telemetry.addData("pinpoint degrees", robotYawDegrees);
+        limelight.updateRobotOrientation(robotYawDegrees);
         LLResult result = limelight.getLatestResult();
         if (result != null && result.isValid()){
-            return result.getBotpose_MT2();
+            return result.getBotpose();
         }
         return null;
     }

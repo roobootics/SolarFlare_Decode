@@ -19,8 +19,8 @@ public class TestMT2 extends OpMode {
     public void loop() {
         Pose botPose = visionManager.getBotPoseAprilTags();
         if (botPose != null){
-            telemetry.addData("yaw limelight radians", botPose.getHeading());
-            telemetry.addData("yaw limelight degrees", Math.toDegrees(botPose.getHeading()));
+            telemetry.addData("yaw limelight radians", Math.toRadians(botPose.getHeading()));
+            telemetry.addData("yaw limelight degrees", botPose.getHeading());
             telemetry.addData("x", botPose.getX());
             telemetry.addData("y", botPose.getY());
             telemetry.update();

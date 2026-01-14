@@ -490,6 +490,7 @@ public class Inferno implements RobotConfig{
                 telemetryAddData("Hood Angle Desired",turret[0]);
                 telemetryAddData("Turret Angle Desired",turret[1]);
                 telemetryAddData("Target Flywheel Velocity",targetFlywheelVelocity);
+                telemetryAddData("Current Yaw angle",(228-(turret[1]-heading))*TURRET_YAW_RATIO);
                 telemetryAddLine("");
             }
         });
