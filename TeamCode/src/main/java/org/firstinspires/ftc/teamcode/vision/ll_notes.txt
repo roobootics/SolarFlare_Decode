@@ -1,0 +1,18 @@
+
+leftRightOffset --> Increases from top left to the right
+y
+
+|
+|
+V
+Increases from top left down
+
+corner0           corner1
+
+
+
+corner3           corner2
+
+ty is positive when target is under crosshair
+
+tx is positive when target is to the right of crosshair
