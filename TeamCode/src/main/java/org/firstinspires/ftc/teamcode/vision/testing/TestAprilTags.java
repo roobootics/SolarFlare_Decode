@@ -2,12 +2,13 @@ package org.firstinspires.ftc.teamcode.vision.testing;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
-import org.firstinspires.ftc.teamcode.vision.VisionManager;
+import org.firstinspires.ftc.teamcode.vision.VisionControl;
 
-@Autonomous
+@TeleOp
 public class TestAprilTags extends OpMode {
-    VisionManager visionManager = new VisionManager(hardwareMap, telemetry);
+    VisionControl visionControl = new VisionControl(hardwareMap, telemetry);
     @Override
     public void init(){
 
@@ -15,9 +16,9 @@ public class TestAprilTags extends OpMode {
 
     @Override
     public void loop(){
-        telemetry.addData("obelisk id", visionManager.getObeliskID());
-        telemetry.addData("botpose", visionManager.getBotPoseAprilTags());
-        telemetry.addData("pipeline type", visionManager.getCurrentPipelineType());
+        telemetry.addData("obelisk id", visionControl.getObeliskID());
+        telemetry.addData("botpose", visionControl.getBotPoseMT1());
+        telemetry.addData("pipeline type", visionControl.getCurrentPipelineType());
         telemetry.update();
     }
 }

@@ -5,26 +5,27 @@ import com.acmerobotics.dashboard.canvas.Canvas;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
-import org.firstinspires.ftc.teamcode.vision.VisionManager;
+import org.firstinspires.ftc.teamcode.vision.VisionControl;
 import org.firstinspires.ftc.teamcode.vision.descriptors.DetectionDescriptor;
 
 import java.util.List;
 
-@Autonomous
+@TeleOp
 public class ShowArtifactsFTCDash extends OpMode {
     double ARTIFACT_DIAMETER_INCHES = 5;
     FtcDashboard ftcDashboard;
-    VisionManager visionManager;
+    VisionControl visionControl;
     @Override
     public void init(){
-        visionManager = new VisionManager(hardwareMap, telemetry);
+        visionControl = new VisionControl(hardwareMap, telemetry);
         ftcDashboard = FtcDashboard.getInstance();
     }
 
     @Override
     public void loop(){
-        List<DetectionDescriptor> detections = visionManager.getDetectionDescriptors();
+        List<DetectionDescriptor> detections = visionControl.getDetectionDescriptors();
         TelemetryPacket packet = new TelemetryPacket();
         Canvas fieldOverlay = packet.fieldOverlay();
 

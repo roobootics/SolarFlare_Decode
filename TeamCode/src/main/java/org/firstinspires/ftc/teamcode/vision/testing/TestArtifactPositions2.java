@@ -3,18 +3,18 @@ package org.firstinspires.ftc.teamcode.vision.testing;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.vision.descriptors.DetectionDescriptor;
-import org.firstinspires.ftc.teamcode.vision.pipelines.FindArtifactRelativePositions;
+import org.firstinspires.ftc.teamcode.vision.pipelines.FindArtifactRelativePositionsPipeline;
 
 import java.util.ArrayList;
 import java.util.List;
 
-
-@Autonomous
+@TeleOp
 public class TestArtifactPositions2 extends OpMode {
     Limelight3A limelight;
-    FindArtifactRelativePositions detector;
+    FindArtifactRelativePositionsPipeline detector;
     final double CAMERA_VERTICAL_HEIGHT_INCHES = 5; // Increases up from reference point
     final double CAMERA_OFFSET_X_INCHES = 0; // Increases to the right from reference point
     final double CAMERA_OFFSET_Y_INCHES = 0; // Increases forward from the reference point
@@ -37,7 +37,7 @@ public class TestArtifactPositions2 extends OpMode {
         limelight.pipelineSwitch(0);
         queryClasses.add("purple");
         queryClasses.add("green");
-        detector = new FindArtifactRelativePositions(
+        detector = new FindArtifactRelativePositionsPipeline(
                 queryClasses, limelight,
                 CAMERA_VERTICAL_HEIGHT_INCHES,
                 CAMERA_OFFSET_X_INCHES,

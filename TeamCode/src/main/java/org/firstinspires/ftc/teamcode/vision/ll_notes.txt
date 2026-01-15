@@ -1,5 +1,5 @@
 
-leftRightOffset --> Increases from top left to the right
+x --> Increases from top left to the right
 y
 
 |

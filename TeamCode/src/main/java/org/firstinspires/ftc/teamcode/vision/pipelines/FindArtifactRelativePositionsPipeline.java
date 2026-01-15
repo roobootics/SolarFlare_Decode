@@ -9,7 +9,7 @@ import org.firstinspires.ftc.teamcode.vision.descriptors.DetectionDescriptor;
 import java.util.ArrayList;
 import java.util.List;
 
-public class FindArtifactRelativePositions {
+public class FindArtifactRelativePositionsPipeline {
     List<String> queryClassNames;
     Limelight3A limelight;
     double[][] K;
@@ -17,13 +17,13 @@ public class FindArtifactRelativePositions {
     final double CAMERA_OFFSET_X_INCHES;
     final double CAMERA_OFFSET_Y_INCHES;
     final double CAMERA_DOWNWARD_ANGLE_DEGREES;
-    public FindArtifactRelativePositions(List<String> queryClassNames,
-                                         Limelight3A limelight,
-                                         final double CAMERA_VERTICAL_HEIGHT_INCHES,
-                                         final double CAMERA_OFFSET_X_INCHES,
-                                         final double CAMERA_OFFSET_Y_INCHES,
-                                         final double CAMERA_DOWNWARD_ANGLE_DEGREES,
-                                         final double[][] K)
+    public FindArtifactRelativePositionsPipeline(List<String> queryClassNames,
+                                                 Limelight3A limelight,
+                                                 final double CAMERA_VERTICAL_HEIGHT_INCHES,
+                                                 final double CAMERA_OFFSET_X_INCHES,
+                                                 final double CAMERA_OFFSET_Y_INCHES,
+                                                 final double CAMERA_DOWNWARD_ANGLE_DEGREES,
+                                                 final double[][] K)
     {
         this.queryClassNames = queryClassNames;
 
