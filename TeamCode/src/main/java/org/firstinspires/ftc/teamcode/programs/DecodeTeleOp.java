@@ -109,7 +109,7 @@ public class DecodeTeleOp extends LinearOpMode {
             telemetryAddData("Flywheel Velocity",flywheel.getActuators().get("flywheelLeft").getVelocity());
             telemetryAddData("PoseX",follower.getPose().getX());
             telemetryAddData("PoseY",follower.getPose().getY());
-            telemetryAddData("PoseHeading",follower.getPose().getHeading());
+            telemetryAddData("PoseHeading",Math.toDegrees(follower.getHeading()));
             telemetryAddData("Flywheel Left Power",flywheel.getActuators().get("flywheelLeft").getPower());
             telemetryAddData("Flywheel Right Power",flywheel.getActuators().get("flywheelRight").getPower());
         });

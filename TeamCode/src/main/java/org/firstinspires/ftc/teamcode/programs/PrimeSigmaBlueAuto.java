@@ -9,6 +9,7 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.alliance;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.motifShootAll;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.robotState;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.setState;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.toggleShotType;
 
 
 import com.pedropathing.geometry.BezierCurve;
@@ -18,6 +19,7 @@ import com.pedropathing.paths.PathBuilder;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
+import org.firstinspires.ftc.teamcode.pedroPathing.Pedro;
 import org.firstinspires.ftc.teamcode.robotconfigs.Inferno;
 import org.firstinspires.ftc.teamcode.robotconfigs.Inferno.*;
 import org.firstinspires.ftc.teamcode.base.Commands.*;
@@ -67,6 +69,7 @@ public class PrimeSigmaBlueAuto extends LinearOpMode {
                         true
                 ),
                 new CheckFull(),
+                new InstantCommand(Inferno::toggleShotType),
                 new PedroInstantCommand(
                         (PathBuilder b)->b.addPath(
                                 new BezierCurve(
@@ -100,7 +103,8 @@ public class PrimeSigmaBlueAuto extends LinearOpMode {
                         setState(RobotState.STOPPED),
                         new PedroLinearCommand(36,36,Math.toRadians(360),true)
                 )
-        ));
+        ),
+        Pedro.updateCommand());
         waitForStart();
         executor.runLoop(this::opModeIsActive);
     }

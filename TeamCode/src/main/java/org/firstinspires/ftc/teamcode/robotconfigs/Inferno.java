@@ -87,13 +87,13 @@ public class Inferno implements RobotConfig{
     public static ShotType shotType = ShotType.NORMAL;
     public static boolean motifShootAll = true;
     private final static double BALL_SHOT_TIMING = 0.17;
-    private final static double TRANSFER_BOOST_DELAY = 0.35;
-    public static Color[] motif = new Color[3];
+    private final static double TRANSFER_BOOST_DELAY = 0.43;
+    public static Color[] motif = new Color[]{Color.PURPLE,Color.GREEN,Color.PURPLE};
     public static double classifierBallCount = 0;
     public static Alliance alliance = Alliance.RED;
     public static final double SHOT_TIME = 0.75;
-    private static final VelocityPID leftVelocityPID = new VelocityPID(false,BotMotor::getVelocity,0, 0.0004, 0);
-    private static final VelocityPID rightVelocityPID = new VelocityPID(false,(BotMotor motor)->flywheel.getActuators().get("flywheelLeft").getVelocity(),0, 0.0004, 0);
+    private static final VelocityPID leftVelocityPID = new VelocityPID(false,BotMotor::getVelocity,0.001, 0.001, 0);
+    private static final VelocityPID rightVelocityPID = new VelocityPID(false,(BotMotor motor)->flywheel.getActuators().get("flywheelLeft").getVelocity(),0.001, 0.001 , 0);
     public static Command loopFSM;
     private static SequentialCommand frontTransfer;
     private static SequentialCommand backTransfer;
@@ -369,8 +369,8 @@ public class Inferno implements RobotConfig{
         );
         frontIntakeGate = new BotServo("frontIntakeGate", Servo.Direction.FORWARD, 422, 5, 180, 90.8);
         backIntakeGate = new BotServo("backIntakeGate", Servo.Direction.FORWARD, 422, 5, 180, 99.5);
-        frontIntakeGate.setKeyPositions(new String[]{"open", "closed","push"}, new double[]{180,72.8,74.8});
-        backIntakeGate.setKeyPositions(new String[]{"open", "closed","push"}, new double[]{180,74.5,62.5});
+        frontIntakeGate.setKeyPositions(new String[]{"open", "closed","push"}, new double[]{180,69.8,71.8});
+        backIntakeGate.setKeyPositions(new String[]{"open", "closed","push"}, new double[]{180,71.5,59.5});
         sensors[0] = Components.getHardwareMap().get(NormalizedColorSensor.class, "sensor1");
         sensors[1] = Components.getHardwareMap().get(NormalizedColorSensor.class, "sensor2");
         sensors[2] = Components.getHardwareMap().get(NormalizedColorSensor.class, "sensor3");
@@ -486,16 +486,16 @@ public class Inferno implements RobotConfig{
             double yPos = pos.getY();
             double dist = sqrt((targetPoint[0]-xPos)*(targetPoint[0]-xPos) + (targetPoint[1]-yPos)*(targetPoint[1]-yPos));
             targetFlywheelVelocity = VelRegression.regressFormula(dist);
+            telemetryAddData("Target Flywheel Velocity",targetFlywheelVelocity);
             if (robotState != RobotState.INTAKE_FRONT && robotState!= RobotState.INTAKE_BACK){
                 double heading = Math.toDegrees(follower.getHeading());
                 double vel = flywheel.getActuators().get("flywheelLeft").getVelocity();
                 double[] turret = new double[]{HoodRegression.regressFormula(dist,vel),Math.toDegrees(atan2(targetPoint[1] - yPos,targetPoint[0] - xPos))};
                 turretPitch.command((BotServo servo)->servo.instantSetTargetCommand((turret[0]+TURRET_PITCH_OFFSET)*TURRET_PITCH_RATIO)).run();
-                turretYaw.command((BotServo servo)->servo.instantSetTargetCommand((220-(turret[1]-heading))*TURRET_YAW_RATIO)).run();
+                turretYaw.command((BotServo servo)->servo.instantSetTargetCommand((225-(turret[1]-heading))*TURRET_YAW_RATIO)).run();
                 telemetryAddData("Hood Angle Desired",turret[0]);
                 telemetryAddData("Turret Angle Desired",turret[1]);
-                telemetryAddData("Target Flywheel Velocity",targetFlywheelVelocity);
-                telemetryAddData("Current Yaw angle",(220-(turret[1]-heading))*TURRET_YAW_RATIO);
+                telemetryAddData("Current Yaw angle",(225-(turret[1]-heading))*TURRET_YAW_RATIO);
                 telemetryAddLine("");
             }
         });
@@ -516,10 +516,11 @@ public class Inferno implements RobotConfig{
         Components.activateActuatorControl();
     }
     public void reset(){
+        targetFlywheelVelocity = 0;
         shotType=ShotType.NORMAL;
         robotState=RobotState.STOPPED;
         currentBallPath = BallPath.LOW;
-        motifShootAll = false;
+        motifShootAll = true;
         ballStorage = new Color[3];
         classifierBallCount=0;
     }
