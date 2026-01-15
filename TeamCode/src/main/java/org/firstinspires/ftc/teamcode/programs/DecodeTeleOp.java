@@ -29,6 +29,7 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.toggleShotType
 import org.firstinspires.ftc.teamcode.base.Commands;
 import org.firstinspires.ftc.teamcode.base.Commands.*;
 
+import com.pedropathing.geometry.Pose;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
@@ -52,13 +53,13 @@ public class DecodeTeleOp extends LinearOpMode {
             new PressCommand(
                 new IfThen(
                       ()->(autoReset || gamepad1.x),
-                      new InstantCommand(()->{autoReset=true; initializeConfig(new Inferno(),true);})
+                      new InstantCommand(()->{autoReset=true; initializeConfig(new Inferno(new Pose(102.5, 7, 0)),true);})
                 )
             )
         ));
         executor.setWriteToTelemetry(()->telemetryAddData("Reset Odometry Pos",autoReset));
         executor.runLoop(this::opModeInInit);
-        initializeConfig(new Inferno(),false);
+        initializeConfig(new Inferno(new Pose(102.5, 7, 0)),false);
         executor.setCommands(
                 new RunResettingLoop(
                         new ConditionalCommand(
@@ -108,7 +109,7 @@ public class DecodeTeleOp extends LinearOpMode {
             telemetryAddData("Flywheel Velocity",flywheel.getActuators().get("flywheelLeft").getVelocity());
             telemetryAddData("PoseX",follower.getPose().getX());
             telemetryAddData("PoseY",follower.getPose().getY());
-            telemetryAddData("PoseHeading",follower.getPose().getHeading());
+            telemetryAddData("PoseHeading",Math.toDegrees(follower.getHeading()));
             telemetryAddData("Flywheel Left Power",flywheel.getActuators().get("flywheelLeft").getPower());
             telemetryAddData("Flywheel Right Power",flywheel.getActuators().get("flywheelRight").getPower());
         });
