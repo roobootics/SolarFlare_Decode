@@ -17,16 +17,14 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftRear;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.loopFSM;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.motif;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.motifShootAll;
-import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.readBallStorage;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.rightFront;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.rightRear;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.robotState;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.setState;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.shotType;
-import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.targetFlywheelVelocity;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.toggleShotType;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretYaw;
 
-import org.firstinspires.ftc.teamcode.base.Commands;
 import org.firstinspires.ftc.teamcode.base.Commands.*;
 
 import com.pedropathing.geometry.Pose;
@@ -77,6 +75,7 @@ public class DecodeTeleOp extends LinearOpMode {
                                 new IfThen(()->gamepad2.dpad_down, setState(RobotState.INTAKE_BACK_AND_SHOOT)),
                                 new IfThen(()->gamepad2.back,setState(RobotState.EXPEL))
                         ),
+                        turretYaw.command((BotServo servo)->servo.triggeredDynamicOffsetCommand(()->gamepad2.right_bumper,()->gamepad2.left_bumper,3)),
                         new InstantCommand(()->{if (classifierBallCount>9) classifierBallCount=9; else if (classifierBallCount<0) classifierBallCount=0;}),
                         new ConditionalCommand(
                             new IfThen(

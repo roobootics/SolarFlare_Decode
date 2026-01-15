@@ -90,14 +90,15 @@ public class Inferno implements RobotConfig{
     private final static double TRANSFER_BOOST_DELAY = 0.43;
     public static Color[] motif = new Color[]{Color.PURPLE,Color.GREEN,Color.PURPLE};
     public static double classifierBallCount = 0;
-    public static Alliance alliance = Alliance.RED;
+    public static Alliance alliance = Alliance.BLUE;
     public static final double SHOT_TIME = 0.75;
-    private static final VelocityPID leftVelocityPID = new VelocityPID(false,BotMotor::getVelocity,0.001, 0.001, 0);
-    private static final VelocityPID rightVelocityPID = new VelocityPID(false,(BotMotor motor)->flywheel.getActuators().get("flywheelLeft").getVelocity(),0.001, 0.001 , 0);
+    private static final VelocityPID leftVelocityPID = new VelocityPID(false,BotMotor::getVelocity,0.0, 0.001, 0);
+    private static final VelocityPID rightVelocityPID = new VelocityPID(false,(BotMotor motor)->flywheel.getActuators().get("flywheelLeft").getVelocity(),0.0, 0.001 , 0);
     public static Command loopFSM;
     private static SequentialCommand frontTransfer;
     private static SequentialCommand backTransfer;
     public final Pose startPos;
+    private static boolean isSpinningUp = true;
     private static double[] colorSensorNormalizedOutput(int index){
         NormalizedColorSensor sensor = sensors[index];
         NormalizedRGBA normal = sensor.getNormalizedColors();
@@ -217,7 +218,7 @@ public class Inferno implements RobotConfig{
     }
     public static Command clearIntegralAtPeak = new SequentialCommand(
             new SleepUntilTrue(()->flywheel.getActuators().get("flywheelLeft").getVelocity()>=targetFlywheelVelocity-25),
-            new InstantCommand(()->{leftVelocityPID.clearIntegral();rightVelocityPID.clearIntegral();})
+            new InstantCommand(()->{leftVelocityPID.clearIntegral();rightVelocityPID.clearIntegral();isSpinningUp=false;})
     );
     private static abstract class MotifShoot{
         private static ArrayList<BallPath> ballPaths; private static boolean leaveRollersOn; private static int transferDirection;
@@ -264,12 +265,20 @@ public class Inferno implements RobotConfig{
     public static class CheckFull extends Command{
         private final static int COUNT = 3;
         private int counter = 0;
+        private double startTime;
+        private double timeout;
+        public CheckFull(double timeout){
+            this.timeout = timeout;
+        }
+        public CheckFull(){
+            this(Double.POSITIVE_INFINITY);
+        }
         @Override
         protected boolean runProcedure() {
-            if (isStart()) counter = 0;
+            if (isStart()) {counter = 0; startTime = timer.time();}
             readBallStorage();
             if (Objects.nonNull(ballStorage[0])&&Objects.nonNull(ballStorage[1])&&Objects.nonNull(ballStorage[2])) {counter+=1;} else {counter = 0;}
-            return counter < COUNT;
+            return counter < COUNT && (timer.time()-startTime<timeout);
         }
     }
     private abstract static class Fisiks {
@@ -343,9 +352,17 @@ public class Inferno implements RobotConfig{
         rightRear = new BotMotor("rightRear", DcMotorSimple.Direction.FORWARD);
         flywheel = new SyncedActuators<>(
                 new BotMotor("flywheelLeft", DcMotorSimple.Direction.REVERSE, 0, 0, new String[]{"VelocityPIDF"},
-                        new ControlSystem<>(new String[]{"targetVelocity"}, List.of(() -> targetFlywheelVelocity), leftVelocityPID, new CustomFeedforward(1, ()->targetFlywheelVelocity/(80/0.58 * voltageSensor.getVoltage() + 673)))),
+                        new ControlSystem<>(new String[]{"targetVelocity"}, List.of(() -> targetFlywheelVelocity), leftVelocityPID, new CustomFeedforward(1, ()->targetFlywheelVelocity/(80/0.58 * voltageSensor.getVoltage() + 673)),
+                                new CustomFeedforward(1, ()->{
+                                    if (isSpinningUp || ((robotState==RobotState.SHOOTING || robotState==RobotState.INTAKE_FRONT_AND_SHOOT || robotState==RobotState.INTAKE_BACK_AND_SHOOT)&&flywheel.getActuators().get("flywheelLeft").getVelocity()<targetFlywheelVelocity-40))
+                                    {return 1.0;} else {return 0.0;}})
+                        )),
                 new BotMotor("flywheelRight", DcMotorSimple.Direction.FORWARD, 0, 0, new String[]{"VelocityPIDF"},
-                        new ControlSystem<>(new String[]{"targetVelocity"}, List.of(() -> targetFlywheelVelocity), rightVelocityPID, new CustomFeedforward(1, ()->targetFlywheelVelocity/(80/0.58 * voltageSensor.getVoltage() + 673))))
+                        new ControlSystem<>(new String[]{"targetVelocity"}, List.of(() -> targetFlywheelVelocity), rightVelocityPID, new CustomFeedforward(1, ()->targetFlywheelVelocity/(80/0.58 * voltageSensor.getVoltage() + 673)),
+                                new CustomFeedforward(1, ()->{
+                                    if (isSpinningUp || ((robotState==RobotState.SHOOTING || robotState==RobotState.INTAKE_FRONT_AND_SHOOT || robotState==RobotState.INTAKE_BACK_AND_SHOOT)&&flywheel.getActuators().get("flywheelLeft").getVelocity()<targetFlywheelVelocity-40))
+                                    {return 1.0;} else {return 0.0;}})
+                        ))
         );
         turretPitch = new SyncedActuators<>(
                 new BotServo("turretPitchLeft", Servo.Direction.REVERSE, 422, 5, 180, 180),
@@ -523,5 +540,6 @@ public class Inferno implements RobotConfig{
         motifShootAll = true;
         ballStorage = new Color[3];
         classifierBallCount=0;
+        isSpinningUp = true;
     }
 }
