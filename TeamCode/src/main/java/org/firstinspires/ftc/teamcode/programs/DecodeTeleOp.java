@@ -11,6 +11,7 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.classifierBall
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.clearIntegralAtPeak;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.currentBallPath;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.flywheel;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.gamePhase;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.getTargetPoint;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftFront;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftRear;
@@ -47,6 +48,7 @@ public class DecodeTeleOp extends LinearOpMode {
         initialize(hardwareMap,telemetry);
         ballStorage = new Color[]{Color.GREEN,Color.PURPLE,Color.PURPLE};
         motif = new Color[]{Color.PURPLE,Color.GREEN,Color.PURPLE};
+        gamePhase = GamePhase.TELEOP;
         executor.setCommands(new RunResettingLoop(
             new PressCommand(
                 new IfThen(

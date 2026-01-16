@@ -20,10 +20,10 @@ public class Constants {
             .forwardZeroPowerAcceleration(-31.9940432459363933)
             .lateralZeroPowerAcceleration(-68.69912366702141)
             .centripetalScaling(0.001)
-            .translationalPIDFCoefficients(new PIDFCoefficients(0.17, 0.001, 0, 0.015))
-            .headingPIDFCoefficients(new PIDFCoefficients(1.6,0.002,0,0.01))
-            .drivePIDFCoefficients(new FilteredPIDFCoefficients(0.025, 0, 0.00001, 0.6, 0.01))
-            .centripetalScaling(0.0007);
+            .translationalPIDFCoefficients(new PIDFCoefficients(0.2, 0.0007, 0, 0.015))
+            .headingPIDFCoefficients(new PIDFCoefficients(1.35,0.001,0,0.01))
+            .drivePIDFCoefficients(new FilteredPIDFCoefficients(0.01, 0, 0.00001, 0.6, 0.01))
+            .centripetalScaling(0.0004);
 
     public static MecanumConstants driveConstants = new MecanumConstants()
             .leftFrontMotorName("leftFront")
@@ -53,10 +53,10 @@ public class Constants {
             0.1,
             0.1,
             0.004,
-            50,
-            1.3,
+            7,
+            1.0,
             10,
-            0.9
+            0.96
     );
 
     public static Follower createFollower(HardwareMap hardwareMap) {

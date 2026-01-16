@@ -81,17 +81,22 @@ public class Inferno implements RobotConfig{
         RED,
         BLUE
     }
+    public enum GamePhase{
+        AUTO,
+        TELEOP
+    }
     public static Color[] ballStorage = new Color[3];
     public static BallPath currentBallPath = BallPath.LOW;
     public static RobotState robotState = RobotState.STOPPED;
     public static ShotType shotType = ShotType.NORMAL;
     public static boolean motifShootAll = true;
     private final static double BALL_SHOT_TIMING = 0.17;
-    private final static double TRANSFER_BOOST_DELAY = 0.43;
+    private final static double TRANSFER_BOOST_DELAY = 0.36;
     public static Color[] motif = new Color[]{Color.PURPLE,Color.GREEN,Color.PURPLE};
     public static double classifierBallCount = 0;
-    public static Alliance alliance = Alliance.BLUE;
-    public static final double SHOT_TIME = 0.75;
+    public static Alliance alliance = Alliance.RED;
+    public static GamePhase gamePhase = GamePhase.AUTO;
+    public static final double SHOT_TIME = 2.0;
     private static final VelocityPID leftVelocityPID = new VelocityPID(false,BotMotor::getVelocity,0.0, 0.001, 0);
     private static final VelocityPID rightVelocityPID = new VelocityPID(false,(BotMotor motor)->flywheel.getActuators().get("flywheelLeft").getVelocity(),0.0, 0.001 , 0);
     public static Command loopFSM;
@@ -354,13 +359,13 @@ public class Inferno implements RobotConfig{
                 new BotMotor("flywheelLeft", DcMotorSimple.Direction.REVERSE, 0, 0, new String[]{"VelocityPIDF"},
                         new ControlSystem<>(new String[]{"targetVelocity"}, List.of(() -> targetFlywheelVelocity), leftVelocityPID, new CustomFeedforward(1, ()->targetFlywheelVelocity/(80/0.58 * voltageSensor.getVoltage() + 673)),
                                 new CustomFeedforward(1, ()->{
-                                    if (isSpinningUp || ((robotState==RobotState.SHOOTING || robotState==RobotState.INTAKE_FRONT_AND_SHOOT || robotState==RobotState.INTAKE_BACK_AND_SHOOT)&&flywheel.getActuators().get("flywheelLeft").getVelocity()<targetFlywheelVelocity-40))
+                                    if (isSpinningUp || ((robotState==RobotState.SHOOTING || robotState==RobotState.INTAKE_FRONT_AND_SHOOT || robotState==RobotState.INTAKE_BACK_AND_SHOOT)&&flywheel.getActuators().get("flywheelLeft").getVelocity()<targetFlywheelVelocity-20))
                                     {return 1.0;} else {return 0.0;}})
                         )),
                 new BotMotor("flywheelRight", DcMotorSimple.Direction.FORWARD, 0, 0, new String[]{"VelocityPIDF"},
                         new ControlSystem<>(new String[]{"targetVelocity"}, List.of(() -> targetFlywheelVelocity), rightVelocityPID, new CustomFeedforward(1, ()->targetFlywheelVelocity/(80/0.58 * voltageSensor.getVoltage() + 673)),
                                 new CustomFeedforward(1, ()->{
-                                    if (isSpinningUp || ((robotState==RobotState.SHOOTING || robotState==RobotState.INTAKE_FRONT_AND_SHOOT || robotState==RobotState.INTAKE_BACK_AND_SHOOT)&&flywheel.getActuators().get("flywheelLeft").getVelocity()<targetFlywheelVelocity-40))
+                                    if (isSpinningUp || ((robotState==RobotState.SHOOTING || robotState==RobotState.INTAKE_FRONT_AND_SHOOT || robotState==RobotState.INTAKE_BACK_AND_SHOOT)&&flywheel.getActuators().get("flywheelLeft").getVelocity()<targetFlywheelVelocity-20))
                                     {return 1.0;} else {return 0.0;}})
                         ))
         );
@@ -378,16 +383,16 @@ public class Inferno implements RobotConfig{
         backIntake = new BotMotor("backIntake", DcMotorSimple.Direction.FORWARD);
         frontIntake.setKeyPowers(
                 new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel"},
-                new double[]{1.0,-0.75,1.0,0.12,0,-0.8}
+                new double[]{1.0,-0.75,1.0,0.1,0,-0.8}
         );
         backIntake.setKeyPowers(
                 new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel"},
-                new double[]{1.0,-0.75,1.0,0.12,0,-1.0}
+                new double[]{1.0,-0.75,1.0,0.1,0,-1.0}
         );
         frontIntakeGate = new BotServo("frontIntakeGate", Servo.Direction.FORWARD, 422, 5, 180, 90.8);
         backIntakeGate = new BotServo("backIntakeGate", Servo.Direction.FORWARD, 422, 5, 180, 99.5);
-        frontIntakeGate.setKeyPositions(new String[]{"open", "closed","push"}, new double[]{180,69.8,71.8});
-        backIntakeGate.setKeyPositions(new String[]{"open", "closed","push"}, new double[]{180,71.5,59.5});
+        frontIntakeGate.setKeyPositions(new String[]{"open", "closed","push"}, new double[]{180,65.8,60.8});
+        backIntakeGate.setKeyPositions(new String[]{"open", "closed","push"}, new double[]{180,71.5,66.5});
         sensors[0] = Components.getHardwareMap().get(NormalizedColorSensor.class, "sensor1");
         sensors[1] = Components.getHardwareMap().get(NormalizedColorSensor.class, "sensor2");
         sensors[2] = Components.getHardwareMap().get(NormalizedColorSensor.class, "sensor3");
@@ -504,7 +509,7 @@ public class Inferno implements RobotConfig{
             double dist = sqrt((targetPoint[0]-xPos)*(targetPoint[0]-xPos) + (targetPoint[1]-yPos)*(targetPoint[1]-yPos));
             targetFlywheelVelocity = VelRegression.regressFormula(dist);
             telemetryAddData("Target Flywheel Velocity",targetFlywheelVelocity);
-            if (robotState != RobotState.INTAKE_FRONT && robotState!= RobotState.INTAKE_BACK){
+            if ((robotState != RobotState.INTAKE_FRONT && robotState!= RobotState.INTAKE_BACK) || gamePhase == GamePhase.AUTO){
                 double heading = Math.toDegrees(follower.getHeading());
                 double vel = flywheel.getActuators().get("flywheelLeft").getVelocity();
                 double[] turret = new double[]{HoodRegression.regressFormula(dist,vel),Math.toDegrees(atan2(targetPoint[1] - yPos,targetPoint[0] - xPos))};
