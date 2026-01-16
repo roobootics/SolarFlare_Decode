@@ -117,8 +117,8 @@ public class VisionControl {
             packet.put("y raw", yRaw);
             packet.put("yaw raw", yawRaw);
 
-            double xTransformed = llPose.getPosition().toUnit(DistanceUnit.INCH).y + 72;
-            double yTransformed = -llPose.getPosition().toUnit(DistanceUnit.INCH).x + 72;
+            double xTransformed = yRaw + 72;
+            double yTransformed = -xRaw + 72;
             double yawTransformed = (yawRaw + 270) % 360;
             if (yawTransformed < 0) {
                 yawTransformed += 360;
