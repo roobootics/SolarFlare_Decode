@@ -41,14 +41,11 @@ import java.util.Arrays;
 
 @Autonomous
 public class PrimeSigmaBlueAuto extends LinearOpMode {
-    public int counter = 0;
     private final Command backExpelShoot = new SequentialCommand(
-            new InstantCommand(()->counter+=1),
             new ParallelCommand(setState(RobotState.SHOOTING), new SleepCommand(SHOT_TIME)),
             setState(RobotState.BACK_EXPEL)
     );
     private final Command frontExpelShoot = new SequentialCommand(
-            new InstantCommand(()->counter+=1),
             new ParallelCommand(setState(RobotState.SHOOTING), new SleepCommand(SHOT_TIME)),
             setState(RobotState.FRONT_EXPEL)
     );
@@ -61,7 +58,6 @@ public class PrimeSigmaBlueAuto extends LinearOpMode {
         initializeConfig(new Inferno(), true);
         Pedro.createFollower(new Pose(20, 122.62, Math.toRadians(143.5)));
         executor.setWriteToTelemetry(()->{
-            telemetryAddData("counter",counter);
             telemetryAddData("is busy",follower.isBusy());
             telemetryAddData("Ball Storage:", Arrays.asList(ballStorage));
             telemetryAddLine("");
