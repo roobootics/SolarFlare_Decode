@@ -17,13 +17,16 @@ public class CompareMT1ToPinpoint extends OpMode {
     public void init(){
         visionControl = new VisionControl(hardwareMap, telemetry);
         pinpoint = hardwareMap.get(GoBildaPinpointDriver.class, "pinpoint");
+        pinpoint.resetPosAndIMU();
+        pinpoint.setHeading(90, AngleUnit.DEGREES);
     }
     @Override
     public void loop(){
-        pinpoint.resetPosAndIMU();
         pinpoint.update();
+
         Pose botPoseMT1 = visionControl.getBotPoseMT1();
         if (botPoseMT1 != null){
+            // Make pinpoint display pedropathing coordinate system
             telemetry.addData("ll x", botPoseMT1.getX());
             telemetry.addData("ll y", botPoseMT1.getY());
             telemetry.addData("ll heading", botPoseMT1.getHeading());

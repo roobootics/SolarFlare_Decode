@@ -16,15 +16,18 @@ public class PhysicsTets {
         final static double WHEEL_RAD = 1.41732;
         final static double BALL_RAD = 2.5;
         public static double[] runPhysics(Inferno.BallPath currentBallPath){
+
             double xPos = 72;
             double yPos = 72;
             double xVel = 0;
             double yVel = 0;
+
             double currWheelVel = TICKS_TO_RAD*2100;
             double initSpeed = FRICTION*currWheelVel*WHEEL_RAD;
             double xDist = sqrt((target[0]-xPos)*(target[0]-xPos) + (target[1]-yPos)*(target[1]-yPos));
             double yDist = target[2] - HEIGHT;
             double TOTAL_RAD = WHEEL_RAD+BALL_RAD;
+
             double discriminant = sqrt(initSpeed*initSpeed*initSpeed*initSpeed + 2*yDist*GRAVITY*initSpeed*initSpeed + GRAVITY*GRAVITY*(TOTAL_RAD*TOTAL_RAD - (xDist - TOTAL_RAD)*(xDist - TOTAL_RAD)));
             if (currentBallPath == Inferno.BallPath.LOW) discriminant*=-1;
             double shotTime = sqrt(2*(initSpeed*initSpeed + yDist*GRAVITY + discriminant)/(GRAVITY*GRAVITY));
@@ -32,9 +35,11 @@ public class PhysicsTets {
                     initSpeed*shotTime*(yDist - 0.5*GRAVITY*shotTime*shotTime) - TOTAL_RAD*(xDist - TOTAL_RAD),
                     initSpeed*shotTime*(xDist - TOTAL_RAD) + TOTAL_RAD*(yDist - 0.5*GRAVITY*shotTime*shotTime)
             );
+
             double turretYaw = atan2(target[1] - shotTime*yVel - yPos, target[0] - shotTime*xVel - xPos);
             if (Double.isNaN(turretYaw)) turretYaw =  atan2(target[1] - yPos, target[0] - xPos); if (Double.isNaN(turretPitch)) turretPitch = Math.toRadians(47);
             if (turretYaw>=Math.PI) turretYaw-=2*Math.PI; if (turretPitch<=0) turretPitch+=2*Math.PI;
+
             telemetryAddData("NaN",Double.isNaN(shotTime));
             System.out.println(initSpeed/36);
             System.out.println(shotTime);
