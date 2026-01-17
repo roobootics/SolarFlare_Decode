@@ -28,6 +28,9 @@ public abstract class Pedro {
     public static Commands.RunResettingLoop updateCommand(){
         return new Commands.RunResettingLoop(new Commands.InstantCommand(follower::update));
     }
+    public static Commands.RunResettingLoop updatePoseCommand(){
+        return new Commands.RunResettingLoop(new Commands.InstantCommand(follower::updatePose));
+    }
     public static class PedroCommand extends Commands.PathCommand<PathChain>{
         private final boolean holdEnd;
         public PedroCommand(Function<PathBuilder,PathBuilder> buildPath, boolean holdEnd) {

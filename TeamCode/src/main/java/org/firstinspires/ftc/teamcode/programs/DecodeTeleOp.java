@@ -33,6 +33,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 
+import org.firstinspires.ftc.teamcode.base.Components;
 import org.firstinspires.ftc.teamcode.base.Components.*;
 import org.firstinspires.ftc.teamcode.pedroPathing.Pedro;
 import org.firstinspires.ftc.teamcode.robotconfigs.Inferno;
@@ -42,24 +43,12 @@ import java.util.Arrays;
 
 @TeleOp
 public class DecodeTeleOp extends LinearOpMode {
-    boolean autoReset = true;
     @Override
     public void runOpMode(){
         initialize(hardwareMap,telemetry);
-        ballStorage = new Color[]{Color.GREEN,Color.PURPLE,Color.PURPLE};
-        motif = new Color[]{Color.PURPLE,Color.GREEN,Color.PURPLE};
-        gamePhase = GamePhase.TELEOP;
-        executor.setCommands(new RunResettingLoop(
-            new PressCommand(
-                new IfThen(
-                      ()->(autoReset || gamepad1.x),
-                      new InstantCommand(()->{autoReset=true; initializeConfig(new Inferno(new Pose(102.5, 7, 0)),true);})
-                )
-            )
-        ));
-        executor.setWriteToTelemetry(()->telemetryAddData("Reset Odometry Pos",autoReset));
-        executor.runLoop(this::opModeInInit);
-        initializeConfig(new Inferno(new Pose(102.5, 7, 0)),false);
+        initializeConfig(new Inferno(),true);
+        waitForStart();
+        Components.activateActuatorControl();
         executor.setCommands(
                 new RunResettingLoop(
                         new ConditionalCommand(
@@ -93,7 +82,7 @@ public class DecodeTeleOp extends LinearOpMode {
                         loopFSM
                 ),
                 clearIntegralAtPeak,
-                Pedro.updateCommand()
+                Pedro.updatePoseCommand()
         );
         executor.setWriteToTelemetry(()->{
             telemetryAddData("Ball Storage:", Arrays.asList(ballStorage));

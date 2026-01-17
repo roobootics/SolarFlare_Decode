@@ -7,6 +7,7 @@ import static org.firstinspires.ftc.teamcode.base.Components.telemetryAddData;
 import static org.firstinspires.ftc.teamcode.base.Components.telemetryAddLine;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.SHOT_TIME;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.afterExpelSet;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.alliance;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.ballStorage;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.classifierBallCount;
@@ -29,6 +30,7 @@ import com.pedropathing.paths.PathBuilder;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
+import org.firstinspires.ftc.teamcode.base.Components;
 import org.firstinspires.ftc.teamcode.pedroPathing.Pedro;
 import org.firstinspires.ftc.teamcode.robotconfigs.Inferno;
 import org.firstinspires.ftc.teamcode.robotconfigs.Inferno.*;
@@ -40,17 +42,24 @@ import java.util.Arrays;
 @Autonomous
 public class PrimeSigmaBlueAuto extends LinearOpMode {
     public int counter = 0;
-    private final Command shoot = new SequentialCommand(
+    private final Command backExpelShoot = new SequentialCommand(
             new InstantCommand(()->counter+=1),
             new ParallelCommand(setState(RobotState.SHOOTING), new SleepCommand(SHOT_TIME)),
-            setState(RobotState.INTAKE_BACK)
+            setState(RobotState.BACK_EXPEL)
+    );
+    private final Command frontExpelShoot = new SequentialCommand(
+            new InstantCommand(()->counter+=1),
+            new ParallelCommand(setState(RobotState.SHOOTING), new SleepCommand(SHOT_TIME)),
+            setState(RobotState.FRONT_EXPEL)
     );
     @Override
     public void runOpMode() {
         alliance = Inferno.Alliance.BLUE;
         gamePhase = GamePhase.AUTO;
+        afterExpelSet = RobotState.INTAKE_BACK;
         initialize(hardwareMap,telemetry);
-        initializeConfig(new Inferno(new Pose(20, 122.62, Math.toRadians(143.5))), true);
+        initializeConfig(new Inferno(), true);
+        Pedro.createFollower(new Pose(20, 122.62, Math.toRadians(143.5)));
         executor.setWriteToTelemetry(()->{
             telemetryAddData("counter",counter);
             telemetryAddData("is busy",follower.isBusy());
@@ -73,72 +82,92 @@ public class PrimeSigmaBlueAuto extends LinearOpMode {
             telemetryAddData("Flywheel Right Power",flywheel.getActuators().get("flywheelRight").getPower());
         });
         waitForStart();
+        Components.activateActuatorControl();
         executor.setCommands(new SequentialCommand(
-                        new SleepCommand(1),
-                        new PedroLinearCommand(53.312,90.398,Math.toRadians(143.5),true), shoot,
+                        new SleepCommand(0.75),
+                        new PedroLinearCommand(53.312,90.398,Math.toRadians(143.5),true), backExpelShoot,
                         new PedroCommand((PathBuilder b)->b.addPath(
                                         new BezierCurve(
-                                                new Pose(53.312, 90.398),
+                                                follower::getPose,
                                                 new Pose(88.046, 59.413),
-                                                new Pose(18.129, 59.805)
-                                        )).setTangentHeadingInterpolation()
-                                .setReversed().addPath(
+                                                new Pose(16.129, 59.805)
+                                        )).setTangentHeadingInterpolation().setReversed()
+                                .addParametricCallback(0.78,()->follower.setMaxPower(0.75))
+                                .addPath(
                                         new BezierCurve(
-                                                new Pose(18.129, 59.805),
+                                                follower::getPose,
                                                 new Pose(54.282, 64.593),
-                                                new Pose(52.076, 84.680)
+                                                new Pose(53.076, 87.680)
                                         )
-                                ).setConstantHeadingInterpolation(Math.toRadians(0)), true
-                        ), shoot,
+                                ).setConstantHeadingInterpolation(Math.toRadians(0))
+                                .addParametricCallback(0.22,()->follower.setMaxPower(1.0))
+                                .addParametricCallback(0.4,()->setState(RobotState.STOPPED).run()), true
+                        ), frontExpelShoot,
                         new PedroCommand(
                                 (PathBuilder b)->b.addPath(
                                         new BezierCurve(
-                                                new Pose(52.076, 84.680),
+                                                follower::getPose,
                                                 new Pose(39.404, 37.087),
                                                 new Pose(19.169, 59.686)
                                         )
                                 ).setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(-35)).addPath(
                                         new BezierLine(
-                                                new Pose(19.169, 59.686),
-                                                new Pose(19.901, 54.334)
+                                                follower::getPose,
+                                                new Pose(22.901, 54.334)
                                         )
                                 ).setLinearHeadingInterpolation(Math.toRadians(-35), Math.toRadians(-50)),
                                 true
                         ),
-                        new CheckFull(3),
-                        new InstantCommand(Inferno::toggleShotType),
+                        new CheckFull(1),
                         new PedroCommand(
                                 (PathBuilder b)->b.addPath(
                                         new BezierCurve(
-                                                new Pose(19.901, 54.334),
+                                                follower::getPose,
                                                 new Pose(44.169, 52.575),
-                                                new Pose(52.370, 83.903)
+                                                new Pose(53.370, 87.903)
                                         )
-                                ).setLinearHeadingInterpolation(Math.toRadians(-50), Math.toRadians(-10)),
+                                ).setLinearHeadingInterpolation(Math.toRadians(-50), Math.toRadians(-10))
+                                .addParametricCallback(0.4,()->setState(RobotState.STOPPED).run()),
                                 true
-                        ), shoot,
-                        new PedroLinearChainCommand(
-                                true,new Pose(24.773, 83.829,Math.toRadians(0)),
-                                new Pose(52.451, 84.203,Math.toRadians(0))
-                        ), shoot,
+                        ), frontExpelShoot,
+                        new PedroCommand((PathBuilder b)->b
+                                .addPath(
+                                        new BezierLine(
+                                                follower::getPose,
+                                                new Pose(22.773, 83.829)
+                                        )
+                                ).setLinearHeadingInterpolation(Math.toRadians(-10),Math.toRadians(0))
+                                .addParametricCallback(0.78,()->follower.setMaxPower(0.75))
+                                .addPath(
+                                        new BezierLine(
+                                                follower::getPose,
+                                                new Pose(53.451, 87.203)
+                                        )
+                                ).setConstantHeadingInterpolation(Math.toRadians(0))
+                                .addParametricCallback(0.22,()->follower.setMaxPower(1.0))
+                                .addParametricCallback(0.4,()->setState(RobotState.STOPPED).run()),true
+                        ), frontExpelShoot,
                         new PedroCommand(
                                 (PathBuilder b)->b.addPath(
                                         new BezierCurve(
-                                                new Pose(52.451, 84.203),
+                                                follower::getPose,
                                                 new Pose(80.067, 27.483),
-                                                new Pose(20.304, 36.131)
+                                                new Pose(22.304, 36.131)
                                         )
-                                ).setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0)).addPath(
+                                ).setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
+                                .addParametricCallback(0.78,()->follower.setMaxPower(0.75))
+                                .addPath(
                                         new BezierLine(
-                                                new Pose(20.304, 36.131),
-
-                                                new Pose(52.177, 83.918)
+                                                follower::getPose,
+                                                new Pose(53.177, 87.918)
                                         )
-                                ).setConstantHeadingInterpolation(Math.toRadians(360)),true
-                        ), shoot,
+                                ).setConstantHeadingInterpolation(Math.toRadians(360))
+                                .addParametricCallback(0.22,()->follower.setMaxPower(1.0))
+                                .addParametricCallback(0.4,()->setState(RobotState.STOPPED).run()),true
+                        ), frontExpelShoot,
                         new ParallelCommand(
                                 setState(RobotState.STOPPED),
-                                new PedroLinearCommand(36,36,Math.toRadians(360),true)
+                                new PedroLinearCommand(49,83,Math.toRadians(360),true)
                         )
                 ),
                 clearIntegralAtPeak,

@@ -33,6 +33,7 @@ import org.firstinspires.ftc.teamcode.base.Commands.ParallelCommand;
 import org.firstinspires.ftc.teamcode.base.Commands.SequentialCommand;
 import org.firstinspires.ftc.teamcode.base.Commands.SleepCommand;
 import org.firstinspires.ftc.teamcode.base.Commands.SleepUntilTrue;
+import org.firstinspires.ftc.teamcode.base.Components;
 import org.firstinspires.ftc.teamcode.pedroPathing.Pedro;
 import org.firstinspires.ftc.teamcode.pedroPathing.Pedro.PedroCommand;
 import org.firstinspires.ftc.teamcode.pedroPathing.Pedro.PedroInstantCommand;
@@ -51,14 +52,15 @@ import java.util.Arrays;
 public class PrimeSigmaRedAuto extends LinearOpMode {
     private final Command shoot = new SequentialCommand(
             new ParallelCommand(setState(RobotState.SHOOTING), new SleepCommand(SHOT_TIME)),
-            setState(RobotState.INTAKE_FRONT)
+            setState(RobotState.FRONT_EXPEL)
     );
     @Override
     public void runOpMode() {
         alliance = Alliance.RED;
         gamePhase = Inferno.GamePhase.AUTO;
         initialize(hardwareMap,telemetry);
-        initializeConfig(new Inferno(new Pose(124, 122.62, Math.toRadians(216.5))), true);
+        initializeConfig(new Inferno(), true);
+        Pedro.createFollower(new Pose(124, 122.62, Math.toRadians(216.5)));
         executor.setWriteToTelemetry(()->{
             telemetryAddData("is busy",follower.isBusy());
             telemetryAddData("Ball Storage:", Arrays.asList(ballStorage));
@@ -80,44 +82,44 @@ public class PrimeSigmaRedAuto extends LinearOpMode {
             telemetryAddData("Flywheel Right Power",flywheel.getActuators().get("flywheelRight").getPower());
         });
         waitForStart();
+        Components.activateActuatorControl();
         executor.setCommands(new SequentialCommand(
-                        new SleepCommand(1),
+                        new SleepCommand(0.75),
                         new PedroLinearCommand(90.7,90.4,Math.toRadians(216.5),true), shoot,
                         new PedroCommand((PathBuilder b)->b.addPath(
                                         new BezierCurve(
                                                 new Pose(90.688, 90.398),
                                                 new Pose(63.954, 59.413),
-                                                new Pose(133.871, 59.805)
+                                                new Pose(128.871, 56.805)
                                         )).setTangentHeadingInterpolation()
-                                .setReversed().addPath(
+                                .addPath(
                                         new BezierCurve(
-                                                new Pose(133.871, 59.805),
+                                                new Pose(128.871, 56.805),
                                                 new Pose(89.718, 64.593),
                                                 new Pose(91.924, 84.680)
                                         )
-                                ).setConstantHeadingInterpolation(Math.toRadians(0)), true
+                                ).setConstantHeadingInterpolation(Math.toRadians(360)), true
                         ), shoot,
                         new PedroCommand(
                                 (PathBuilder b)->b.addPath(
                                         new BezierCurve(
                                                 new Pose(91.924, 84.680),
                                                 new Pose(104.596, 37.087),
-                                                new Pose(131.831, 59.686)
+                                                new Pose(128.831, 59.686)
                                         )
-                                ).setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(35)).addPath(
+                                ).setLinearHeadingInterpolation(Math.toRadians(360), Math.toRadians(35)).addPath(
                                         new BezierLine(
-                                                new Pose(131.831, 59.686),
-                                                new Pose(131.099, 54.334)
+                                                new Pose(128.831, 59.686),
+                                                new Pose(126.099, 54.334)
                                         )
                                 ).setLinearHeadingInterpolation(Math.toRadians(35), Math.toRadians(50)),
                                 true
                         ),
                         new CheckFull(3),
-                        new InstantCommand(Inferno::toggleShotType),
                         new PedroCommand(
                                 (PathBuilder b)->b.addPath(
                                         new BezierCurve(
-                                                new Pose(131.099, 54.334),
+                                                new Pose(126.099, 54.334),
                                                 new Pose(99.831, 52.575),
                                                 new Pose(91.63, 83.903)
                                         )
@@ -125,7 +127,7 @@ public class PrimeSigmaRedAuto extends LinearOpMode {
                                 true
                         ), shoot,
                         new PedroLinearChainCommand(
-                                true,new Pose(127.227, 83.829,Math.toRadians(0)),
+                                true,new Pose(120.227, 83.829,Math.toRadians(0)),
                                 new Pose(91.549, 84.203,Math.toRadians(0))
                         ), shoot,
                         new PedroCommand(
@@ -133,11 +135,11 @@ public class PrimeSigmaRedAuto extends LinearOpMode {
                                         new BezierCurve(
                                                 new Pose(91.459, 84.203),
                                                 new Pose(63.933, 27.483),
-                                                new Pose(131.696, 36.131)
+                                                new Pose(128.696, 36.131)
                                         )
                                 ).setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0)).addPath(
                                         new BezierLine(
-                                                new Pose(131.696, 36.131),
+                                                new Pose(128.696, 36.131),
 
                                                 new Pose(91.823, 83.918)
                                         )

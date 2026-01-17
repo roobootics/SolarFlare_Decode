@@ -15,6 +15,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.base.Commands;
 import org.firstinspires.ftc.teamcode.base.Components;
+import org.firstinspires.ftc.teamcode.pedroPathing.Pedro;
 import org.firstinspires.ftc.teamcode.robotconfigs.Inferno;
 
 @TeleOp
@@ -24,7 +25,8 @@ public class HoodTest extends LinearOpMode {
     @Override
     public void runOpMode() throws InterruptedException {
         initialize(hardwareMap,telemetry);
-        initializeConfig(new Inferno(new Pose(102.5, 7, 0)),true);
+        initializeConfig(new Inferno(),true);
+        Pedro.createFollower(new Pose(0,0,0));
         executor.setCommands(
                 turretPitch.command((Components.BotServo servo)->servo.triggeredDynamicTargetCommand(()->gamepad1.right_bumper,()->gamepad1.left_bumper,0.1)),
                 Commands.triggeredDynamicCommand(()->gamepad1.right_trigger>0.3,()->gamepad1.left_trigger>0.3,new Commands.InstantCommand(()->targetYaw-=1),new Commands.InstantCommand(()->targetYaw+=1)),
@@ -41,6 +43,7 @@ public class HoodTest extends LinearOpMode {
             telemetryAddData("pinpoint heading",follower.getHeading());
         });
         waitForStart();
+        Components.activateActuatorControl();
         executor.runLoop(this::opModeIsActive);
     }
 }
