@@ -66,7 +66,7 @@ public class DecodeTeleOp extends LinearOpMode {
                                 new IfThen(()->gamepad2.dpad_down, setState(RobotState.INTAKE_BACK_AND_SHOOT)),
                                 new IfThen(()->gamepad2.back,setState(RobotState.EXPEL))
                         ),
-                        turretYaw.command((BotServo servo)->servo.triggeredDynamicOffsetCommand(()->gamepad2.right_bumper,()->gamepad2.left_bumper,3)),
+                        turretYaw.command((BotServo servo)->servo.triggeredDynamicOffsetCommand(()->gamepad2.right_trigger>0.4,()->gamepad2.left_trigger>0.4,3)),
                         new InstantCommand(()->{if (classifierBallCount>9) classifierBallCount=9; else if (classifierBallCount<0) classifierBallCount=0;}),
                         new ConditionalCommand(
                             new IfThen(
@@ -85,6 +85,11 @@ public class DecodeTeleOp extends LinearOpMode {
                 Pedro.updatePoseCommand()
         );
         executor.setWriteToTelemetry(()->{
+            telemetryAddData("Yaw Offset",turretYaw.getActuators().get("turretYawFront").getTarget()-turretYaw.getActuators().get("turretYawFront").getTargetMinusOffset());
+            telemetryAddData("Yaw Target",turretYaw.getActuators().get("turretYawFront").getTarget());
+            telemetryAddData("Yaw Target Minus Offset",turretYaw.getActuators().get("turretYawFront").getTargetMinusOffset());
+            telemetryAddData("Right Trigger",gamepad2.right_trigger);
+            telemetryAddData("Left Trigger",gamepad2.left_trigger);
             telemetryAddData("Ball Storage:", Arrays.asList(ballStorage));
             telemetryAddLine("");
             telemetryAddData("Robot State:",robotState);

@@ -30,7 +30,6 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
 import org.firstinspires.ftc.teamcode.base.Commands.Command;
-import org.firstinspires.ftc.teamcode.base.Commands.InstantCommand;
 import org.firstinspires.ftc.teamcode.base.Commands.ParallelCommand;
 import org.firstinspires.ftc.teamcode.base.Commands.SequentialCommand;
 import org.firstinspires.ftc.teamcode.base.Commands.SleepCommand;
@@ -87,15 +86,15 @@ public class PrimeSigmaRedAuto extends LinearOpMode {
         waitForStart();
         Components.activateActuatorControl();
         executor.setCommands(new SequentialCommand(
-                        new SleepCommand(0.75),
-                        new PedroLinearCommand(90.688,90.398,Math.toRadians(216.5),true), backExpelShoot,
+                        new SleepCommand(0.85),
+                        new PedroLinearCommand(90.688,90.398,Math.toRadians(216.5),true), frontExpelShoot,
                         new PedroCommand((PathBuilder b)->b.addPath(
                                         new BezierCurve(
                                                 follower::getPose,
-                                                new Pose(55.954, 59.413),
-                                                new Pose(127.871, 59.805)
+                                                new Pose(63.954, 59.413),
+                                                new Pose(125.871, 58.805)
                                         )).setTangentHeadingInterpolation()
-                                .addParametricCallback(0.78,()->follower.setMaxPower(0.75))
+                                .addParametricCallback(0.78,()->follower.setMaxPower(0.57))
                                 .addPath(
                                         new BezierCurve(
                                                 follower::getPose,
@@ -104,21 +103,29 @@ public class PrimeSigmaRedAuto extends LinearOpMode {
                                         )
                                 ).setConstantHeadingInterpolation(Math.toRadians(0))
                                 .addParametricCallback(0.22,()->follower.setMaxPower(1.0))
-                                .addParametricCallback(0.4,()->setState(RobotState.STOPPED).run()), true
-                        ), frontExpelShoot,
+                                .addParametricCallback(0.37,()->setState(RobotState.STOPPED).run()), true
+                        ), backExpelShoot,
                         new PedroCommand(
                                 (PathBuilder b)->b.addPath(
                                         new BezierCurve(
                                                 follower::getPose,
                                                 new Pose(104.596, 37.087),
-                                                new Pose(124.831, 59.686)
+                                                new Pose(129.831, 60.686)
                                         )
-                                ).setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(35)).addPath(
+                                ).setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(35)),
+                                true
+                        ),
+                        new SleepCommand(0.8),
+                        new PedroCommand(
+                                (PathBuilder b)->b
+                                .addPath(
                                         new BezierLine(
                                                 follower::getPose,
-                                                new Pose(121.099, 54.334)
+                                                new Pose(128.099, 52.334)
                                         )
-                                ).setLinearHeadingInterpolation(Math.toRadians(35), Math.toRadians(50)),
+                                )
+                                .addParametricCallback(0.6,()->follower.setMaxPower(1.0))
+                                .setLinearHeadingInterpolation(Math.toRadians(35), Math.toRadians(50)),
                                 true
                         ),
                         new CheckFull(1),
@@ -132,15 +139,15 @@ public class PrimeSigmaRedAuto extends LinearOpMode {
                                 ).setLinearHeadingInterpolation(Math.toRadians(50), Math.toRadians(10))
                                 .addParametricCallback(0.4,()->setState(RobotState.STOPPED).run()),
                                 true
-                        ), frontExpelShoot,
+                        ), backExpelShoot,
                         new PedroCommand((PathBuilder b)->b
                                 .addPath(
                                         new BezierLine(
                                                 follower::getPose,
-                                                new Pose(121.227, 83.829)
+                                                new Pose(121.227, 79.829)
                                         )
                                 ).setLinearHeadingInterpolation(Math.toRadians(10),Math.toRadians(0))
-                                .addParametricCallback(0.78,()->follower.setMaxPower(0.75))
+                                .addParametricCallback(0.78,()->follower.setMaxPower(0.57))
                                 .addPath(
                                         new BezierLine(
                                                 follower::getPose,
@@ -148,17 +155,17 @@ public class PrimeSigmaRedAuto extends LinearOpMode {
                                         )
                                 ).setConstantHeadingInterpolation(Math.toRadians(0))
                                 .addParametricCallback(0.22,()->follower.setMaxPower(1.0))
-                                .addParametricCallback(0.4,()->setState(RobotState.STOPPED).run()),true
-                        ), frontExpelShoot,
+                                .addParametricCallback(0.37,()->setState(RobotState.STOPPED).run()),true
+                        ), backExpelShoot,
                         new PedroCommand(
                                 (PathBuilder b)->b.addPath(
                                         new BezierCurve(
                                                 follower::getPose,
                                                 new Pose(63.933, 27.483),
-                                                new Pose(121.966, 36.131)
+                                                new Pose(128.696, 36.131)
                                         )
                                 ).setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
-                                .addParametricCallback(0.78,()->follower.setMaxPower(0.75))
+                                .addParametricCallback(0.78,()->follower.setMaxPower(0.57))
                                 .addPath(
                                         new BezierLine(
                                                 follower::getPose,
@@ -166,11 +173,11 @@ public class PrimeSigmaRedAuto extends LinearOpMode {
                                         )
                                 ).setConstantHeadingInterpolation(Math.toRadians(360))
                                 .addParametricCallback(0.22,()->follower.setMaxPower(1.0))
-                                .addParametricCallback(0.4,()->setState(RobotState.STOPPED).run()),true
-                        ), frontExpelShoot,
+                                .addParametricCallback(0.37,()->setState(RobotState.STOPPED).run()),true
+                        ), backExpelShoot,
                         new ParallelCommand(
                                 setState(RobotState.STOPPED),
-                                new PedroLinearCommand(95,83,Math.toRadians(360),true)
+                                new PedroLinearCommand(99,79,Math.toRadians(360),true)
                         )
                 ),
                 clearIntegralAtPeak,
