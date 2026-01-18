@@ -16,7 +16,6 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.getTargetPoint
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftFront;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftRear;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.loopFSM;
-import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.motif;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.motifShootAll;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.rightFront;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.rightRear;
@@ -28,7 +27,6 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretYaw;
 
 import org.firstinspires.ftc.teamcode.base.Commands.*;
 
-import com.pedropathing.geometry.Pose;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
@@ -47,6 +45,7 @@ public class DecodeTeleOp extends LinearOpMode {
     public void runOpMode(){
         initialize(hardwareMap,telemetry);
         initializeConfig(new Inferno(),true);
+        gamePhase = GamePhase.TELEOP;
         waitForStart();
         Components.activateActuatorControl();
         executor.setCommands(
@@ -79,15 +78,16 @@ public class DecodeTeleOp extends LinearOpMode {
                                     )
                             )
                         ),
-                        loopFSM
+                        loopFSM,
+                        new InstantCommand(()->{if (robotState!=RobotState.SHOOTING){follower.breakFollowing();} else {follower.holdPoint(follower.getPose());}})
                 ),
                 clearIntegralAtPeak,
-                Pedro.updatePoseCommand()
+                Pedro.updateCommand()
         );
         executor.setWriteToTelemetry(()->{
-            telemetryAddData("Yaw Offset",turretYaw.getActuators().get("turretYawFront").getTarget()-turretYaw.getActuators().get("turretYawFront").getTargetMinusOffset());
-            telemetryAddData("Yaw Target",turretYaw.getActuators().get("turretYawFront").getTarget());
-            telemetryAddData("Yaw Target Minus Offset",turretYaw.getActuators().get("turretYawFront").getTargetMinusOffset());
+            telemetryAddData("Yaw Offset",turretYaw.get("turretYawFront").getTarget()-turretYaw.get("turretYawFront").getTargetMinusOffset());
+            telemetryAddData("Yaw Target",turretYaw.get("turretYawFront").getTarget());
+            telemetryAddData("Yaw Target Minus Offset",turretYaw.get("turretYawFront").getTargetMinusOffset());
             telemetryAddData("Right Trigger",gamepad2.right_trigger);
             telemetryAddData("Left Trigger",gamepad2.left_trigger);
             telemetryAddData("Ball Storage:", Arrays.asList(ballStorage));
@@ -101,12 +101,12 @@ public class DecodeTeleOp extends LinearOpMode {
             telemetryAddData("Shoot All Motif:",motifShootAll);
             telemetryAddLine("");
             telemetryAddData("Distance", Math.sqrt((follower.getPose().getX() - getTargetPoint()[0])*(follower.getPose().getX() - getTargetPoint()[0]) + (follower.getPose().getY() - getTargetPoint()[1])*(follower.getPose().getY() - getTargetPoint()[1])));
-            telemetryAddData("Flywheel Velocity",flywheel.getActuators().get("flywheelLeft").getVelocity());
+            telemetryAddData("Flywheel Velocity",flywheel.get("flywheelLeft").getVelocity());
             telemetryAddData("PoseX",follower.getPose().getX());
             telemetryAddData("PoseY",follower.getPose().getY());
             telemetryAddData("PoseHeading",Math.toDegrees(follower.getHeading()));
-            telemetryAddData("Flywheel Left Power",flywheel.getActuators().get("flywheelLeft").getPower());
-            telemetryAddData("Flywheel Right Power",flywheel.getActuators().get("flywheelRight").getPower());
+            telemetryAddData("Flywheel Left Power",flywheel.get("flywheelLeft").getPower());
+            telemetryAddData("Flywheel Right Power",flywheel.get("flywheelRight").getPower());
         });
         executor.runLoop(this::opModeIsActive);
     }

@@ -7,7 +7,6 @@ import static org.firstinspires.ftc.teamcode.base.Components.initializeConfig;
 import static org.firstinspires.ftc.teamcode.base.Components.telemetryAddData;
 import static org.firstinspires.ftc.teamcode.base.Components.telemetryAddLine;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
-import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.afterExpelSet;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.alliance;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.ballStorage;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.classifierBallCount;
@@ -29,7 +28,6 @@ import org.firstinspires.ftc.teamcode.pedroPathing.Pedro.PedroLinearCommand;
 import org.firstinspires.ftc.teamcode.robotconfigs.Inferno;
 import org.firstinspires.ftc.teamcode.robotconfigs.Inferno.Alliance;
 import org.firstinspires.ftc.teamcode.robotconfigs.Inferno.GamePhase;
-import org.firstinspires.ftc.teamcode.robotconfigs.Inferno.RobotState;
 
 import java.util.Arrays;
 
@@ -40,7 +38,6 @@ public class CloseZoneRedLeave extends LinearOpMode{
     public void runOpMode() throws InterruptedException {
         alliance = Alliance.RED;
         gamePhase = GamePhase.AUTO;
-        afterExpelSet = RobotState.INTAKE_FRONT;
         initialize(hardwareMap,telemetry);
         initializeConfig(new Inferno(), true);
         Pedro.createFollower(new Pose(124, 122.62, Math.toRadians(216.5)));
@@ -57,18 +54,18 @@ public class CloseZoneRedLeave extends LinearOpMode{
             telemetryAddData("Shoot All Motif:",motifShootAll);
             telemetryAddLine("");
             telemetryAddData("Distance", Math.sqrt((follower.getPose().getX() - getTargetPoint()[0])*(follower.getPose().getX() - getTargetPoint()[0]) + (follower.getPose().getY() - getTargetPoint()[1])*(follower.getPose().getY() - getTargetPoint()[1])));
-            telemetryAddData("Flywheel Velocity",flywheel.getActuators().get("flywheelLeft").getVelocity());
+            telemetryAddData("Flywheel Velocity",flywheel.get("flywheelLeft").getVelocity());
             telemetryAddData("PoseX",follower.getPose().getX());
             telemetryAddData("PoseY",follower.getPose().getY());
             telemetryAddData("PoseHeading",Math.toDegrees(follower.getHeading()));
-            telemetryAddData("Flywheel Left Power",flywheel.getActuators().get("flywheelLeft").getPower());
-            telemetryAddData("Flywheel Right Power",flywheel.getActuators().get("flywheelRight").getPower());
+            telemetryAddData("Flywheel Left Power",flywheel.get("flywheelLeft").getPower());
+            telemetryAddData("Flywheel Right Power",flywheel.get("flywheelRight").getPower());
         });
         waitForStart();
         activateActuatorControl();
         flywheel.call((BotMotor motor)->motor.switchControl("controlOff"));
         executor.setCommands(
-                new PedroLinearCommand(120,96,Math.toRadians(216.5),true),
+                new PedroLinearCommand(new Pose(120,96,Math.toRadians(216.5)),true),
                 Pedro.updateCommand()
         );
         executor.runLoop(this::opModeIsActive);

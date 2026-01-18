@@ -7,27 +7,19 @@ import static org.firstinspires.ftc.teamcode.base.Components.initializeConfig;
 import static org.firstinspires.ftc.teamcode.base.Components.telemetryAddData;
 import static org.firstinspires.ftc.teamcode.base.Components.telemetryAddLine;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
-import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.SHOT_TIME;
-import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.afterExpelSet;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.alliance;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.ballStorage;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.classifierBallCount;
-import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.clearIntegralAtPeak;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.currentBallPath;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.flywheel;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.gamePhase;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.getTargetPoint;
-import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.loopFSM;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.motifShootAll;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.robotState;
-import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.setState;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.shotType;
 
 
-import com.pedropathing.geometry.BezierCurve;
-import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
-import com.pedropathing.paths.PathBuilder;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
@@ -35,7 +27,6 @@ import org.firstinspires.ftc.teamcode.base.Components.*;
 import org.firstinspires.ftc.teamcode.pedroPathing.Pedro;
 import org.firstinspires.ftc.teamcode.robotconfigs.Inferno;
 import org.firstinspires.ftc.teamcode.robotconfigs.Inferno.*;
-import org.firstinspires.ftc.teamcode.base.Commands.*;
 import org.firstinspires.ftc.teamcode.pedroPathing.Pedro.*;
 
 import java.util.Arrays;
@@ -46,7 +37,6 @@ public class FarZoneBlueLeave extends LinearOpMode{
     public void runOpMode() throws InterruptedException {
         alliance = Inferno.Alliance.BLUE;
         gamePhase = GamePhase.AUTO;
-        afterExpelSet = RobotState.INTAKE_BACK;
         initialize(hardwareMap,telemetry);
         initializeConfig(new Inferno(), true);
         Pedro.createFollower(new Pose(41.5,7,Math.toRadians(0)));
@@ -63,18 +53,18 @@ public class FarZoneBlueLeave extends LinearOpMode{
             telemetryAddData("Shoot All Motif:",motifShootAll);
             telemetryAddLine("");
             telemetryAddData("Distance", Math.sqrt((follower.getPose().getX() - getTargetPoint()[0])*(follower.getPose().getX() - getTargetPoint()[0]) + (follower.getPose().getY() - getTargetPoint()[1])*(follower.getPose().getY() - getTargetPoint()[1])));
-            telemetryAddData("Flywheel Velocity",flywheel.getActuators().get("flywheelLeft").getVelocity());
+            telemetryAddData("Flywheel Velocity",flywheel.get("flywheelLeft").getVelocity());
             telemetryAddData("PoseX",follower.getPose().getX());
             telemetryAddData("PoseY",follower.getPose().getY());
             telemetryAddData("PoseHeading",Math.toDegrees(follower.getHeading()));
-            telemetryAddData("Flywheel Left Power",flywheel.getActuators().get("flywheelLeft").getPower());
-            telemetryAddData("Flywheel Right Power",flywheel.getActuators().get("flywheelRight").getPower());
+            telemetryAddData("Flywheel Left Power",flywheel.get("flywheelLeft").getPower());
+            telemetryAddData("Flywheel Right Power",flywheel.get("flywheelRight").getPower());
         });
         waitForStart();
         activateActuatorControl();
         flywheel.call((BotMotor motor)->motor.switchControl("controlOff"));
         executor.setCommands(
-                new PedroLinearCommand(37.5,11,Math.toRadians(0),true),
+                new PedroLinearCommand(new Pose(37.5,11,Math.toRadians(0)),true),
                 Pedro.updateCommand()
         );
         executor.runLoop(this::opModeIsActive);

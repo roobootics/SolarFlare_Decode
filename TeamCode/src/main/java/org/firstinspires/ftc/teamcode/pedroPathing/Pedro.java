@@ -51,11 +51,11 @@ public abstract class Pedro {
         }
     }
     public static class PedroLinearCommand extends PedroCommand{
-        public PedroLinearCommand(double x, double y, double heading, boolean holdEnd){ //Goes to the position indicated by the inputs
+        public PedroLinearCommand(Pose pose, boolean holdEnd){ //Goes to the position indicated by the inputs
             super(
                     (PathBuilder b)-> b
-                            .addPath(new BezierLine(follower.getPose(),new Pose(x,y)))
-                            .setLinearHeadingInterpolation(follower.getPose().getHeading(),heading),
+                            .addPath(new BezierLine(follower.getPose(),pose))
+                            .setLinearHeadingInterpolation(follower.getPose().getHeading(),pose.getHeading()),
                     holdEnd
             );
         }
@@ -103,10 +103,10 @@ public abstract class Pedro {
         }
     }
     public static class PedroInstantLinearCommand extends PedroInstantCommand{
-        public PedroInstantLinearCommand(double x, double y, double heading, boolean holdEnd) {
+        public PedroInstantLinearCommand(Pose pose, boolean holdEnd) {
             super((PathBuilder b)-> b
-                            .addPath(new BezierLine(follower.getPose(),new Pose(x,y)))
-                            .setLinearHeadingInterpolation(follower.getPose().getHeading(),heading),
+                            .addPath(new BezierLine(follower.getPose(),pose))
+                            .setLinearHeadingInterpolation(follower.getPose().getHeading(),pose.getHeading()),
                     holdEnd
             );
         }

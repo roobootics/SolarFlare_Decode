@@ -278,6 +278,7 @@ public abstract class Components {
         public HashMap<String,E> getActuators(){
             return actuators;
         }
+        public E get(String key){return Objects.requireNonNull(actuators.get(key));}
     }
     public abstract static class Actuator<E extends HardwareDevice>{ //Actuators are enhanced hardware classes that have more state and functionality. Each Actuator instance is parametrized with a specific type, like DcMotorEx or Servo, and holds a HardwareDevice of that type.
         private final String name; //The actuator's hardwareMap name.

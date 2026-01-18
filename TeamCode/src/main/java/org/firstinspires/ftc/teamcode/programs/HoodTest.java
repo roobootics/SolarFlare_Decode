@@ -1,7 +1,6 @@
 package org.firstinspires.ftc.teamcode.programs;
 
 import static org.firstinspires.ftc.teamcode.base.Commands.executor;
-import static org.firstinspires.ftc.teamcode.base.Commands.triggeredDynamicCommand;
 import static org.firstinspires.ftc.teamcode.base.Components.initialize;
 import static org.firstinspires.ftc.teamcode.base.Components.initializeConfig;
 import static org.firstinspires.ftc.teamcode.base.Components.telemetryAddData;
@@ -36,9 +35,9 @@ public class HoodTest extends LinearOpMode {
 
         );
         executor.setWriteToTelemetry(()->{
-            telemetryAddData("hood",turretPitch.getActuators().get("turretPitchLeft").getTarget());
-            telemetryAddData("yaw pos",turretYaw.getActuators().get("turretYawFront").getTarget());
-            telemetryAddData("raw yaw pos",turretYaw.getActuators().get("turretYawFront").getDevice().getPosition()*355);
+            telemetryAddData("hood",turretPitch.get("turretPitchLeft").getTarget());
+            telemetryAddData("yaw pos",turretYaw.get("turretYawFront").getTarget());
+            telemetryAddData("raw yaw pos",turretYaw.get("turretYawFront").getDevice().getPosition()*355);
             telemetryAddData("yaw angle",targetYaw);
             telemetryAddData("pinpoint heading",follower.getHeading());
         });
