@@ -210,7 +210,9 @@ public class Inferno implements RobotConfig{
     public static void aprilTagRelocalize(){}
     public static void findBalls(){}
     public static void countClassifier(){}
-    private static void findMotif(){}
+    private static void findMotif(){
+
+    }
     public static Command setState(RobotState robotState){
         return new InstantCommand(()->Inferno.robotState=robotState);
     }
@@ -401,7 +403,7 @@ public class Inferno implements RobotConfig{
         sensors[0] = Components.getHardwareMap().get(NormalizedColorSensor.class, "sensor1");
         sensors[1] = Components.getHardwareMap().get(NormalizedColorSensor.class, "sensor2");
         sensors[2] = Components.getHardwareMap().get(NormalizedColorSensor.class, "sensor3");
-        //limelight = Components.getHardwareMap().get(Limelight3A.class, "limelight");
+        limelight = Components.getHardwareMap().get(Limelight3A.class, "limelight");
         transferGate = new BotServo("transferGate", Servo.Direction.FORWARD,422,5,270,148.5);
         transferGate.setKeyPositions(new String[]{"open","closed"},new double[]{148.5,86.4});
         voltageSensor = getHardwareMap().get(VoltageSensor.class,"Control Hub");

@@ -27,11 +27,14 @@ public class ShowBotPoseFTCDash extends OpMode {
         Pose botPose = visionControl.getBotPoseMT1();
 
         if (botPose != null){
-            double x = botPose.getX();
-            double y = botPose.getY();
+            double x_p = botPose.getX();
+            double y_p = botPose.getY();
+
+            double x_f = -(y_p - 72);
+            double y_f = x_p - 72;
 
             fieldOverlay.setFill("black");
-            fieldOverlay.fillRect(x, y, 13, 14);
+            fieldOverlay.fillRect(x_f, y_f, 13, 14);
 
             ftcDashboard.sendTelemetryPacket(packet);
         }
