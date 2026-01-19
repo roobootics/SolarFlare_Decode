@@ -12,14 +12,14 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.teamcode.vision.Vision;
 
 @TeleOp
-public class CompareMT1ToPinpoint extends OpMode {
+public class CompareMT2ToPinpoint extends OpMode {
     GoBildaPinpointDriver pinpoint;
     Vision vision;
     TelemetryPacket packet;
     FtcDashboard ftcDashboard;
     double robotWidth = 14; // TODO: check these values
     double robotLength = 18;
-    double initX = 144;
+    double initX = 0;
     double initY = 0;
     double initHeading = 90;
 
@@ -37,17 +37,17 @@ public class CompareMT1ToPinpoint extends OpMode {
     public void loop(){
         pinpoint.update();
 
-        Pose botPoseMT1 = vision.getBotPoseMT1();
+        Pose botPoseMT2 = vision.getBotPoseMT2(pinpoint);
 
         double pinpointX = pinpoint.getPosition().getX(DistanceUnit.INCH) + (robotWidth / 2) + initX;
         double pinpointY = pinpoint.getPosition().getY(DistanceUnit.INCH) + (robotLength / 2) + initY;
         double pinpointHeading = pinpoint.getHeading(AngleUnit.DEGREES);
 
-        if (botPoseMT1 != null){
+        if (botPoseMT2 != null){
 
-            double llX = botPoseMT1.getX();
-            double llY = botPoseMT1.getY();
-            double llHeading = botPoseMT1.getHeading();
+            double llX = botPoseMT2.getX();
+            double llY = botPoseMT2.getY();
+            double llHeading = botPoseMT2.getHeading();
 
             double xError = llX - pinpointX;
             double yError = llY - pinpointY;

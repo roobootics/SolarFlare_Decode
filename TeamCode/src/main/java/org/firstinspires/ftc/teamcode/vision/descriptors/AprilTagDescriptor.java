@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.vision.descriptors;
 
 public class AprilTagDescriptor {
+    // Describes april tag in camera space
     double tx;
     double ty;
     int id;

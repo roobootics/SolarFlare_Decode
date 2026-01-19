@@ -1,7 +1,7 @@
 package org.firstinspires.ftc.teamcode.vision.descriptors;
 
 public class ArtifactDescriptor {
-    // Describes the actual artifact and its real-world coordinates
+    // Describes an artifact in field space
     double x;
     double y;
     String className;
