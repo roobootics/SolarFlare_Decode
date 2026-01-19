@@ -13,7 +13,6 @@ import org.apache.commons.lang3.tuple.Triple;
 
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.math.Vector;
-import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.NormalizedRGBA;
@@ -25,6 +24,7 @@ import org.firstinspires.ftc.teamcode.base.Commands.*;
 import org.firstinspires.ftc.teamcode.base.Components;
 import org.firstinspires.ftc.teamcode.base.Components.*;
 import org.firstinspires.ftc.teamcode.presets.PresetControl.*;
+import org.firstinspires.ftc.teamcode.vision.VisionControl;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -49,9 +49,9 @@ public class Inferno implements RobotConfig{
     public static BotServo frontIntakeGate;
     public static BotServo backIntakeGate;
     public static NormalizedColorSensor[] sensors = new NormalizedColorSensor[3];
-    public static Limelight3A limelight;
     public static BotServo transferGate;
     public static VoltageSensor voltageSensor;
+    public static VisionControl visionControl;
     public enum Color{
         PURPLE,
         GREEN,
@@ -207,12 +207,36 @@ public class Inferno implements RobotConfig{
         }
         return Triple.of(ballPaths,transferDirection,leaveRollersOn);
     }
-    public static void aprilTagRelocalize(){}
+    public static final Command aprilTagRelocalize = new LambdaCommand(
+            ()->{
+                Pose pose = visionControl.getBotPoseMT1();
+                if (!Objects.isNull(pose)){
+                    follower.setPose(pose);
+                    return false;
+                } else {
+                    return true;
+                }
+            }
+    );
+    public static final Command findMotif = new LambdaCommand(
+            ()->{
+                Integer id = visionControl.getObeliskID();
+                if (!Objects.isNull(id)){
+                    if (id == 23){
+                        motif = new Color[]{Color.PURPLE,Color.PURPLE,Color.GREEN};
+                    } else if (id==22){
+                        motif = new Color[]{Color.PURPLE,Color.GREEN,Color.PURPLE};
+                    } else if (id==21){
+                        motif = new Color[]{Color.GREEN,Color.PURPLE,Color.PURPLE};
+                    }
+                    return false;
+                } else {
+                    return true;
+                }
+            }
+    );
     public static void findBalls(){}
     public static void countClassifier(){}
-    private static void findMotif(){
-
-    }
     public static Command setState(RobotState robotState){
         return new InstantCommand(()->Inferno.robotState=robotState);
     }
@@ -266,6 +290,37 @@ public class Inferno implements RobotConfig{
                 new TransferCommand(),
                 new HoodCommand()
             );
+        }
+    }
+    private static class SemiSort extends CompoundCommand{
+        private int transferDirection;
+        public SemiSort(){
+            setGroup(new ParallelCommand(
+                new InstantCommand(()->{
+                    readBallStorage();
+                    Color[] shotSequence = new Color[3];
+                    if (classifierBallCount%3==0){
+                        shotSequence = motif;
+                    }
+                    else if (classifierBallCount%3==1){
+                        shotSequence[0] = motif[1];
+                        shotSequence[1] = motif[2];
+                        shotSequence[2] = motif[0];
+                    }
+                    else{
+                        shotSequence[0] = motif[2];
+                        shotSequence[1] = motif[0];
+                        shotSequence[2] = motif[1];
+                    }
+                    if (shotSequence[1]==ballStorage[0] && shotSequence[1]!=ballStorage[2]){
+                        transferDirection = 0;
+                    } else transferDirection = 2;
+                }),
+                new ConditionalCommand(
+                        new IfThen(()->transferDirection==0,frontTransfer),
+                        new IfThen(()->transferDirection==2,backTransfer)
+                )
+            ));
         }
     }
     public static class CheckFull extends Command{
@@ -389,12 +444,12 @@ public class Inferno implements RobotConfig{
         frontIntake = new BotMotor("frontIntake", DcMotorSimple.Direction.FORWARD);
         backIntake = new BotMotor("backIntake", DcMotorSimple.Direction.FORWARD);
         frontIntake.setKeyPowers(
-                new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel"},
-                new double[]{1.0,-0.75,1.0,0.0,0,-0.8}
+                new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel","frontDrive"},
+                new double[]{1.0,-0.75,1.0,0.0,0,-0.8,0.2}
         );
         backIntake.setKeyPowers(
-                new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel"},
-                new double[]{1.0,-0.75,1.0,0.0,0,-1.0}
+                new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel","frontDrive"},
+                new double[]{1.0,-0.75,1.0,0.0,0,-1.0,0.2}
         );
         frontIntakeGate = new BotServo("frontIntakeGate", Servo.Direction.FORWARD, 422, 5, 180, 90.8);
         backIntakeGate = new BotServo("backIntakeGate", Servo.Direction.FORWARD, 422, 5, 180, 99.5);
@@ -403,10 +458,10 @@ public class Inferno implements RobotConfig{
         sensors[0] = Components.getHardwareMap().get(NormalizedColorSensor.class, "sensor1");
         sensors[1] = Components.getHardwareMap().get(NormalizedColorSensor.class, "sensor2");
         sensors[2] = Components.getHardwareMap().get(NormalizedColorSensor.class, "sensor3");
-        limelight = Components.getHardwareMap().get(Limelight3A.class, "limelight");
         transferGate = new BotServo("transferGate", Servo.Direction.FORWARD,422,5,270,148.5);
         transferGate.setKeyPositions(new String[]{"open","closed"},new double[]{148.5,86.4});
         voltageSensor = getHardwareMap().get(VoltageSensor.class,"Control Hub");
+        visionControl = new VisionControl(Components.getHardwareMap(),Components.getTelemetry());
         frontTransfer = new SequentialCommand(
                 new ParallelCommand(
                     transferGate.instantSetTargetCommand("open"),
@@ -461,12 +516,14 @@ public class Inferno implements RobotConfig{
         );
         SequentialCommand stopIntake = new SequentialCommand(
                 new ParallelCommand(
-                    frontIntakeGate.instantSetTargetCommand("closed"),
-                    backIntakeGate.instantSetTargetCommand("closed")
+                    frontIntake.setPowerCommand("frontDrive"),
+                    backIntake.setPowerCommand("frontDrive"),
+                    transferGate.instantSetTargetCommand("open")
                 ),
                 new SleepCommand(0.26),
                 new ParallelCommand(
-                    transferGate.instantSetTargetCommand("open"),
+                    frontIntakeGate.instantSetTargetCommand("closed"),
+                    backIntakeGate.instantSetTargetCommand("closed"),
                     frontIntake.setPowerCommand("stopped"),
                     backIntake.setPowerCommand("stopped"),
                     new InstantCommand(()->{
@@ -505,7 +562,7 @@ public class Inferno implements RobotConfig{
                     ),
                     new IfThen(
                             () -> shotType == ShotType.MOTIF,
-                            MotifShoot.getFullMotifCommand()
+                            new SemiSort()
                     )
                 );
         ContinuousCommand setShooter = new ContinuousCommand(()->{
