@@ -15,7 +15,6 @@ import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 import org.firstinspires.ftc.teamcode.vision.descriptors.AprilTagDescriptor;
 import org.firstinspires.ftc.teamcode.vision.descriptors.ArtifactDescriptor;
 import org.firstinspires.ftc.teamcode.vision.descriptors.DetectionDescriptor;
-import org.firstinspires.ftc.teamcode.vision.pipelines.FindArtifactRelativePositionsPipeline;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,7 +36,6 @@ public class VisionControl {
             {0.0, fy, cy},
             {0.0, 0.0, 1.0}
     };
-    FindArtifactRelativePositionsPipeline artifactDetector;
     Limelight3A limelight;
     GoBildaPinpointDriver pinpoint;
     List<String> queryClasses = new ArrayList<>();
@@ -51,34 +49,49 @@ public class VisionControl {
         //pinpoint.resetPosAndIMU();
         queryClasses.add("purple");
         queryClasses.add("green");
-        artifactDetector = new FindArtifactRelativePositionsPipeline(
-                queryClasses, limelight,
-                CAMERA_VERTICAL_HEIGHT_INCHES,
-                CAMERA_OFFSET_X_INCHES,
-                CAMERA_OFFSET_Y_INCHES,
-                CAMERA_DOWNWARD_PITCH_DEGREES,
-                K);
     }
 
-    public List<DetectionDescriptor> getDetectionDescriptors(){ // Returns a list of all detections from a single frame
+    public List<ArtifactDescriptor> getArtifactDescriptors(Pose botPose){ // Converts relative positions to absolute
         if (!limelight.isRunning()){
             limelight.start();
         }
         limelight.pipelineSwitch(NN_PIPELINE_INDEX);
-        telemetry.addData("pipeline index", limelight.getStatus().getPipelineIndex());
-        telemetry.addData("pipeline type", limelight.getStatus().getPipelineType());
-        telemetry.addData("isRunning", limelight.isRunning());
-        return artifactDetector.getDetectionDescriptors();
-    }
 
-    public List<ArtifactDescriptor> getArtifactDescriptors(){ // Converts relative positions to absolute
-        if (!limelight.isRunning()){
-            limelight.start();
+        List<ArtifactDescriptor> artifactDescriptors = new ArrayList<>(); // Output array
+        LLResult result = limelight.getLatestResult();
+
+        if (result == null || !result.isValid()) {
+            return artifactDescriptors;
         }
-        List<DetectionDescriptor> detectionDescriptors = artifactDetector.getDetectionDescriptors();
-        for (DetectionDescriptor detection: detectionDescriptors){
-            double leftRightOffset = detection.getLeftRightOffset();
-            double forwardOffset = detection.getForwardOffset();
+
+        for (LLResultTypes.DetectorResult detectorResult : result.getDetectorResults()) {
+            String className = detectorResult.getClassName();
+
+            if (queryClasses.contains(className)) {
+                List<List<Double>> corners = detectorResult.getTargetCorners();
+                double[] targetLocationPixels = new double[2];
+                targetLocationPixels[0] = (corners.get(2).get(0) + corners.get(3).get(0)) / 2; // We want the target to be the bottom center of the bounding box
+                targetLocationPixels[1] = (corners.get(3).get(1));
+
+                double tx = Math.toDegrees(Math.atan2(targetLocationPixels[0] - cx, fx));
+                double ty = Math.toDegrees(Math.atan2(1.0 - targetLocationPixels[1], fy)); // Y dimension of camera increases downward
+                double verticalAngle = CAMERA_DOWNWARD_PITCH_DEGREES + ty;
+
+                double depth = CAMERA_VERTICAL_HEIGHT_INCHES * Math.tan(Math.toRadians(verticalAngle)) + CAMERA_OFFSET_Y_INCHES + 2.5; // 2.5 is to find the location of the center of the artifact TODO: Tune this
+
+                double horizontalOffset = depth * Math.tan(Math.toRadians(tx)) + CAMERA_OFFSET_X_INCHES;
+
+                double x = botPose.getX();
+                double y = botPose.getY();
+                double heading = Math.toRadians(botPose.getHeading());
+
+                double artifactX = x + horizontalOffset * Math.cos(heading) - depth * Math.sin(heading);
+                double artifactY = y + horizontalOffset * Math.sin(heading) + depth * Math.cos(heading);
+
+                artifactDescriptors.add(new ArtifactDescriptor(artifactX, artifactY, className));
+
+            }
+            return artifactDescriptors;
         }
         return null;
     }
@@ -87,10 +100,10 @@ public class VisionControl {
         if (!limelight.isRunning()){
             limelight.start();
         }
+        limelight.pipelineSwitch(APRIL_TAGS_PIPELINE_INDEX);
+
 
         Pose3D llPose;
-
-        limelight.pipelineSwitch(APRIL_TAGS_PIPELINE_INDEX);
 
         LLResult result = limelight.getLatestResult();
 
@@ -153,14 +166,16 @@ public class VisionControl {
         }
         String pipelineName = limelight.getStatus().getPipelineType();
 
-        if (pipelineName.isEmpty()) return "";
+        if (pipelineName.isEmpty()) return null;
         else return limelight.getStatus().getPipelineType();
     }
 
-    public int getObeliskID(){
+    public Integer getObeliskID(){
         if (!limelight.isRunning()) {
             limelight.start();
         }
+        limelight.pipelineSwitch(APRIL_TAGS_PIPELINE_INDEX);
+
         List<AprilTagDescriptor> tags = getAprilTagDescriptors();
         for (AprilTagDescriptor tag : tags){
             int id = tag.getId();
@@ -169,8 +184,8 @@ public class VisionControl {
                 return id;
             }
         }
-        telemetry.addLine("ID not found, defaulting to 21");
-        return 21; // Default when the obelisk is not detected
+        telemetry.addLine("ID not in sight");
+        return null;
     }
     public List<AprilTagDescriptor> getAprilTagDescriptors(){
         if (!limelight.isRunning()){

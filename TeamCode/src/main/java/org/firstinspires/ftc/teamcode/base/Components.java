@@ -278,6 +278,7 @@ public abstract class Components {
         public HashMap<String,E> getActuators(){
             return actuators;
         }
+        public E get(String key){return Objects.requireNonNull(actuators.get(key));}
     }
     public abstract static class Actuator<E extends HardwareDevice>{ //Actuators are enhanced hardware classes that have more state and functionality. Each Actuator instance is parametrized with a specific type, like DcMotorEx or Servo, and holds a HardwareDevice of that type.
         private final String name; //The actuator's hardwareMap name.
@@ -330,15 +331,15 @@ public abstract class Components {
             actuators.put(name,this);
         }
         public void setTargetBounds(Supplier<Double> maxTargetFunc, Supplier<Double> minTargetFunc){ //Sets the maximum and minimum target that can be set to the Actuator. They are functions because the maximum and minimum may change depending on other factors.
-            this.maxTargetFunc = maxTargetFunc;
-            this.minTargetFunc = minTargetFunc;
+            this.maxTargetFunc = ()->(maxTargetFunc.get()+offset);
+            this.minTargetFunc = ()->(minTargetFunc.get()+offset);
         }
         public String getName(){
             return name;
         }
         public void setOffsetBoundFuncs(Supplier<Double> maxTargetFunc,Supplier<Double> minTargetFunc){ //Sets bounds on the offset that can be set.
-            this.maxOffsetFunc=()->(maxTargetFunc.get()+offset);
-            this.minOffsetFunc=()->(minTargetFunc.get()+offset);
+            this.maxOffsetFunc=()->(maxTargetFunc.get());
+            this.minOffsetFunc=()->(minTargetFunc.get());
         }
         public double getErrorTol(){
             return errorTol;
