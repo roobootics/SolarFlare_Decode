@@ -44,6 +44,9 @@ public abstract class Components {
         return hardwareMap;
     }
     private static Telemetry telemetry;
+    public static Telemetry getTelemetry(){
+        return telemetry;
+    }
     private static final LinkedHashMap<String,Object> telemetryOutput=new LinkedHashMap<>();
     private static LinkedHashMap<String,Object> prevTelemetryOutput = new LinkedHashMap<>();
     public static void telemetryAddData(String caption, Object data){
