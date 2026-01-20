@@ -11,6 +11,7 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.alliance;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.ballStorage;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.classifierBallCount;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.currentBallPath;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.findMotif;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.flywheel;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.gamePhase;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.getTargetPoint;
@@ -39,7 +40,7 @@ public class FarZoneBlueLeave extends LinearOpMode{
         gamePhase = GamePhase.AUTO;
         initialize(hardwareMap,telemetry);
         initializeConfig(new Inferno(), true);
-        Pedro.createFollower(new Pose(41.5,7,Math.toRadians(0)));
+        Pedro.createFollower(new Pose(41.5,7,Math.toRadians(90)));
         executor.setWriteToTelemetry(()->{
             telemetryAddData("is busy",follower.isBusy());
             telemetryAddData("Ball Storage:", Arrays.asList(ballStorage));
@@ -64,8 +65,9 @@ public class FarZoneBlueLeave extends LinearOpMode{
         activateActuatorControl();
         flywheel.call((BotMotor motor)->motor.switchControl("controlOff"));
         executor.setCommands(
-                new PedroLinearCommand(new Pose(37.5,11,Math.toRadians(0)),true),
-                Pedro.updateCommand()
+                new PedroLinearCommand(new Pose(37.5,11,Math.toRadians(90)),true),
+                Pedro.updateCommand(),
+                findMotif
         );
         executor.runLoop(this::opModeIsActive);
     }

@@ -22,6 +22,7 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.ballStorage;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.classifierBallCount;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.clearIntegralAtPeak;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.currentBallPath;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.findMotif;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.flywheel;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.gamePhase;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.getTargetPoint;
@@ -169,7 +170,8 @@ public class PrimeSigmaBLUEAuto extends LinearOpMode {
                 ),
                 clearIntegralAtPeak,
                 loopFSM,
-                Pedro.updateCommand());
+                Pedro.updateCommand(),
+                findMotif);
         waitForStart();
         Components.activateActuatorControl();
         executor.runLoop(this::opModeIsActive);

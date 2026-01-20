@@ -28,6 +28,7 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretYaw;
 
 import org.firstinspires.ftc.teamcode.base.Commands.*;
 
+import com.pedropathing.geometry.Pose;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
@@ -47,7 +48,10 @@ public class DecodeTeleOp extends LinearOpMode {
         initialize(hardwareMap,telemetry);
         initializeConfig(new Inferno(),true);
         gamePhase = GamePhase.TELEOP;
-        waitForStart();
+        executor.setCommands(
+                new RunResettingLoop(new InstantCommand(()->{if (gamepad1.back) Pedro.createFollower(new Pose(72,72,0));}))
+        );
+        executor.runLoop(this::opModeInInit);
         Components.activateActuatorControl();
         executor.setCommands(
                 new RunResettingLoop(

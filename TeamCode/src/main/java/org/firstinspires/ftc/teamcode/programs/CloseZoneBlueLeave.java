@@ -11,6 +11,7 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.alliance;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.ballStorage;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.classifierBallCount;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.currentBallPath;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.findMotif;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.flywheel;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.gamePhase;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.getTargetPoint;
@@ -65,8 +66,9 @@ public class CloseZoneBlueLeave extends LinearOpMode{
         activateActuatorControl();
         flywheel.call((BotMotor motor)->motor.switchControl("controlOff"));
         executor.setCommands(
-                new PedroLinearCommand(new Pose(24,96,Math.toRadians(143.5)),true),
-                Pedro.updateCommand()
+                new PedroLinearCommand(new Pose(24,96,Math.toRadians(45)),true),
+                Pedro.updateCommand(),
+                findMotif
         );
         executor.runLoop(this::opModeIsActive);
     }

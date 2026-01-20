@@ -58,7 +58,7 @@ public class PrimeSigmaConstants {
     public static double getHeading(String input){return Objects.requireNonNull(poses.get(input)).getHeading();}
     public static double getMirroredHeading(String input){return mirrorHeading(Objects.requireNonNull(poses.get(input)).getHeading());}
     static {
-        poses.put("start",new Pose(20, 122.62, Math.toRadians(143.5)));
+        poses.put("start",new Pose(20, 122.62, Math.toRadians(-36.5)));
         poses.put("firstShoot",new Pose(53.312,90.398,Math.toRadians(143.5)));
         poses.put("secondSpikeCtrl",new Pose(88.046, 59.413));
         poses.put("secondSpike",new Pose(18.129, 58.805));

@@ -16,7 +16,7 @@ import org.firstinspires.ftc.teamcode.vision.descriptors.ArtifactDescriptor;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Vision {
+public class VisionControl {
     // Translation from reference point, usually the lowest center middle of the robot to center of Limelight lens
     final double CAMERA_VERTICAL_HEIGHT_INCHES = 5; // Increases up from reference point TODO: find translations
     final double CAMERA_OFFSET_X_INCHES = 0; // Increases to the right from reference point
@@ -31,7 +31,7 @@ public class Vision {
     Limelight3A limelight;
     List<String> queryClasses = new ArrayList<>();
     Telemetry telemetry;
-    public Vision(HardwareMap hardwareMap, Telemetry telemetry){
+    public VisionControl(HardwareMap hardwareMap, Telemetry telemetry){
         limelight = hardwareMap.get(Limelight3A.class, "limelight");
         this.telemetry = telemetry;
         limelight.setPollRateHz(11);

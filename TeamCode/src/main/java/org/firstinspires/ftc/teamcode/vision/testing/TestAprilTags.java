@@ -7,11 +7,11 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
-import org.firstinspires.ftc.teamcode.vision.Vision;
+import org.firstinspires.ftc.teamcode.vision.VisionControl;
 
 @TeleOp
 public class TestAprilTags extends OpMode {
-    Vision vision;
+    VisionControl vision;
     GoBildaPinpointDriver pinpoint;
     double initX = 0;
     double initY = 0;
@@ -20,7 +20,7 @@ public class TestAprilTags extends OpMode {
     double initHeading = 90;
     @Override
     public void init(){
-        vision = new Vision(hardwareMap, telemetry);
+        vision = new VisionControl(hardwareMap, telemetry);
         pinpoint = hardwareMap.get(GoBildaPinpointDriver.class, "pinpoint");
         pinpoint.resetPosAndIMU();
         pinpoint.setHeading(initHeading, AngleUnit.DEGREES);

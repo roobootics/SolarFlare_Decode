@@ -9,12 +9,12 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
-import org.firstinspires.ftc.teamcode.vision.Vision;
+import org.firstinspires.ftc.teamcode.vision.VisionControl;
 
 @TeleOp
 public class CompareMT2ToPinpoint extends OpMode {
     GoBildaPinpointDriver pinpoint;
-    Vision vision;
+    VisionControl vision;
     TelemetryPacket packet;
     FtcDashboard ftcDashboard;
     double robotWidth = 14; // TODO: check these values
@@ -27,7 +27,7 @@ public class CompareMT2ToPinpoint extends OpMode {
     public void init(){
         packet = new TelemetryPacket();
         ftcDashboard = FtcDashboard.getInstance();
-        vision = new Vision(hardwareMap, telemetry);
+        vision = new VisionControl(hardwareMap, telemetry);
         pinpoint = hardwareMap.get(GoBildaPinpointDriver.class, "pinpoint");
         pinpoint.resetPosAndIMU();
         pinpoint.setHeading(initHeading, AngleUnit.DEGREES);

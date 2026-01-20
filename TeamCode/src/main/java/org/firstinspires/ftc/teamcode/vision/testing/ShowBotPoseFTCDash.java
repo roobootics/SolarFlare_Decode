@@ -7,15 +7,15 @@ import com.pedropathing.geometry.Pose;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
-import org.firstinspires.ftc.teamcode.vision.Vision;
+import org.firstinspires.ftc.teamcode.vision.VisionControl;
 
 @TeleOp
 public class ShowBotPoseFTCDash extends OpMode {
     FtcDashboard ftcDashboard;
-    Vision vision;
+    VisionControl vision;
     @Override
     public void init(){
-        vision = new Vision(hardwareMap, telemetry);
+        vision = new VisionControl(hardwareMap, telemetry);
         ftcDashboard = FtcDashboard.getInstance();
 
     }
