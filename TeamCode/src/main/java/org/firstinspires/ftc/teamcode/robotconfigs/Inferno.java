@@ -396,9 +396,9 @@ public class Inferno implements RobotConfig{
     }
     public static double[] getTargetPoint(){
         if (alliance==Alliance.RED){
-            return new double[]{140.3,141.5,44};
+            return new double[]{141.5,141.5,44};
         } else {
-            return new double[]{3.7,141.5,44};
+            return new double[]{2.5,141.5,44};
         }
     }
     @Override
