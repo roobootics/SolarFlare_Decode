@@ -446,12 +446,12 @@ public class Inferno implements RobotConfig{
         frontIntake = new BotMotor("frontIntake", DcMotorSimple.Direction.FORWARD);
         backIntake = new BotMotor("backIntake", DcMotorSimple.Direction.FORWARD);
         frontIntake.setKeyPowers(
-                new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel","frontDrive"},
-                new double[]{1.0,-0.75,1.0,-0.75,0,-0.8,0.5}
+                new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel","frontDrive","sideSelect"},
+                new double[]{1.0,-0.75,1.0,0.3,0,-0.8,0.5,-0.5}
         );
         backIntake.setKeyPowers(
-                new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel","frontDrive"},
-                new double[]{1.0,-0.75,1.0,-0.75,0,-1.0,0.5}
+                new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel","frontDrive","sideSelect"},
+                new double[]{1.0,-0.75,1.0,0.3,0,-1.0,0.5,-0.5}
         );
         frontIntakeGate = new BotServo("frontIntakeGate", Servo.Direction.FORWARD, 422, 5, 180, 90.8);
         backIntakeGate = new BotServo("backIntakeGate", Servo.Direction.FORWARD, 422, 5, 180, 99.5);
@@ -468,14 +468,14 @@ public class Inferno implements RobotConfig{
                 new ParallelCommand(
                     transferGate.instantSetTargetCommand("open"),
                     frontIntake.setPowerCommand("transfer"),
-                    backIntake.setPowerCommand("transfer"),
+                    backIntake.setPowerCommand("otherSideTransfer"),
                     frontIntakeGate.instantSetTargetCommand("push"),
                     backIntakeGate.instantSetTargetCommand("push")
                 ),
                 new SleepCommand(TRANSFER_SELECT_DELAY),
                 new ParallelCommand(
                         frontIntake.setPowerCommand("transfer"),
-                        backIntake.setPowerCommand("otherSideTransfer")
+                        backIntake.setPowerCommand("sideSelect")
                 ),
                 new SleepCommand(TRANSFER_REBOOST_DELAY),
                 new ParallelCommand(
@@ -486,7 +486,7 @@ public class Inferno implements RobotConfig{
         backTransfer = new SequentialCommand(
                 new ParallelCommand(
                         transferGate.instantSetTargetCommand("open"),
-                        frontIntake.setPowerCommand("transfer"),
+                        frontIntake.setPowerCommand("otherSideTransfer"),
                         backIntake.setPowerCommand("transfer"),
                         frontIntakeGate.instantSetTargetCommand("push"),
                         backIntakeGate.instantSetTargetCommand("push")
@@ -494,7 +494,7 @@ public class Inferno implements RobotConfig{
                 new SleepCommand(TRANSFER_SELECT_DELAY),
                 new ParallelCommand(
                         backIntake.setPowerCommand("transfer"),
-                        frontIntake.setPowerCommand("otherSideTransfer")
+                        frontIntake.setPowerCommand("sideSelect")
                 ),
                 new SleepCommand(TRANSFER_REBOOST_DELAY),
                 new ParallelCommand(
