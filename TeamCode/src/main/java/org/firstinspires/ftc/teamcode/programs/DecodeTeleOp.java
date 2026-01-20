@@ -75,7 +75,7 @@ public class DecodeTeleOp extends LinearOpMode {
                         new InstantCommand(()->{if (classifierBallCount>9) classifierBallCount=9; else if (classifierBallCount<0) classifierBallCount=0;}),
                         new ConditionalCommand(
                             new IfThen(
-                                    ()->!follower.isBusy(),
+                                    ()->!(follower.isBusy()||robotState==RobotState.SHOOTING),
                                     new FieldCentricMecanumCommand(
                                             new BotMotor[]{leftFront,leftRear,rightFront,rightRear},
                                             ()->(0.0),1,
@@ -85,7 +85,10 @@ public class DecodeTeleOp extends LinearOpMode {
                             )
                         ),
                         loopFSM,
-                        new InstantCommand(()->{if (robotState!=RobotState.SHOOTING){follower.breakFollowing();} else {follower.holdPoint(follower.getPose());}})
+                        new PressCommand(
+                                new IfThen(()->robotState==RobotState.SHOOTING,new InstantCommand(()->follower.holdPoint(follower.getPose()))),
+                                new IfThen(()->robotState!=RobotState.SHOOTING,new InstantCommand(follower::breakFollowing))
+                        )
                 ),
                 clearIntegralAtPeak,
                 Pedro.updateCommand()

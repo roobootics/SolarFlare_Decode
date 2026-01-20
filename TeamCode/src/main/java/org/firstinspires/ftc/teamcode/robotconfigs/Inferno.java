@@ -92,7 +92,9 @@ public class Inferno implements RobotConfig{
     public static ShotType shotType = ShotType.NORMAL;
     public static boolean motifShootAll = true;
     private final static double BALL_SHOT_TIMING = 0.17;
-    private final static double TRANSFER_BOOST_DELAY = 0.53;
+    private final static double TRANSFER_SELECT_DELAY = 0.02;
+    private final static double TRANSFER_REBOOST_DELAY = 0.1;
+    private final static double TRANSFER_BOOST_DELAY = 0.37;
     public static Color[] motif = new Color[]{Color.PURPLE,Color.GREEN,Color.PURPLE};
     public static double classifierBallCount = 0;
     public static Alliance alliance = Alliance.RED;
@@ -445,16 +447,16 @@ public class Inferno implements RobotConfig{
         backIntake = new BotMotor("backIntake", DcMotorSimple.Direction.FORWARD);
         frontIntake.setKeyPowers(
                 new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel","frontDrive"},
-                new double[]{1.0,-0.75,1.0,0.0,0,-0.8,0.2}
+                new double[]{1.0,-0.75,1.0,-0.75,0,-0.8,0.5}
         );
         backIntake.setKeyPowers(
                 new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel","frontDrive"},
-                new double[]{1.0,-0.75,1.0,0.0,0,-1.0,0.2}
+                new double[]{1.0,-0.75,1.0,-0.75,0,-1.0,0.5}
         );
         frontIntakeGate = new BotServo("frontIntakeGate", Servo.Direction.FORWARD, 422, 5, 180, 90.8);
         backIntakeGate = new BotServo("backIntakeGate", Servo.Direction.FORWARD, 422, 5, 180, 99.5);
-        frontIntakeGate.setKeyPositions(new String[]{"open", "closed","push"}, new double[]{180,71.8,67.8});
-        backIntakeGate.setKeyPositions(new String[]{"open", "closed","push"}, new double[]{180,68.5,64.5});
+        frontIntakeGate.setKeyPositions(new String[]{"open", "closed","push"}, new double[]{180,75.9,70.9});
+        backIntakeGate.setKeyPositions(new String[]{"open", "closed","push"}, new double[]{180,91.7,86.7});
         sensors[0] = Components.getHardwareMap().get(NormalizedColorSensor.class, "sensor1");
         sensors[1] = Components.getHardwareMap().get(NormalizedColorSensor.class, "sensor2");
         sensors[2] = Components.getHardwareMap().get(NormalizedColorSensor.class, "sensor3");
@@ -466,11 +468,16 @@ public class Inferno implements RobotConfig{
                 new ParallelCommand(
                     transferGate.instantSetTargetCommand("open"),
                     frontIntake.setPowerCommand("transfer"),
-                    backIntake.setPowerCommand("otherSideTransfer"),
+                    backIntake.setPowerCommand("transfer"),
                     frontIntakeGate.instantSetTargetCommand("push"),
                     backIntakeGate.instantSetTargetCommand("push")
                 ),
-                new SleepCommand(TRANSFER_BOOST_DELAY),
+                new SleepCommand(TRANSFER_SELECT_DELAY),
+                new ParallelCommand(
+                        frontIntake.setPowerCommand("transfer"),
+                        backIntake.setPowerCommand("otherSideTransfer")
+                ),
+                new SleepCommand(TRANSFER_REBOOST_DELAY),
                 new ParallelCommand(
                         frontIntake.setPowerCommand("transfer"),
                         backIntake.setPowerCommand("transfer")
@@ -478,13 +485,18 @@ public class Inferno implements RobotConfig{
         );
         backTransfer = new SequentialCommand(
                 new ParallelCommand(
-                    transferGate.instantSetTargetCommand("open"),
-                    backIntake.setPowerCommand("transfer"),
-                    frontIntake.setPowerCommand("otherSideTransfer"),
-                    frontIntakeGate.instantSetTargetCommand("push"),
-                    backIntakeGate.instantSetTargetCommand("push")
+                        transferGate.instantSetTargetCommand("open"),
+                        frontIntake.setPowerCommand("transfer"),
+                        backIntake.setPowerCommand("transfer"),
+                        frontIntakeGate.instantSetTargetCommand("push"),
+                        backIntakeGate.instantSetTargetCommand("push")
                 ),
-                new SleepCommand(TRANSFER_BOOST_DELAY),
+                new SleepCommand(TRANSFER_SELECT_DELAY),
+                new ParallelCommand(
+                        backIntake.setPowerCommand("transfer"),
+                        frontIntake.setPowerCommand("otherSideTransfer")
+                ),
+                new SleepCommand(TRANSFER_REBOOST_DELAY),
                 new ParallelCommand(
                         frontIntake.setPowerCommand("transfer"),
                         backIntake.setPowerCommand("transfer")
@@ -520,7 +532,7 @@ public class Inferno implements RobotConfig{
                     backIntake.setPowerCommand("frontDrive"),
                     transferGate.instantSetTargetCommand("open")
                 ),
-                new SleepCommand(0.26),
+                new SleepCommand(0.4),
                 new ParallelCommand(
                     frontIntakeGate.instantSetTargetCommand("closed"),
                     backIntakeGate.instantSetTargetCommand("closed"),

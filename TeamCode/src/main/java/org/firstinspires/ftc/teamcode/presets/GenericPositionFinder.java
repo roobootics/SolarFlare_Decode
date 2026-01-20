@@ -38,6 +38,7 @@ public abstract class GenericPositionFinder extends LinearOpMode { //Used to fin
             }
             else{
                 Components.BotMotor motor = Objects.requireNonNull((Components.BotMotor) actuators.get(name));
+                motor.switchControl("controlOff");
                 motor.resetEncoder();
                 motor.setZeroPowerFloat();
                 motor.lockTargetState();
