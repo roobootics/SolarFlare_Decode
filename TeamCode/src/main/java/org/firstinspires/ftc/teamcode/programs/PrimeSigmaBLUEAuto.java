@@ -11,8 +11,7 @@ import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.backEx
 import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.INITIAL_WAIT;
 import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.gateIntakeTimeout;
 import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.gateWait;
-import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.getHeading;
-import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.getPose;
+import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.initExpelActions;
 import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.slowDownAmount;
 import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.slowDownT;
 import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.speedUpT;
@@ -25,6 +24,8 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.currentBallPat
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.findMotif;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.flywheel;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.gamePhase;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.getHeading;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.getPose;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.getTargetPoint;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.loopFSM;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.motifShootAll;
@@ -35,6 +36,7 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.shotType;
 
 import com.pedropathing.geometry.BezierCurve;
 import com.pedropathing.geometry.BezierLine;
+import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.PathBuilder;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -56,6 +58,7 @@ public class PrimeSigmaBLUEAuto extends LinearOpMode {
         gamePhase = GamePhase.AUTO;
         initialize(hardwareMap,telemetry);
         initializeConfig(new Inferno(), true);
+        initExpelActions();
         Pedro.createFollower(getPose("start"));
         executor.setWriteToTelemetry(()->{
             telemetryAddData("is busy",follower.isBusy());
@@ -170,8 +173,8 @@ public class PrimeSigmaBLUEAuto extends LinearOpMode {
                 ),
                 clearIntegralAtPeak,
                 loopFSM,
-                Pedro.updateCommand(),
-                findMotif);
+                findMotif,
+                Pedro.updateCommand());
         waitForStart();
         Components.activateActuatorControl();
         executor.runLoop(this::opModeIsActive);

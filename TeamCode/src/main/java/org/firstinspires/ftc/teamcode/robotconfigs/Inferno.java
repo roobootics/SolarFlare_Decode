@@ -5,6 +5,8 @@ import static org.firstinspires.ftc.teamcode.base.Components.telemetryAddData;
 import static org.firstinspires.ftc.teamcode.base.Components.telemetryAddLine;
 import static org.firstinspires.ftc.teamcode.base.Components.timer;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
+import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.mirrorHeading;
+import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.mirrorPose;
 
 import static java.lang.Math.atan2;
 import static java.lang.Math.sqrt;
@@ -28,6 +30,7 @@ import org.firstinspires.ftc.teamcode.vision.VisionControl;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 
@@ -105,6 +108,7 @@ public class Inferno implements RobotConfig{
     private static SequentialCommand frontTransfer;
     private static SequentialCommand backTransfer;
     private static boolean isSpinningUp = true;
+    public static HashMap<String, Pose> poses;
     private static double[] colorSensorNormalizedOutput(int index){
         NormalizedColorSensor sensor = sensors[index];
         NormalizedRGBA normal = sensor.getNormalizedColors();
@@ -447,15 +451,15 @@ public class Inferno implements RobotConfig{
         backIntake = new BotMotor("backIntake", DcMotorSimple.Direction.FORWARD);
         frontIntake.setKeyPowers(
                 new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel","frontDrive","sideSelect"},
-                new double[]{1.0,-0.75,1.0,0.3,0,-0.8,0.5,-0.5}
+                new double[]{1.0,-0.75,1.0,0.3,0,-0.8,0.23,-0.5}
         );
         backIntake.setKeyPowers(
                 new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel","frontDrive","sideSelect"},
-                new double[]{1.0,-0.75,1.0,0.3,0,-1.0,0.5,-0.5}
+                new double[]{1.0,-0.75,1.0,0.3,0,-1.0,0.23,-0.5}
         );
         frontIntakeGate = new BotServo("frontIntakeGate", Servo.Direction.FORWARD, 422, 5, 180, 90.8);
         backIntakeGate = new BotServo("backIntakeGate", Servo.Direction.FORWARD, 422, 5, 180, 99.5);
-        frontIntakeGate.setKeyPositions(new String[]{"open", "closed","push"}, new double[]{180,75.9,70.9});
+        frontIntakeGate.setKeyPositions(new String[]{"open", "closed","push"}, new double[]{180,72.9,68.9});
         backIntakeGate.setKeyPositions(new String[]{"open", "closed","push"}, new double[]{180,75.9,70.9});
         sensors[0] = Components.getHardwareMap().get(NormalizedColorSensor.class, "sensor1");
         sensors[1] = Components.getHardwareMap().get(NormalizedColorSensor.class, "sensor2");
@@ -530,12 +534,12 @@ public class Inferno implements RobotConfig{
                 new ParallelCommand(
                     frontIntake.setPowerCommand("frontDrive"),
                     backIntake.setPowerCommand("frontDrive"),
-                    transferGate.instantSetTargetCommand("open")
-                ),
-                new SleepCommand(0.4),
-                new ParallelCommand(
+                    transferGate.instantSetTargetCommand("open"),
                     frontIntakeGate.instantSetTargetCommand("closed"),
-                    backIntakeGate.instantSetTargetCommand("closed"),
+                    backIntakeGate.instantSetTargetCommand("closed")
+                ),
+                new SleepCommand(0.22),
+                new ParallelCommand(
                     frontIntake.setPowerCommand("stopped"),
                     backIntake.setPowerCommand("stopped"),
                     new InstantCommand(()->{
@@ -576,7 +580,7 @@ public class Inferno implements RobotConfig{
                             () -> shotType == ShotType.MOTIF,
                             new SemiSort()
                     )
-                );
+        );
         ContinuousCommand setShooter = new ContinuousCommand(()->{
             double[] targetPoint = getTargetPoint();
             Pose pos = follower.getPose();
@@ -612,6 +616,24 @@ public class Inferno implements RobotConfig{
                 new InstantCommand(()->{if ((robotState!=RobotState.SHOOTING && robotState!=RobotState.STOPPED) || shotType==ShotType.NORMAL){currentBallPath=BallPath.LOW;}}),
                 setShooter
         );
+        poses = new HashMap<>();
+        poses.put("start",new Pose(20, 122.62, Math.toRadians(-36.5)));
+        poses.put("firstShoot",new Pose(53.312,90.398,Math.toRadians(143.5)));
+        poses.put("secondSpikeCtrl",new Pose(88.046, 59.413));
+        poses.put("secondSpike",new Pose(18.129, 58.805));
+        poses.put("secondShootCtrl",new Pose(54.282, 64.593));
+        poses.put("secondShoot",new Pose(53.076, 87.680,Math.toRadians(0)));
+        poses.put("gateOpenCtrl",new Pose(39.404, 37.087));
+        poses.put("gateOpen",new Pose(14.169, 60.686,Math.toRadians(-35)));
+        poses.put("gateIntake",new Pose(15.901, 52.334,Math.toRadians(-50)));
+        poses.put("thirdShootCtrl",new Pose(44.169, 52.575));
+        poses.put("thirdShoot",new Pose(53.370, 87.903,Math.toRadians(-10)));
+        poses.put("firstSpike",new Pose(22.773, 79.829,Math.toRadians(0)));
+        poses.put("fourthShoot",new Pose(53.451, 87.203,Math.toRadians(0)));
+        poses.put("thirdSpikeCtrl",new Pose(80.067, 27.483));
+        poses.put("thirdSpike",new Pose(15.304, 36.131,Math.toRadians(0)));
+        poses.put("fifthShoot",new Pose(53.177, 87.918,Math.toRadians(360)));
+        poses.put("park",new Pose(45,79,Math.toRadians(360)));
     }
     public void reset(){
         targetFlywheelVelocity = 0;
@@ -623,4 +645,8 @@ public class Inferno implements RobotConfig{
         classifierBallCount=0;
         isSpinningUp = true;
     }
+    public static Pose getPose(String input){return poses.get(input);}
+    public static Pose getMirroredPose(String input){return Objects.requireNonNull(mirrorPose(Objects.requireNonNull(poses.get(input))));}
+    public static double getHeading(String input){return Objects.requireNonNull(poses.get(input)).getHeading();}
+    public static double getMirroredHeading(String input){return mirrorHeading(Objects.requireNonNull(poses.get(input)).getHeading());}
 }

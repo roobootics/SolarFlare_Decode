@@ -5,6 +5,7 @@ import static org.firstinspires.ftc.teamcode.base.Components.initialize;
 import static org.firstinspires.ftc.teamcode.base.Components.initializeConfig;
 import static org.firstinspires.ftc.teamcode.base.Components.telemetryAddData;
 import static org.firstinspires.ftc.teamcode.base.Components.telemetryAddLine;
+import static org.firstinspires.ftc.teamcode.base.Components.timer;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.aprilTagRelocalize;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.ballStorage;
@@ -31,6 +32,8 @@ import org.firstinspires.ftc.teamcode.base.Commands.*;
 import com.pedropathing.geometry.Pose;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
 
 
 import org.firstinspires.ftc.teamcode.base.Components;
@@ -43,16 +46,29 @@ import java.util.Arrays;
 
 @TeleOp
 public class DecodeTeleOp extends LinearOpMode {
+    private boolean holdingPosition = false;
+    private double lastTime = 0;
+    private void breakFollowing(){
+        follower.breakFollowing();
+        Components.getHardwareMap().get(DcMotorEx.class,"leftFront").setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        Components.getHardwareMap().get(DcMotorEx.class,"leftRear").setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        Components.getHardwareMap().get(DcMotorEx.class,"rightFront").setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        Components.getHardwareMap().get(DcMotorEx.class,"rightRear").setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+    }
     @Override
     public void runOpMode(){
         initialize(hardwareMap,telemetry);
-        initializeConfig(new Inferno(),true);
         gamePhase = GamePhase.TELEOP;
+        initializeConfig(new Inferno(),true);
         executor.setCommands(
                 new RunResettingLoop(new InstantCommand(()->{if (gamepad1.back) Pedro.createFollower(new Pose(72,72,0));}))
         );
         executor.runLoop(this::opModeInInit);
         Components.activateActuatorControl();
+        Components.getHardwareMap().get(DcMotorEx.class,"leftFront").setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        Components.getHardwareMap().get(DcMotorEx.class,"leftRear").setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        Components.getHardwareMap().get(DcMotorEx.class,"rightFront").setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        Components.getHardwareMap().get(DcMotorEx.class,"rightRear").setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         executor.setCommands(
                 new RunResettingLoop(
                         new ConditionalCommand(
@@ -73,25 +89,37 @@ public class DecodeTeleOp extends LinearOpMode {
                         ),
                         turretYaw.command((BotServo servo)->servo.triggeredDynamicOffsetCommand(()->gamepad2.right_trigger>0.4,()->gamepad2.left_trigger>0.4,3)),
                         new InstantCommand(()->{if (classifierBallCount>9) classifierBallCount=9; else if (classifierBallCount<0) classifierBallCount=0;}),
-                        new ConditionalCommand(
-                            new IfThen(
-                                    ()->!(follower.isBusy()||robotState==RobotState.SHOOTING),
-                                    new FieldCentricMecanumCommand(
-                                            new BotMotor[]{leftFront,leftRear,rightFront,rightRear},
-                                            ()->(0.0),1,
-                                            ()-> (double) gamepad1.left_stick_x, ()-> (double) gamepad1.left_stick_y, ()-> (double) gamepad1.right_stick_x,
-                                            ()->{if (gamepad1.left_trigger > 0.3) return 0.75; else return 1.0;}
-                                    )
-                            )
-                        ),
                         loopFSM,
                         new PressCommand(
-                                new IfThen(()->robotState==RobotState.SHOOTING,new InstantCommand(()->follower.holdPoint(follower.getPose()))),
-                                new IfThen(()->robotState!=RobotState.SHOOTING,new InstantCommand(follower::breakFollowing))
-                        )
+                                new IfThen(()->robotState==RobotState.SHOOTING,
+                                        new SequentialCommand(
+                                            new InstantCommand(()->{holdingPosition = true; follower.holdPoint(follower.getPose());}),
+                                            new SleepCommand(1.5),
+                                            new InstantCommand(()->{holdingPosition = false; breakFollowing();})
+                                        )
+                                ),
+                                new IfThen(()->robotState!=RobotState.SHOOTING,new InstantCommand(()->{holdingPosition = false; breakFollowing();}))
+                        ),
+                        new ConditionalCommand(
+                                new IfThen(
+                                        ()->!(follower.isBusy() || holdingPosition),
+                                        new FieldCentricMecanumCommand(
+                                                new BotMotor[]{leftFront,leftRear,rightFront,rightRear},
+                                                ()->(0.0),1,
+                                                ()-> (double) gamepad1.left_stick_x, ()-> (double) gamepad1.left_stick_y, ()-> (double) gamepad1.right_stick_x,
+                                                ()->{if (gamepad1.left_trigger > 0.3) return 0.75; else return 1.0;}
+                                        )
+                                )
+                        ),
+                        new InstantCommand(()->{
+                            if (follower.isBusy()||holdingPosition){
+                                follower.update();
+                            } else {
+                                follower.updatePose();
+                            }
+                        })
                 ),
-                clearIntegralAtPeak,
-                Pedro.updateCommand()
+                clearIntegralAtPeak
         );
         executor.setWriteToTelemetry(()->{
             telemetryAddData("Yaw Offset",turretYaw.get("turretYawFront").getTarget()-turretYaw.get("turretYawFront").getTargetMinusOffset());
@@ -116,6 +144,14 @@ public class DecodeTeleOp extends LinearOpMode {
             telemetryAddData("PoseHeading",Math.toDegrees(follower.getHeading()));
             telemetryAddData("Flywheel Left Power",flywheel.get("flywheelLeft").getPower());
             telemetryAddData("Flywheel Right Power",flywheel.get("flywheelRight").getPower());
+            telemetryAddData("isBusy",follower.isBusy());
+            telemetryAddData("holdingPosition",holdingPosition);
+            telemetryAddData("looptime",timer.time()-lastTime);
+            telemetryAddData("leftFront",leftFront.getDevice().getPower());
+            telemetryAddData("rightFront",rightFront.getDevice().getPower());
+            telemetryAddData("leftRear",leftRear.getDevice().getPower());
+            telemetryAddData("rightRear",rightRear.getDevice().getPower());
+            lastTime = timer.time();
         });
         executor.runLoop(this::opModeIsActive);
     }

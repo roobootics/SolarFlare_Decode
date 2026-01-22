@@ -11,8 +11,7 @@ import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.backEx
 import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.frontExpelShoot;
 import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.gateIntakeTimeout;
 import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.gateWait;
-import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.getMirroredHeading;
-import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.getMirroredPose;
+import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.initExpelActions;
 import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.slowDownAmount;
 import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.slowDownT;
 import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.speedUpT;
@@ -25,6 +24,8 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.currentBallPat
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.findMotif;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.flywheel;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.gamePhase;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.getMirroredHeading;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.getMirroredPose;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.getTargetPoint;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.loopFSM;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.motifShootAll;
@@ -60,6 +61,7 @@ public class PrimeSigmaREDAuto extends LinearOpMode {
         gamePhase = GamePhase.AUTO;
         initialize(hardwareMap,telemetry);
         initializeConfig(new Inferno(), true);
+        initExpelActions();
         Pedro.createFollower(getMirroredPose("start"));
         executor.setCommands(new SequentialCommand(
                         new SleepCommand(INITIAL_WAIT),
@@ -154,8 +156,8 @@ public class PrimeSigmaREDAuto extends LinearOpMode {
                 ),
                 clearIntegralAtPeak,
                 loopFSM,
-                Pedro.updateCommand(),
-                findMotif);
+                findMotif,
+                Pedro.updateCommand());
         executor.setWriteToTelemetry(()->{
             telemetryAddData("is busy",follower.isBusy());
             telemetryAddData("Ball Storage:", Arrays.asList(ballStorage));
