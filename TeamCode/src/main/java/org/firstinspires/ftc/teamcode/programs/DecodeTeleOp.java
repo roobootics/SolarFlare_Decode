@@ -29,6 +29,7 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretYaw;
 
 import org.firstinspires.ftc.teamcode.base.Commands.*;
 
+import com.pedropathing.control.PIDFCoefficients;
 import com.pedropathing.geometry.Pose;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -69,6 +70,8 @@ public class DecodeTeleOp extends LinearOpMode {
         Components.getHardwareMap().get(DcMotorEx.class,"leftRear").setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         Components.getHardwareMap().get(DcMotorEx.class,"rightFront").setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         Components.getHardwareMap().get(DcMotorEx.class,"rightRear").setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        follower.setTranslationalPIDFCoefficients(new PIDFCoefficients(0.4, 0.0007, 0, 0.015));
+        follower.setHeadingPIDFCoefficients(new PIDFCoefficients(1.8,0.001,0,0.01));
         executor.setCommands(
                 new RunResettingLoop(
                         new ConditionalCommand(

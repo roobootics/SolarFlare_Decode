@@ -24,8 +24,8 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.currentBallPat
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.findMotif;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.flywheel;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.gamePhase;
-import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.getMirroredHeading;
-import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.getMirroredPose;
+import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.getMirroredHeading;
+import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.getMirroredPose;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.getTargetPoint;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.loopFSM;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.motifShootAll;
