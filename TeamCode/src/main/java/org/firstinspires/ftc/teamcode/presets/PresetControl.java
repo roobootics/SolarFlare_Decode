@@ -16,15 +16,15 @@ import java.util.function.Supplier;
 
 public abstract class PresetControl { //Holds control functions that actuators can use. Note that more control functions, like other types of motion profiling, can be coded and used.
     public static class GenericPID{ //A class that creates a PIDF controller for any purpose.
-        private final double kP;
-        private final double kI;
-        private final double kD;
+        private double kP;
+        private double kI;
+        private double kD;
         private double integralSum;
         private double previousLoop;
         private double previousError;
         private final ArrayList<Double> previousFiveLoopTimes = new ArrayList<>();
         private final ArrayList<Double> previousFiveErrors = new ArrayList<>();
-        public GenericPID(double kP, double kI, double kD){ //Allows for a custom feedforward, such as one that takes acceleration into account
+        public GenericPID(double kP, double kI, double kD){
             this.kP=kP;
             this.kI=kI;
             this.kD=kD;
@@ -76,6 +76,11 @@ public abstract class PresetControl { //Holds control functions that actuators c
             previousFiveLoopTimes.clear();
             previousFiveErrors.clear();
         }
+        public void setPIDCoefficients(double kP, double kI, double kD){
+            this.kP=kP;
+            this.kI=kI;
+            this.kD=kD;
+        }
     }
     public static class PositionPID extends ControlFunc<CRActuator<?>>{ //Position PIDF controller for CRActuators
         private final GenericPID PID;
@@ -106,6 +111,9 @@ public abstract class PresetControl { //Holds control functions that actuators c
         @Override
         public void stopProcedure(){
             parentActuator.setPower(0);
+        }
+        public void setPIDCoefficients(double kP, double kI, double kD){
+            PID.setPIDCoefficients(kP,kI,kD);
         }
     }
     public static class VelocityPID extends ControlFunc<BotMotor>{ //Position PIDF controller for CRActuators
@@ -145,6 +153,9 @@ public abstract class PresetControl { //Holds control functions that actuators c
         }
         public void clearIntegral(){
             PID.clearIntegral();
+        }
+        public void setPIDCoefficients(double kP, double kI, double kD){
+            PID.setPIDCoefficients(kP,kI,kD);
         }
     }
     public static class BasicFeedforward extends ControlFunc<CRActuator<?>>{

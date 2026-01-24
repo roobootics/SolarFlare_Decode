@@ -102,8 +102,8 @@ public class Inferno implements RobotConfig{
     public static double classifierBallCount = 0;
     public static Alliance alliance = Alliance.RED;
     public static GamePhase gamePhase = GamePhase.AUTO;
-    private static VelocityPID leftVelocityPID;
-    private static VelocityPID rightVelocityPID;
+    public static VelocityPID leftVelocityPID;
+    public static VelocityPID rightVelocityPID;
     public static Command loopFSM;
     private static SequentialCommand frontTransfer;
     private static SequentialCommand backTransfer;
@@ -444,17 +444,17 @@ public class Inferno implements RobotConfig{
                 new BotServo("turretYawFront", Servo.Direction.FORWARD, 422, 5, 355, 0),
                 new BotServo("turretYawBack", Servo.Direction.FORWARD, 422, 5, 355, 0)
         );
-        turretYaw.call((BotServo servo) -> servo.setTargetBounds(() -> 250*TURRET_YAW_RATIO, () -> 0.0));
+        turretYaw.call((BotServo servo) -> servo.setTargetBounds(() -> 270*TURRET_YAW_RATIO, () -> 0.0));
         turretPitch.call((BotServo servo) -> servo.setTargetBounds(() -> 173.0, () -> 150-5*TURRET_PITCH_RATIO));
         frontIntake = new BotMotor("frontIntake", DcMotorSimple.Direction.FORWARD);
         backIntake = new BotMotor("backIntake", DcMotorSimple.Direction.FORWARD);
         frontIntake.setKeyPowers(
                 new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel","frontDrive","sideSelect"},
-                new double[]{1.0,-0.75,1.0,0.3,0,-0.8,0.23,-0.5}
+                new double[]{1.0,-0.75,1.0,0.3,0,-0.8,0.4,-0.5}
         );
         backIntake.setKeyPowers(
                 new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel","frontDrive","sideSelect"},
-                new double[]{1.0,-0.75,1.0,0.3,0,-1.0,0.23,-0.5}
+                new double[]{1.0,-0.75,1.0,0.3,0,-1.0,0.4,-0.5}
         );
         frontIntakeGate = new BotServo("frontIntakeGate", Servo.Direction.FORWARD, 422, 5, 180, 90.8);
         backIntakeGate = new BotServo("backIntakeGate", Servo.Direction.FORWARD, 422, 5, 180, 99.5);
@@ -533,14 +533,15 @@ public class Inferno implements RobotConfig{
                 new ParallelCommand(
                     frontIntake.setPowerCommand("frontDrive"),
                     backIntake.setPowerCommand("frontDrive"),
-                    transferGate.instantSetTargetCommand("open"),
+                    transferGate.instantSetTargetCommand("closed"),
                     frontIntakeGate.instantSetTargetCommand("closed"),
                     backIntakeGate.instantSetTargetCommand("closed")
                 ),
-                new SleepCommand(0.22),
+                new SleepCommand(0.3),
                 new ParallelCommand(
                     frontIntake.setPowerCommand("stopped"),
                     backIntake.setPowerCommand("stopped"),
+                    transferGate.instantSetTargetCommand("open"),
                     new InstantCommand(()->{
                         Triple<ArrayList<BallPath>,Integer,Boolean> plan = findMotifShotPlan(motifShootAll);
                         if (!plan.getLeft().isEmpty()) {currentBallPath=plan.getLeft().get(0);} else {currentBallPath=BallPath.LOW;}

@@ -17,16 +17,20 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.gamePhase;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.getTargetPoint;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftFront;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftRear;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftVelocityPID;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.loopFSM;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.motifShootAll;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.rightFront;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.rightRear;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.rightVelocityPID;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.robotState;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.setState;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.shotType;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.targetFlywheelVelocity;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.toggleShotType;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretYaw;
 
+import org.firstinspires.ftc.teamcode.base.Commands;
 import org.firstinspires.ftc.teamcode.base.Commands.*;
 
 import com.pedropathing.control.PIDFCoefficients;
@@ -44,12 +48,18 @@ import org.firstinspires.ftc.teamcode.robotconfigs.Inferno;
 import org.firstinspires.ftc.teamcode.robotconfigs.Inferno.*;
 
 import java.util.Arrays;
+import java.util.Objects;
 
 @TeleOp
 public class DecodeTeleOp extends LinearOpMode {
     private boolean holdingPosition = false;
+    private double targetVelocity = 1800;
+    private double kP = 0.0;
+    private double kI = 0.001;
+    private double kD = 0.0;
     private double lastTime = 0;
     private void breakFollowing(){
+        holdingPosition = false;
         follower.breakFollowing();
         Components.getHardwareMap().get(DcMotorEx.class,"leftFront").setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         Components.getHardwareMap().get(DcMotorEx.class,"leftRear").setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -83,53 +93,68 @@ public class DecodeTeleOp extends LinearOpMode {
                         new PressCommand(
                                 new IfThen(()->gamepad2.y,toggleShotType()),
                                 new IfThen(()->gamepad2.x,new InstantCommand(()->classifierBallCount=0)),
-                                new IfThen(()->gamepad2.a,new InstantCommand(()->classifierBallCount+=1)),
-                                new IfThen(()->gamepad2.b,new InstantCommand(()->classifierBallCount-=1)),
+                                new IfThen(()->gamepad2.a,new InstantCommand(()->{if (classifierBallCount<9) {classifierBallCount+=1;}})),
+                                new IfThen(()->gamepad2.b,new InstantCommand(()->{if (classifierBallCount>0){classifierBallCount-=1;}})),
                                 new IfThen(()->gamepad2.dpad_up, setState(RobotState.INTAKE_FRONT_AND_SHOOT)),
                                 new IfThen(()->gamepad2.dpad_down, setState(RobotState.INTAKE_BACK_AND_SHOOT)),
                                 new IfThen(()->gamepad2.back,setState(RobotState.EXPEL)),
                                 new IfThen(()->gamepad2.left_bumper,new ParallelCommand(aprilTagRelocalize,new SequentialCommand(new SleepCommand(0.5),new InstantCommand(aprilTagRelocalize::stop))))
                         ),
                         turretYaw.command((BotServo servo)->servo.triggeredDynamicOffsetCommand(()->gamepad2.right_trigger>0.4,()->gamepad2.left_trigger>0.4,3)),
-                        new InstantCommand(()->{if (classifierBallCount>9) classifierBallCount=9; else if (classifierBallCount<0) classifierBallCount=0;}),
                         loopFSM,
                         new PressCommand(
                                 new IfThen(()->robotState==RobotState.SHOOTING,
                                         new SequentialCommand(
                                             new InstantCommand(()->{holdingPosition = true; follower.holdPoint(follower.getPose());}),
                                             new SleepCommand(1.5),
-                                            new InstantCommand(()->{holdingPosition = false; breakFollowing();})
+                                            new InstantCommand(this::breakFollowing)
                                         )
                                 ),
-                                new IfThen(()->robotState!=RobotState.SHOOTING,new InstantCommand(()->{holdingPosition = false; breakFollowing();}))
+                                new IfThen(()->robotState!=RobotState.SHOOTING,new InstantCommand(this::breakFollowing))
                         ),
                         new ConditionalCommand(
                                 new IfThen(
                                         ()->!(follower.isBusy() || holdingPosition),
-                                        new FieldCentricMecanumCommand(
-                                                new BotMotor[]{leftFront,leftRear,rightFront,rightRear},
-                                                ()->(0.0),1,
-                                                ()-> (double) gamepad1.left_stick_x, ()-> (double) gamepad1.left_stick_y, ()-> (double) gamepad1.right_stick_x,
-                                                ()->{if (gamepad1.left_trigger > 0.3) return 0.75; else return 1.0;}
+                                        new ParallelCommand(
+                                                new RobotCentricMecanumCommand(
+                                                        new BotMotor[]{leftFront,leftRear,rightFront,rightRear},
+                                                        ()-> (double) gamepad1.left_stick_x, ()-> (double) gamepad1.left_stick_y, ()-> (double) gamepad1.right_stick_x,
+                                                        ()->{if (gamepad1.left_trigger > 0.3) return 0.75; else return 1.0;}
+                                                ),
+                                                Pedro.updatePoseCommand()
                                         )
+                                ),
+                                new IfThen(
+                                        ()->(follower.isBusy() || holdingPosition),
+                                        Pedro.updateCommand()
                                 )
                         ),
+                        Commands.triggeredDynamicCommand(()->gamepad1.dpad_up,()->gamepad1.dpad_down,new InstantCommand(()->targetVelocity+=2),new InstantCommand(()->targetVelocity-=2)),
+                        Commands.triggeredDynamicCommand(()->gamepad1.dpad_right,()->gamepad1.dpad_left,new InstantCommand(()->kP+=0.001),new InstantCommand(()->kP-=0.001)),
+                        Commands.triggeredDynamicCommand(()->gamepad2.left_stick_x>0.5,()->gamepad2.left_stick_x<-0.5,new InstantCommand(()->kI+=0.0001),new InstantCommand(()->kI-=0.0001)),
+                        Commands.triggeredDynamicCommand(()->gamepad2.right_stick_x>0.5,()->gamepad2.right_stick_x<-0.5,new InstantCommand(()->kD+=0.0001),new InstantCommand(()->kD-=0.0001)),
                         new InstantCommand(()->{
-                            if (follower.isBusy()||holdingPosition){
-                                follower.update();
+                            if (270-turretYaw.get("turretYawFront").getTarget()<15){gamepad1.rumble(1000000000);}
+                            else if (turretYaw.get("turretYawFront").getTarget()-0<15){gamepad1.rumble(1000000000);}
+                            else {gamepad1.stopRumble();}
+                            long count = Arrays.stream(ballStorage).filter(Objects::isNull).count();
+                            if (count==3){
+                                gamepad1.setLedColor(0,0,0,1000);
+                            } else if (count==2){
+                                gamepad1.setLedColor(1,0,0,1000);
+                            } else if (count==1){
+                                gamepad1.setLedColor(0,0,1,1000);
                             } else {
-                                follower.updatePose();
+                                gamepad1.setLedColor(1,1,1,1000);
                             }
+                            leftVelocityPID.setPIDCoefficients(kP,kI,kD);
+                            rightVelocityPID.setPIDCoefficients(kP,kI,kD);
+                            targetFlywheelVelocity = targetVelocity;
                         })
                 ),
                 clearIntegralAtPeak
         );
         executor.setWriteToTelemetry(()->{
-            telemetryAddData("Yaw Offset",turretYaw.get("turretYawFront").getTarget()-turretYaw.get("turretYawFront").getTargetMinusOffset());
-            telemetryAddData("Yaw Target",turretYaw.get("turretYawFront").getTarget());
-            telemetryAddData("Yaw Target Minus Offset",turretYaw.get("turretYawFront").getTargetMinusOffset());
-            telemetryAddData("Right Trigger",gamepad2.right_trigger);
-            telemetryAddData("Left Trigger",gamepad2.left_trigger);
             telemetryAddData("Ball Storage:", Arrays.asList(ballStorage));
             telemetryAddLine("");
             telemetryAddData("Robot State:",robotState);
@@ -140,6 +165,7 @@ public class DecodeTeleOp extends LinearOpMode {
             telemetryAddData("Current Shot Height:",currentBallPath);
             telemetryAddData("Shoot All Motif:",motifShootAll);
             telemetryAddLine("");
+            telemetryAddData("Yaw Target",turretYaw.get("turretYawFront").getTarget());
             telemetryAddData("Distance", Math.sqrt((follower.getPose().getX() - getTargetPoint()[0])*(follower.getPose().getX() - getTargetPoint()[0]) + (follower.getPose().getY() - getTargetPoint()[1])*(follower.getPose().getY() - getTargetPoint()[1])));
             telemetryAddData("Flywheel Velocity",flywheel.get("flywheelLeft").getVelocity());
             telemetryAddData("PoseX",follower.getPose().getX());
@@ -147,8 +173,6 @@ public class DecodeTeleOp extends LinearOpMode {
             telemetryAddData("PoseHeading",Math.toDegrees(follower.getHeading()));
             telemetryAddData("Flywheel Left Power",flywheel.get("flywheelLeft").getPower());
             telemetryAddData("Flywheel Right Power",flywheel.get("flywheelRight").getPower());
-            telemetryAddData("isBusy",follower.isBusy());
-            telemetryAddData("holdingPosition",holdingPosition);
             telemetryAddData("looptime",timer.time()-lastTime);
             telemetryAddData("leftFront",leftFront.getDevice().getPower());
             telemetryAddData("rightFront",rightFront.getDevice().getPower());
