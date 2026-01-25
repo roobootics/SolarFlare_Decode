@@ -127,9 +127,9 @@ public class DecodeTeleOp extends LinearOpMode {
                         ),
                         Commands.triggeredDynamicCommand(()->gamepad1.dpad_up,()->gamepad1.dpad_down,new InstantCommand(()->targetVelocity+=2),new InstantCommand(()->targetVelocity-=2)),
                         new InstantCommand(()->{
-                            if (270-turretYaw.get("turretYawFront").getTarget()<15 && !gamepad1.isRumbling()){gamepad1.rumble(1000000000);}
+                            if (315-turretYaw.get("turretYawFront").getTarget()<15 && !gamepad1.isRumbling()){gamepad1.rumble(1000000000);}
                             else if (turretYaw.get("turretYawFront").getTarget()-0<15 && !gamepad1.isRumbling()){gamepad1.rumble(1000000000);}
-                            else if (turretYaw.get("turretYawFront").getTarget()-0>15 && 270-turretYaw.get("turretYawFront").getTarget()>15 && gamepad1.isRumbling()){gamepad1.stopRumble();}
+                            else if (turretYaw.get("turretYawFront").getTarget()-0>15 && 315-turretYaw.get("turretYawFront").getTarget()>15 && gamepad1.isRumbling()){gamepad1.stopRumble();}
                             long count = Arrays.stream(ballStorage).filter(Objects::isNull).count();
                             if (count==3 && count!=previousBallCount){
                                 gamepad1.setLedColor(0,0,0,1000);

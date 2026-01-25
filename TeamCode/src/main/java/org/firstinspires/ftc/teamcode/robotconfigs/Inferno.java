@@ -454,7 +454,7 @@ public class Inferno implements RobotConfig{
                 new BotServo("turretYawFront", Servo.Direction.FORWARD, 422, 5, 355, 0),
                 new BotServo("turretYawBack", Servo.Direction.FORWARD, 422, 5, 355, 0)
         );
-        turretYaw.call((BotServo servo) -> servo.setTargetBounds(() -> 270*TURRET_YAW_RATIO, () -> 0.0));
+        turretYaw.call((BotServo servo) -> servo.setTargetBounds(() -> 315*TURRET_YAW_RATIO, () -> 0.0));
         turretPitch.call((BotServo servo) -> servo.setTargetBounds(() -> 173.0, () -> 150-5*TURRET_PITCH_RATIO));
         frontIntake = new BotMotor("frontIntake", DcMotorSimple.Direction.FORWARD);
         backIntake = new BotMotor("backIntake", DcMotorSimple.Direction.FORWARD);
@@ -550,10 +550,7 @@ public class Inferno implements RobotConfig{
                     frontIntake.setPowerCommand("stopped"),
                     backIntake.setPowerCommand("stopped"),
                     transferGate.instantSetTargetCommand("open"),
-                    new InstantCommand(()->{
-                        Triple<ArrayList<BallPath>,Integer,Boolean> plan = findMotifShotPlan(motifShootAll);
-                        if (!plan.getLeft().isEmpty()) {currentBallPath=plan.getLeft().get(0);} else {currentBallPath=BallPath.LOW;}
-                    })
+                    new InstantCommand(Inferno::readBallStorage)
                 )
         );
         ParallelCommand expel = new ParallelCommand(
