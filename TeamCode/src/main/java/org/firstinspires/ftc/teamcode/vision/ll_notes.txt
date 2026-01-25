@@ -18,4 +18,7 @@ ty is positive when target is under crosshair
 tx is positive when target is to the right of crosshair
 
 pedro: 0,0 is bottom left corner, y+ forward x+ right
-ftc / ftcdash / limelight: 0,0 is middle of field, -x forward +y right
+ftc / ftcdash / limelight: 0,0 is middle of field, -x forward, +y right
+pinpoint: 0,0 is middle of field, +y is forward and +x is right
+
+limelight yaw: 180 / -180 forward, -90 left, 90 right

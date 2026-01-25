@@ -26,7 +26,7 @@ import org.firstinspires.ftc.teamcode.base.Commands.*;
 import org.firstinspires.ftc.teamcode.base.Components;
 import org.firstinspires.ftc.teamcode.base.Components.*;
 import org.firstinspires.ftc.teamcode.presets.PresetControl.*;
-import org.firstinspires.ftc.teamcode.vision.VisionControl;
+import org.firstinspires.ftc.teamcode.vision.Vision;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -54,7 +54,7 @@ public class Inferno implements RobotConfig{
     public static NormalizedColorSensor[] sensors = new NormalizedColorSensor[3];
     public static BotServo transferGate;
     public static VoltageSensor voltageSensor;
-    public static VisionControl visionControl;
+    public static Vision vision;
     public enum Color{
         PURPLE,
         GREEN,
@@ -214,7 +214,7 @@ public class Inferno implements RobotConfig{
     }
     public static final Command aprilTagRelocalize = new LambdaCommand(
             ()->{
-                Pose pose = visionControl.getBotPoseMT1();
+                Pose pose = vision.getBotPoseMT1();
                 if (!Objects.isNull(pose)){
                     follower.setPose(pose);
                     return false;
@@ -225,7 +225,7 @@ public class Inferno implements RobotConfig{
     );
     public static final Command findMotif = new LambdaCommand(
             ()->{
-                Integer id = visionControl.getObeliskID();
+                Integer id = vision.getObeliskID();
                 if (!Objects.isNull(id)){
                     if (id == 23){
                         motif = new Color[]{Color.PURPLE,Color.PURPLE,Color.GREEN};
@@ -466,7 +466,7 @@ public class Inferno implements RobotConfig{
         transferGate = new BotServo("transferGate", Servo.Direction.FORWARD,422,5,270,148.5);
         transferGate.setKeyPositions(new String[]{"open","closed"},new double[]{148.5,86.4});
         voltageSensor = getHardwareMap().get(VoltageSensor.class,"Control Hub");
-        visionControl = new VisionControl(Components.getHardwareMap(),Components.getTelemetry());
+        vision = new Vision(Components.getHardwareMap(),Components.getTelemetry());
         frontTransfer = new SequentialCommand(
                 new ParallelCommand(
                     transferGate.instantSetTargetCommand("open"),
