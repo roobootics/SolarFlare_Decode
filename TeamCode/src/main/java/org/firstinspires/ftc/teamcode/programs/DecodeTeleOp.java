@@ -125,7 +125,7 @@ public class DecodeTeleOp extends LinearOpMode {
                                         Pedro.updateCommand()
                                 )
                         ),
-                        Commands.triggeredDynamicCommand(()->gamepad1.dpad_up,()->gamepad1.dpad_down,new InstantCommand(()->targetVelocity+=2),new InstantCommand(()->targetVelocity-=2)),
+                        //Commands.triggeredDynamicCommand(()->gamepad1.dpad_up,()->gamepad1.dpad_down,new InstantCommand(()->targetVelocity+=2),new InstantCommand(()->targetVelocity-=2)),
                         new InstantCommand(()->{
                             if (315-turretYaw.get("turretYawFront").getTarget()<15 && !gamepad1.isRumbling()){gamepad1.rumble(1000000000);}
                             else if (turretYaw.get("turretYawFront").getTarget()-0<15 && !gamepad1.isRumbling()){gamepad1.rumble(1000000000);}
@@ -141,7 +141,7 @@ public class DecodeTeleOp extends LinearOpMode {
                                 gamepad1.setLedColor(1,1,1,1000);
                             }
                             previousBallCount = count;
-                            targetFlywheelVelocity = targetVelocity;
+                            //targetFlywheelVelocity = targetVelocity;
                         })
                 ),
                 clearIntegralAtPeak
