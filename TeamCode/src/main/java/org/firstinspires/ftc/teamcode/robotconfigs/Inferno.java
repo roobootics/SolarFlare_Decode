@@ -34,6 +34,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Supplier;
 
 public class Inferno implements RobotConfig{
     public static BotMotor leftFront;
@@ -109,12 +110,20 @@ public class Inferno implements RobotConfig{
     private static SequentialCommand frontTransfer;
     private static SequentialCommand backTransfer;
     private static boolean isSpinningUp = true;
-    private static double[] colorSensorNormalizedOutput(int index){
-        NormalizedColorSensor sensor = sensors[index];
-        NormalizedRGBA normal = sensor.getNormalizedColors();
-        double red = normal.red*256; double green = normal.green*256; double blue = normal.blue*256;
-        double brightness = red+green+blue; red/=brightness; green/=brightness; blue/=brightness;
-        return new double[]{red,green,blue};
+    private final static ArrayList<Supplier<Double[]>> colorSensorReads = new ArrayList<>();
+    static {
+        for (int i=0;i<3;i++){
+            int finalI = i;
+            colorSensorReads.add(new CachedReader<>(
+                    ()->{
+                        NormalizedColorSensor sensor = sensors[finalI];
+                        NormalizedRGBA normal = sensor.getNormalizedColors();
+                        double red = normal.red*256; double green = normal.green*256; double blue = normal.blue*256;
+                        double brightness = red+green+blue; red/=brightness; green/=brightness; blue/=brightness;
+                        return new Double[]{red,green,blue};
+                    },3
+            )::cachedRead);
+        }
     }
 
     private static Color colorSensorRead(int index){
@@ -122,7 +131,7 @@ public class Inferno implements RobotConfig{
         double [] purpleCenter = new double[]{0.4,0.2,0.4};
         double greenTolerance = 0.17;
         double purpleTolerance = 0.17;
-        double[] output = colorSensorNormalizedOutput(index);
+        Double[] output = colorSensorReads.get(index).get();
         Color color = null;
         double red = output[0]; double green = output[1]; double blue = output[2];
         if ((red-greenCenter[0])*(red-greenCenter[0]) + (green-greenCenter[1])*(green-greenCenter[1]) + (blue-greenCenter[2])*(blue-greenCenter[2])<=greenTolerance*greenTolerance){
@@ -330,10 +339,10 @@ public class Inferno implements RobotConfig{
         }
     }
     public static class CheckFull extends Command{
-        private final static int COUNT = 3;
+        private final static int COUNT = 4;
         private int counter = 0;
         private double startTime;
-        private double timeout;
+        private final double timeout;
         public CheckFull(double timeout){
             this.timeout = timeout;
         }
@@ -514,7 +523,6 @@ public class Inferno implements RobotConfig{
                 backIntakeGate.instantSetTargetCommand("closed"),
                 new SequentialCommand(
                         new CheckFull(),
-                        new SleepCommand(0.2),
                         setState(RobotState.STOPPED)
                 )
         );
@@ -526,7 +534,6 @@ public class Inferno implements RobotConfig{
                 frontIntakeGate.instantSetTargetCommand("closed"),
                 new SequentialCommand(
                         new CheckFull(),
-                        new SleepCommand(0.2),
                         setState(RobotState.STOPPED)
                 )
         );

@@ -1066,13 +1066,6 @@ public abstract class Commands { //Command-based system
             commandsToRemove.clear();
             this.commands = commands.stream().filter((Command command)->{command.run(); return command.isBusy();}).collect(Collectors.toCollection(ArrayList::new));
             for (Components.Actuator<?> actuator : actuators.values()) {
-                //This ensures that old targets do not fall outside of any new max or min targets.
-                actuator.setTarget(actuator.getTargetMinusOffset());
-                if (actuator instanceof Components.CRActuator) {
-                    Components.CRActuator<?> castedActuator = ((Components.CRActuator<?>) actuator);
-                    castedActuator.setPower(castedActuator.getPower());
-                }
-                //This ensures that old powers do not fall outside of any new max or min targets.
                 actuator.runControl();
                 actuator.resetNewTarget(); actuator.resetNewActuation();
             }

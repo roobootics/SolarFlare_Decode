@@ -60,10 +60,10 @@ public class DecodeTeleOp extends LinearOpMode {
     private void breakFollowing(){
         holdingPosition = false;
         follower.breakFollowing();
-        Components.getHardwareMap().get(DcMotorEx.class,"leftFront").setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        Components.getHardwareMap().get(DcMotorEx.class,"leftRear").setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        Components.getHardwareMap().get(DcMotorEx.class,"rightFront").setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        Components.getHardwareMap().get(DcMotorEx.class,"rightRear").setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        leftFront.getDevice().setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        leftRear.getDevice().setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        rightFront.getDevice().setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        rightRear.getDevice().setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
     }
     @Override
     public void runOpMode(){
@@ -75,10 +75,7 @@ public class DecodeTeleOp extends LinearOpMode {
         );
         executor.runLoop(this::opModeInInit);
         Components.activateActuatorControl();
-        Components.getHardwareMap().get(DcMotorEx.class,"leftFront").setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        Components.getHardwareMap().get(DcMotorEx.class,"leftRear").setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        Components.getHardwareMap().get(DcMotorEx.class,"rightFront").setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        Components.getHardwareMap().get(DcMotorEx.class,"rightRear").setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        breakFollowing();
         follower.setTranslationalPIDFCoefficients(new PIDFCoefficients(0.4, 0.0007, 0, 0.015));
         follower.setHeadingPIDFCoefficients(new PIDFCoefficients(1.8,0.001,0,0.01));
         executor.setCommands(

@@ -609,7 +609,7 @@ public abstract class Components {
             if (actuationStateUnlocked && !Objects.isNull(getDevice())){
                 power=Math.max(Math.min(power, maxPowerFunc.get()), minPowerFunc.get());
                 E device=getDevice();
-                if (Math.abs(power-device.getPower())>0.02) {
+                if (Math.abs(power-device.getPower())>0.04) {
                     device.setPower(power);
                     if (getTimeBasedLocalization()){ //If current position is calculated by time, it needs to be updated everytime the actuator moves
                         resetCurrentPositionCache();
@@ -869,7 +869,7 @@ public abstract class Components {
         @Actuate
         public void setPosition(double position){ //Accepts position in degrees by default and sets the servos position to that.
             position=Math.max(minTargetFunc.get(),Math.min(position, maxTargetFunc.get()));
-            if (actuationStateUnlocked && (Math.abs(currCommandedPos-position)>0.0||ignoreSetPosCaching) && !Objects.isNull(getDevice())){
+            if (actuationStateUnlocked && (Math.abs(currCommandedPos-position)>1||ignoreSetPosCaching) && !Objects.isNull(getDevice())){
                 currCommandedPos=position;
                 getDevice().setPosition(setPositionConversion.apply(position));
                 if (getTimeBasedLocalization()){
