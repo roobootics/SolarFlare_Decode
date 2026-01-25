@@ -597,9 +597,9 @@ public class Inferno implements RobotConfig{
                 double heading = Math.toDegrees(follower.getHeading());
                 double vel = flywheel.get("flywheelLeft").getVelocity();
                 double[] turret = new double[]{HoodRegression.regressFormula(dist,vel),Math.toDegrees(atan2(targetPoint[1] - yPos,targetPoint[0] - xPos))};
-                if (turret[1]<-135) turret[1] += 360;
+                if (turret[1]==-180) turret[1] += 360;
                 turretPitch.command((BotServo servo)->servo.instantSetTargetCommand((turret[0]+TURRET_PITCH_OFFSET)*TURRET_PITCH_RATIO)).run();
-                turretYaw.command((BotServo servo)->servo.instantSetTargetCommand((225-(turret[1]-heading))*TURRET_YAW_RATIO)).run();
+                turretYaw.command((BotServo servo)->servo.instantSetTargetCommand((180-(turret[1]-heading))*TURRET_YAW_RATIO)).run();
             }
         });
 
