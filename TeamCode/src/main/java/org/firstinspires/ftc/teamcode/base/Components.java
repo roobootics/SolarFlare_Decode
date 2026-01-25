@@ -102,7 +102,7 @@ public abstract class Components {
             readers.add(this);
         }
         public E cachedRead(){
-            if (Objects.isNull(storedReadValue) || resetCacheCounter%resetCacheLoopInterval==0){
+            if (Objects.isNull(storedReadValue)){
                 storedReadValue=read.get();
             }
             return storedReadValue;
