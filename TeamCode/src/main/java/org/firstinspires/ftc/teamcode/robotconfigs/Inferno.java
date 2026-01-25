@@ -15,6 +15,7 @@ import org.apache.commons.lang3.tuple.Triple;
 
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.math.Vector;
+import com.qualcomm.robotcore.hardware.DcMotorImplEx;
 import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.NormalizedRGBA;
@@ -588,7 +589,6 @@ public class Inferno implements RobotConfig{
             double yPos = pos.getY();
             double dist = sqrt((targetPoint[0]-xPos)*(targetPoint[0]-xPos) + (targetPoint[1]-yPos)*(targetPoint[1]-yPos));
             targetFlywheelVelocity = VelRegression.regressFormula(dist);
-            telemetryAddData("Target Flywheel Velocity",targetFlywheelVelocity);
             if ((robotState != RobotState.INTAKE_FRONT && robotState!= RobotState.INTAKE_BACK) || gamePhase == GamePhase.AUTO){
                 double heading = Math.toDegrees(follower.getHeading());
                 double vel = flywheel.get("flywheelLeft").getVelocity();
@@ -596,10 +596,6 @@ public class Inferno implements RobotConfig{
                 if (turret[1]<-135) turret[1] += 360;
                 turretPitch.command((BotServo servo)->servo.instantSetTargetCommand((turret[0]+TURRET_PITCH_OFFSET)*TURRET_PITCH_RATIO)).run();
                 turretYaw.command((BotServo servo)->servo.instantSetTargetCommand((225-(turret[1]-heading))*TURRET_YAW_RATIO)).run();
-                telemetryAddData("Hood Angle Desired",turret[0]);
-                telemetryAddData("Turret Angle Desired",turret[1]);
-                telemetryAddData("Current Yaw angle",(225-(turret[1]-heading))*TURRET_YAW_RATIO);
-                telemetryAddLine("");
             }
         });
 

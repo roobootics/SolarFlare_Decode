@@ -1076,9 +1076,9 @@ public abstract class Commands { //Command-based system
                 actuator.runControl();
                 actuator.resetNewTarget(); actuator.resetNewActuation();
             }
-            Components.CachedReader.updateResetAllCaches();
             writeToTelemetry.run();
             updateTelemetry();
+            Components.CachedReader.updateResetAllCaches();
         }
         public void runLoop(Supplier<Boolean> condition){
             while (condition.get()){

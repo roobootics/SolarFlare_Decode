@@ -28,6 +28,7 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.setState;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.shotType;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.targetFlywheelVelocity;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.toggleShotType;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretPitch;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretYaw;
 
 import org.firstinspires.ftc.teamcode.base.Commands;
@@ -54,10 +55,8 @@ import java.util.Objects;
 public class DecodeTeleOp extends LinearOpMode {
     private boolean holdingPosition = false;
     private double targetVelocity = 1800;
-    private double kP = 0.0;
-    private double kI = 0.001;
-    private double kD = 0.0;
     private double lastTime = 0;
+    private double previousBallCount = -1;
     private void breakFollowing(){
         holdingPosition = false;
         follower.breakFollowing();
@@ -130,31 +129,28 @@ public class DecodeTeleOp extends LinearOpMode {
                                 )
                         ),
                         Commands.triggeredDynamicCommand(()->gamepad1.dpad_up,()->gamepad1.dpad_down,new InstantCommand(()->targetVelocity+=2),new InstantCommand(()->targetVelocity-=2)),
-                        Commands.triggeredDynamicCommand(()->gamepad1.dpad_right,()->gamepad1.dpad_left,new InstantCommand(()->kP+=0.001),new InstantCommand(()->kP-=0.001)),
-                        Commands.triggeredDynamicCommand(()->gamepad2.left_stick_x>0.5,()->gamepad2.left_stick_x<-0.5,new InstantCommand(()->kI+=0.0001),new InstantCommand(()->kI-=0.0001)),
-                        Commands.triggeredDynamicCommand(()->gamepad2.right_stick_x>0.5,()->gamepad2.right_stick_x<-0.5,new InstantCommand(()->kD+=0.0001),new InstantCommand(()->kD-=0.0001)),
                         new InstantCommand(()->{
-                            if (270-turretYaw.get("turretYawFront").getTarget()<15){gamepad1.rumble(1000000000);}
-                            else if (turretYaw.get("turretYawFront").getTarget()-0<15){gamepad1.rumble(1000000000);}
-                            else {gamepad1.stopRumble();}
+                            if (270-turretYaw.get("turretYawFront").getTarget()<15 && !gamepad1.isRumbling()){gamepad1.rumble(1000000000);}
+                            else if (turretYaw.get("turretYawFront").getTarget()-0<15 && !gamepad1.isRumbling()){gamepad1.rumble(1000000000);}
+                            else if (turretYaw.get("turretYawFront").getTarget()-0>15 && 270-turretYaw.get("turretYawFront").getTarget()>15 && gamepad1.isRumbling()){gamepad1.stopRumble();}
                             long count = Arrays.stream(ballStorage).filter(Objects::isNull).count();
-                            if (count==3){
+                            if (count==3 && count!=previousBallCount){
                                 gamepad1.setLedColor(0,0,0,1000);
-                            } else if (count==2){
+                            } else if (count==2 && count!=previousBallCount){
                                 gamepad1.setLedColor(1,0,0,1000);
-                            } else if (count==1){
+                            } else if (count==1 && count!=previousBallCount){
                                 gamepad1.setLedColor(0,0,1,1000);
-                            } else {
+                            } else if (count==0 && count!=previousBallCount){
                                 gamepad1.setLedColor(1,1,1,1000);
                             }
-                            leftVelocityPID.setPIDCoefficients(kP,kI,kD);
-                            rightVelocityPID.setPIDCoefficients(kP,kI,kD);
+                            previousBallCount = count;
                             targetFlywheelVelocity = targetVelocity;
                         })
                 ),
                 clearIntegralAtPeak
         );
         executor.setWriteToTelemetry(()->{
+            telemetryAddLine("");
             telemetryAddData("Ball Storage:", Arrays.asList(ballStorage));
             telemetryAddLine("");
             telemetryAddData("Robot State:",robotState);
@@ -165,6 +161,7 @@ public class DecodeTeleOp extends LinearOpMode {
             telemetryAddData("Current Shot Height:",currentBallPath);
             telemetryAddData("Shoot All Motif:",motifShootAll);
             telemetryAddLine("");
+            telemetryAddData("Target Flywheel Velocity",targetFlywheelVelocity);
             telemetryAddData("Yaw Target",turretYaw.get("turretYawFront").getTarget());
             telemetryAddData("Distance", Math.sqrt((follower.getPose().getX() - getTargetPoint()[0])*(follower.getPose().getX() - getTargetPoint()[0]) + (follower.getPose().getY() - getTargetPoint()[1])*(follower.getPose().getY() - getTargetPoint()[1])));
             telemetryAddData("Flywheel Velocity",flywheel.get("flywheelLeft").getVelocity());
