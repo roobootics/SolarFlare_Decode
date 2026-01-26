@@ -110,22 +110,7 @@ public class Inferno implements RobotConfig{
     private static SequentialCommand frontTransfer;
     private static SequentialCommand backTransfer;
     private static boolean isSpinningUp = true;
-    private final static ArrayList<Supplier<Double[]>> colorSensorReads = new ArrayList<>();
-    static {
-        for (int i=0;i<3;i++){
-            int finalI = i;
-            colorSensorReads.add(new CachedReader<>(
-                    ()->{
-                        NormalizedColorSensor sensor = sensors[finalI];
-                        NormalizedRGBA normal = sensor.getNormalizedColors();
-                        double red = normal.red*256; double green = normal.green*256; double blue = normal.blue*256;
-                        double brightness = red+green+blue; red/=brightness; green/=brightness; blue/=brightness;
-                        return new Double[]{red,green,blue};
-                    },3
-            )::cachedRead);
-        }
-    }
-
+    private static ArrayList<Supplier<Double[]>> colorSensorReads = new ArrayList<>();
     private static Color colorSensorRead(int index){
         double [] greenCenter = new double[]{0.23,0.54,0.23};
         double [] purpleCenter = new double[]{0.4,0.2,0.4};
@@ -473,6 +458,18 @@ public class Inferno implements RobotConfig{
         sensors[0] = Components.getHardwareMap().get(NormalizedColorSensor.class, "sensor1");
         sensors[1] = Components.getHardwareMap().get(NormalizedColorSensor.class, "sensor2");
         sensors[2] = Components.getHardwareMap().get(NormalizedColorSensor.class, "sensor3");
+        for (int i=0;i<3;i++){
+            int finalI = i;
+            colorSensorReads.add(new CachedReader<>(
+                    ()->{
+                        NormalizedColorSensor sensor = sensors[finalI];
+                        NormalizedRGBA normal = sensor.getNormalizedColors();
+                        double red = normal.red*256; double green = normal.green*256; double blue = normal.blue*256;
+                        double brightness = red+green+blue; red/=brightness; green/=brightness; blue/=brightness;
+                        return new Double[]{red,green,blue};
+                    },3
+            )::cachedRead);
+        }
         transferGate = new BotServo("transferGate", Servo.Direction.FORWARD,422,5,270,148.5);
         transferGate.setKeyPositions(new String[]{"open","closed"},new double[]{148.5,86.4});
         voltageSensor = getHardwareMap().get(VoltageSensor.class,"Control Hub");
