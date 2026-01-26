@@ -5,6 +5,7 @@ import static org.firstinspires.ftc.teamcode.base.Components.initialize;
 import static org.firstinspires.ftc.teamcode.base.Components.initializeConfig;
 import static org.firstinspires.ftc.teamcode.base.Components.telemetryAddData;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.flywheel;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretPitch;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretYaw;
 
@@ -30,7 +31,7 @@ public class HoodTest extends LinearOpMode {
                 turretPitch.command((Components.BotServo servo)->servo.triggeredDynamicTargetCommand(()->gamepad1.right_bumper,()->gamepad1.left_bumper,0.1)),
                 Commands.triggeredDynamicCommand(()->gamepad1.right_trigger>0.3,()->gamepad1.left_trigger>0.3,new Commands.InstantCommand(()->targetYaw-=1),new Commands.InstantCommand(()->targetYaw+=1)),
                 new Commands.RunResettingLoop(
-                        turretYaw.command((Components.BotServo servo)-> servo.instantSetTargetCommand(()->228-(targetYaw - follower.getHeading())))
+                        turretYaw.command((Components.BotServo servo)-> servo.instantSetTargetCommand(()->180-(targetYaw - follower.getHeading())))
                 )
 
         );
@@ -43,6 +44,7 @@ public class HoodTest extends LinearOpMode {
         });
         waitForStart();
         Components.activateActuatorControl();
+        flywheel.call((Components.BotMotor motor)->motor.switchControl("controlOff"));
         executor.runLoop(this::opModeIsActive);
     }
 }

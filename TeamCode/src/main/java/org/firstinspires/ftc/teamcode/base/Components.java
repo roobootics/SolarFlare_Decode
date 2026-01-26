@@ -2,6 +2,8 @@ package org.firstinspires.ftc.teamcode.base;
 
 import static org.firstinspires.ftc.teamcode.base.Commands.executor;
 
+import com.bylazar.telemetry.PanelsTelemetry;
+import com.bylazar.telemetry.TelemetryManager;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
@@ -44,9 +46,11 @@ public abstract class Components {
         return hardwareMap;
     }
     private static Telemetry telemetry;
+    private static TelemetryManager panelsTelemetry;
     public static Telemetry getTelemetry(){
         return telemetry;
     }
+    public static TelemetryManager getPanelsTelemetry(){return panelsTelemetry;}
     private static final LinkedHashMap<String,Object> telemetryOutput=new LinkedHashMap<>();
     private static LinkedHashMap<String,Object> prevTelemetryOutput = new LinkedHashMap<>();
     public static void telemetryAddData(String caption, Object data){
@@ -60,13 +64,22 @@ public abstract class Components {
             prevTelemetryOutput=new LinkedHashMap<>(telemetryOutput);
             for (String caption: telemetryOutput.keySet()){
                 if (Objects.isNull(telemetryOutput.get(caption))){
-                    telemetry.addLine(caption);
+                    //telemetry.addLine(caption);
+                    panelsTelemetry.addLine(caption);
                 }
                 else{
-                    telemetry.addData(caption,telemetryOutput.get(caption));
+                    //telemetry.addData(caption,telemetryOutput.get(caption));
+                    Object output = telemetryOutput.get(caption);
+                    if (output instanceof Double){
+                        Double castedOutput = (Double) output;
+                        panelsTelemetry.addData(caption,castedOutput);
+                    } else {
+                        panelsTelemetry.addData(caption,output);
+                    }
                 }
             }
-            telemetry.update();
+            panelsTelemetry.update(telemetry);
+            //telemetry.update();
         }
         telemetryOutput.clear();
     }
@@ -125,6 +138,7 @@ public abstract class Components {
     public static void initialize(HardwareMap hardwareMap, Telemetry telemetry){
         Components.hardwareMap=hardwareMap;
         Components.telemetry=telemetry;
+        panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
         timer.reset(); //Static variables are preserved between runs, so timer needs to be reset
         telemetryOutput.clear();
         prevTelemetryOutput.clear();

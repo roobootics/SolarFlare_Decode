@@ -53,10 +53,10 @@ import java.util.Arrays;
 public class PrimeSigmaBLUEAuto extends LinearOpMode {
     @Override
     public void runOpMode(){
-        alliance = Inferno.Alliance.BLUE;
-        gamePhase = GamePhase.AUTO;
         initialize(hardwareMap,telemetry);
         initializeConfig(new Inferno(), true);
+        alliance = Inferno.Alliance.BLUE;
+        gamePhase = GamePhase.AUTO;
         initExpelActions();
         Pedro.createFollower(getPose("start"));
         executor.setWriteToTelemetry(()->{

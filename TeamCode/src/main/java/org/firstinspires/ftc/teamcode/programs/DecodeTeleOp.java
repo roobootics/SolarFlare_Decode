@@ -8,38 +8,37 @@ import static org.firstinspires.ftc.teamcode.base.Components.telemetryAddLine;
 import static org.firstinspires.ftc.teamcode.base.Components.timer;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.aprilTagRelocalize;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.backIntakeGate;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.ballStorage;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.classifierBallCount;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.clearIntegralAtPeak;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.currentBallPath;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.flywheel;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.frontIntakeGate;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.gamePhase;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.getTargetPoint;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftFront;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftRear;
-import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftVelocityPID;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.loopFSM;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.motifShootAll;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.rightFront;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.rightRear;
-import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.rightVelocityPID;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.robotState;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.setState;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.shotType;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.targetFlywheelVelocity;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.toggleShotType;
-import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretPitch;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretYaw;
 
-import org.firstinspires.ftc.teamcode.base.Commands;
 import org.firstinspires.ftc.teamcode.base.Commands.*;
 
+import com.bylazar.telemetry.PanelsTelemetry;
+import com.bylazar.telemetry.TelemetryManager;
 import com.pedropathing.control.PIDFCoefficients;
 import com.pedropathing.geometry.Pose;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DcMotorEx;
 
 
 import org.firstinspires.ftc.teamcode.base.Components;
@@ -104,8 +103,8 @@ public class DecodeTeleOp extends LinearOpMode {
                                 new IfThen(()->robotState==RobotState.SHOOTING,
                                         new SequentialCommand(
                                             new InstantCommand(()->{holdingPosition = true; follower.holdPoint(follower.getPose());}),
-                                            new SleepCommand(1.5),
-                                            new InstantCommand(this::breakFollowing)
+                                            new SleepCommand(1),
+                                            new InstantCommand(()->{breakFollowing(); frontIntakeGate.instantSetTargetCommand("closed"); backIntakeGate.instantSetTargetCommand("closed");})
                                         )
                                 ),
                                 new IfThen(()->robotState!=RobotState.SHOOTING,new InstantCommand(this::breakFollowing))

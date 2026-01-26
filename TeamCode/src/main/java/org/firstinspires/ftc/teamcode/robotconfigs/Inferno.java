@@ -97,9 +97,8 @@ public class Inferno implements RobotConfig{
     public static ShotType shotType = ShotType.NORMAL;
     public static boolean motifShootAll = true;
     private final static double BALL_SHOT_TIMING = 0.17;
-    private final static double TRANSFER_SELECT_DELAY = 0.02;
-    private final static double TRANSFER_REBOOST_DELAY = 0.1;
-    private final static double TRANSFER_BOOST_DELAY = 0.37;
+    private final static double TRANSFER_SELECT_DELAY = 0.05;
+    private final static double TRANSFER_REBOOST_DELAY = 0.2;
     public static Color[] motif = new Color[]{Color.PURPLE,Color.GREEN,Color.PURPLE};
     public static double classifierBallCount = 0;
     public static Alliance alliance = Alliance.RED;
@@ -403,8 +402,8 @@ public class Inferno implements RobotConfig{
     }
     @Override
     public void init() {
-        leftVelocityPID = new VelocityPID(false,BotMotor::getVelocity,0.0, 0.001, 0);
-        rightVelocityPID = new VelocityPID(false,(BotMotor motor)->flywheel.get("flywheelLeft").getVelocity(),0.0, 0.001 , 0);
+        leftVelocityPID = new VelocityPID(false,BotMotor::getVelocity,0.001, 0.001, 0.00001);
+        rightVelocityPID = new VelocityPID(false,(BotMotor motor)->flywheel.get("flywheelLeft").getVelocity(),0.001, 0.001 , 0.00001);
         leftFront = new BotMotor("leftFront", DcMotorSimple.Direction.REVERSE);
         leftRear = new BotMotor("leftRear", DcMotorSimple.Direction.REVERSE);
         rightFront = new BotMotor("rightFront", DcMotorSimple.Direction.FORWARD);
@@ -413,21 +412,15 @@ public class Inferno implements RobotConfig{
                 new BotMotor("flywheelLeft", DcMotorSimple.Direction.REVERSE, 0, 0, new String[]{"VelocityPIDF"},
                         new ControlSystem<>(new String[]{"targetVelocity"}, List.of(() -> targetFlywheelVelocity), leftVelocityPID, new CustomFeedforward(1, ()->targetFlywheelVelocity/(80/0.58 * voltageSensor.getVoltage() + 673)),
                                 new CustomFeedforward(1, ()->{
-                                    if (isSpinningUp || ((robotState==RobotState.SHOOTING || robotState==RobotState.INTAKE_FRONT_AND_SHOOT || robotState==RobotState.INTAKE_BACK_AND_SHOOT)&&flywheel.get("flywheelLeft").getVelocity()<targetFlywheelVelocity-10))
-                                    {return 1.0;} else {return 0.0;}}),
-                                new CustomFeedforward(1,()->{
-                                    if ((robotState==RobotState.SHOOTING || robotState==RobotState.INTAKE_FRONT_AND_SHOOT || robotState==RobotState.INTAKE_BACK_AND_SHOOT)&&flywheel.get("flywheelLeft").getVelocity()>targetFlywheelVelocity+40){return -0.5;}
-                                    else if (flywheel.get("flywheelLeft").getVelocity()>targetFlywheelVelocity+80) {return -0.6;}
+                                    if (isSpinningUp || ((robotState==RobotState.SHOOTING || robotState==RobotState.INTAKE_FRONT_AND_SHOOT || robotState==RobotState.INTAKE_BACK_AND_SHOOT)&&flywheel.get("flywheelLeft").getVelocity()<targetFlywheelVelocity-10)) {return 1.0;}
+                                    if ((robotState==RobotState.SHOOTING || robotState==RobotState.INTAKE_FRONT_AND_SHOOT || robotState==RobotState.INTAKE_BACK_AND_SHOOT)&&flywheel.get("flywheelLeft").getVelocity()>targetFlywheelVelocity+60){return -0.5;}
                                     else {return 0.0;}})
                         )),
                 new BotMotor("flywheelRight", DcMotorSimple.Direction.FORWARD, 0, 0, new String[]{"VelocityPIDF"},
                         new ControlSystem<>(new String[]{"targetVelocity"}, List.of(() -> targetFlywheelVelocity), rightVelocityPID, new CustomFeedforward(1, ()->targetFlywheelVelocity/(80/0.58 * voltageSensor.getVoltage() + 673)),
                                 new CustomFeedforward(1, ()->{
-                                    if (isSpinningUp || ((robotState==RobotState.SHOOTING || robotState==RobotState.INTAKE_FRONT_AND_SHOOT || robotState==RobotState.INTAKE_BACK_AND_SHOOT)&&flywheel.get("flywheelLeft").getVelocity()<targetFlywheelVelocity-10))
-                                    {return 1.0;} else {return 0.0;}}),
-                                new CustomFeedforward(1,()->{
-                                    if ((robotState==RobotState.SHOOTING || robotState==RobotState.INTAKE_FRONT_AND_SHOOT || robotState==RobotState.INTAKE_BACK_AND_SHOOT)&&flywheel.get("flywheelLeft").getVelocity()>targetFlywheelVelocity+40){return -0.5;}
-                                    else if (flywheel.get("flywheelLeft").getVelocity()>targetFlywheelVelocity+80) {return -0.6;}
+                                    if (isSpinningUp || ((robotState==RobotState.SHOOTING || robotState==RobotState.INTAKE_FRONT_AND_SHOOT || robotState==RobotState.INTAKE_BACK_AND_SHOOT)&&flywheel.get("flywheelLeft").getVelocity()<targetFlywheelVelocity-10)) {return 1.0;}
+                                    else if ((robotState==RobotState.SHOOTING || robotState==RobotState.INTAKE_FRONT_AND_SHOOT || robotState==RobotState.INTAKE_BACK_AND_SHOOT)&&flywheel.get("flywheelLeft").getVelocity()>targetFlywheelVelocity+60){return -0.5;}
                                     else {return 0.0;}})
                         ))
         );
@@ -445,15 +438,15 @@ public class Inferno implements RobotConfig{
         backIntake = new BotMotor("backIntake", DcMotorSimple.Direction.FORWARD);
         frontIntake.setKeyPowers(
                 new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel","frontDrive","sideSelect"},
-                new double[]{1.0,-0.75,1.0,0.3,0,-0.8,0.4,-0.5}
+                new double[]{1.0,-0.75,1.0,0.5,0,-0.8,0.6,-0.8}
         );
         backIntake.setKeyPowers(
                 new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel","frontDrive","sideSelect"},
-                new double[]{1.0,-0.75,1.0,0.3,0,-1.0,0.4,-0.5}
+                new double[]{1.0,-0.75,1.0,0.5,0,-1.0,0.6,-0.8}
         );
         frontIntakeGate = new BotServo("frontIntakeGate", Servo.Direction.FORWARD, 422, 5, 180, 90.8);
         backIntakeGate = new BotServo("backIntakeGate", Servo.Direction.FORWARD, 422, 5, 180, 99.5);
-        frontIntakeGate.setKeyPositions(new String[]{"open", "closed","push"}, new double[]{180,72.9,68.9});
+        frontIntakeGate.setKeyPositions(new String[]{"open", "closed","push"}, new double[]{180,60.9,55.9});
         backIntakeGate.setKeyPositions(new String[]{"open", "closed","push"}, new double[]{180,75.9,70.9});
         sensors[0] = Components.getHardwareMap().get(NormalizedColorSensor.class, "sensor1");
         sensors[1] = Components.getHardwareMap().get(NormalizedColorSensor.class, "sensor2");
@@ -467,7 +460,7 @@ public class Inferno implements RobotConfig{
                         double red = normal.red*256; double green = normal.green*256; double blue = normal.blue*256;
                         double brightness = red+green+blue; red/=brightness; green/=brightness; blue/=brightness;
                         return new Double[]{red,green,blue};
-                    },3
+                    },2
             )::cachedRead);
         }
         transferGate = new BotServo("transferGate", Servo.Direction.FORWARD,422,5,270,148.5);
@@ -489,6 +482,8 @@ public class Inferno implements RobotConfig{
                 ),
                 new SleepCommand(TRANSFER_REBOOST_DELAY),
                 new ParallelCommand(
+                        backIntakeGate.instantSetTargetCommand("open"),
+                        frontIntakeGate.instantSetTargetCommand("open"),
                         frontIntake.setPowerCommand("transfer"),
                         backIntake.setPowerCommand("transfer")
                 )
@@ -508,45 +503,58 @@ public class Inferno implements RobotConfig{
                 ),
                 new SleepCommand(TRANSFER_REBOOST_DELAY),
                 new ParallelCommand(
+                        backIntakeGate.instantSetTargetCommand("open"),
+                        frontIntakeGate.instantSetTargetCommand("open"),
                         frontIntake.setPowerCommand("transfer"),
                         backIntake.setPowerCommand("transfer")
                 )
         );
-        ParallelCommand frontIntakeAction = new ParallelCommand(
-                transferGate.instantSetTargetCommand("closed"),
-                frontIntake.setPowerCommand("intake"),
-                backIntake.setPowerCommand("otherSideIntake"),
-                frontIntakeGate.instantSetTargetCommand("open"),
-                backIntakeGate.instantSetTargetCommand("closed"),
-                new SequentialCommand(
-                        new CheckFull(),
-                        setState(RobotState.STOPPED)
+        Command frontIntakeAction = new SequentialCommand(
+                new ParallelCommand(
+                    transferGate.instantSetTargetCommand("closed"),
+                    frontIntakeGate.instantSetTargetCommand("open"),
+                    backIntakeGate.instantSetTargetCommand("closed")
+                ),
+                new SleepCommand(0.2),
+                new ParallelCommand(
+                    frontIntake.setPowerCommand("intake"),
+                    backIntake.setPowerCommand("otherSideIntake"),
+                    new SequentialCommand(
+                            new CheckFull(),
+                            setState(RobotState.STOPPED)
+                    )
                 )
         );
-        ParallelCommand backIntakeAction = new ParallelCommand(
-                transferGate.instantSetTargetCommand("closed"),
-                backIntake.setPowerCommand("intake"),
-                frontIntake.setPowerCommand("otherSideIntake"),
-                backIntakeGate.instantSetTargetCommand("open"),
-                frontIntakeGate.instantSetTargetCommand("closed"),
-                new SequentialCommand(
-                        new CheckFull(),
-                        setState(RobotState.STOPPED)
+        Command backIntakeAction = new SequentialCommand(
+                new ParallelCommand(
+                    transferGate.instantSetTargetCommand("closed"),
+                    backIntakeGate.instantSetTargetCommand("open"),
+                    frontIntakeGate.instantSetTargetCommand("closed")
+                ),
+                new SleepCommand(0.2),
+                new ParallelCommand(
+                        backIntake.setPowerCommand("intake"),
+                        frontIntake.setPowerCommand("otherSideIntake"),
+                        new SequentialCommand(
+                                new CheckFull(),
+                                setState(RobotState.STOPPED)
+                        )
                 )
         );
         SequentialCommand stopIntake = new SequentialCommand(
                 new ParallelCommand(
-                    frontIntake.setPowerCommand("frontDrive"),
-                    backIntake.setPowerCommand("frontDrive"),
-                    transferGate.instantSetTargetCommand("closed"),
                     frontIntakeGate.instantSetTargetCommand("closed"),
-                    backIntakeGate.instantSetTargetCommand("closed")
+                    backIntakeGate.instantSetTargetCommand("closed"),
+                    frontIntake.setPowerCommand("frontDrive"),
+                    backIntake.setPowerCommand("frontDrive")
                 ),
                 new SleepCommand(0.3),
                 new ParallelCommand(
                     frontIntake.setPowerCommand("stopped"),
                     backIntake.setPowerCommand("stopped"),
                     transferGate.instantSetTargetCommand("open"),
+                    frontIntakeGate.instantSetTargetCommand("closed"),
+                    backIntakeGate.instantSetTargetCommand("closed"),
                     new InstantCommand(Inferno::readBallStorage)
                 )
         );

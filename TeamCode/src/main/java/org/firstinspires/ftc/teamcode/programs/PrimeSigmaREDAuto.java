@@ -57,10 +57,10 @@ import java.util.Arrays;
 public class PrimeSigmaREDAuto extends LinearOpMode {
     @Override
     public void runOpMode() {
-        alliance = Alliance.RED;
-        gamePhase = GamePhase.AUTO;
         initialize(hardwareMap,telemetry);
         initializeConfig(new Inferno(), true);
+        alliance = Alliance.RED;
+        gamePhase = GamePhase.AUTO;
         initExpelActions();
         Pedro.createFollower(getMirroredPose("start"));
         executor.setCommands(new SequentialCommand(
