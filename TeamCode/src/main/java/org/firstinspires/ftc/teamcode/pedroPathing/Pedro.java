@@ -41,6 +41,7 @@ public abstract class Pedro {
         public boolean followPath(){
             if (isStart()){
                 follower.followPath(getPath(),holdEnd);
+                return true;
             }
             Drawing.drawDebug(follower);
             return follower.isBusy();
