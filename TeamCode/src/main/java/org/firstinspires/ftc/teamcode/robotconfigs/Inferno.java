@@ -602,9 +602,9 @@ public class Inferno implements RobotConfig{
                 double heading = Math.toDegrees(follower.getHeading());
                 double vel = flywheel.get("flywheelLeft").getVelocity();
                 double[] turret = new double[]{HoodRegression.regressFormula(dist,vel),Math.toDegrees(atan2(targetPoint[1] - yPos,targetPoint[0] - xPos))};
-                if (turret[1]==-180) turret[1] += 360;
-                turretPitch.command((BotServo servo)->servo.instantSetTargetCommand((turret[0]+TURRET_PITCH_OFFSET)*TURRET_PITCH_RATIO)).run();
-                turretYaw.command((BotServo servo)->servo.instantSetTargetCommand((180-(turret[1]-heading))*TURRET_YAW_RATIO)).run();
+                if ((turret[1]-heading)<=-180 || (turret[1]-heading)>180) turret[1] += 360;
+                turretPitch.call((BotServo servo)->servo.setTarget((turret[0]+TURRET_PITCH_OFFSET)*TURRET_PITCH_RATIO));
+                turretYaw.call((BotServo servo)->servo.setTarget((180-(turret[1]-heading))*TURRET_YAW_RATIO));
             }
         });
 
@@ -618,7 +618,7 @@ public class Inferno implements RobotConfig{
                         new IfThen(()->robotState==RobotState.INTAKE_FRONT_AND_SHOOT, frontIntakeAndTransfer),
                         new IfThen(()->robotState==RobotState.SHOOTING, new ParallelCommand(transfer))
                 ),
-                new InstantCommand(()->{if ((robotState!=RobotState.SHOOTING && robotState!=RobotState.STOPPED) || shotType==ShotType.NORMAL){currentBallPath=BallPath.LOW;}}),
+                //new InstantCommand(()->{if ((robotState!=RobotState.SHOOTING && robotState!=RobotState.STOPPED) || shotType==ShotType.NORMAL){currentBallPath=BallPath.LOW;}}),
                 setShooter
         );
     }
