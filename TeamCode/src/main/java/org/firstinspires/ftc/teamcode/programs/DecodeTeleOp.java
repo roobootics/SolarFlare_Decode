@@ -160,7 +160,11 @@ public class DecodeTeleOp extends LinearOpMode {
             telemetryAddData("Shoot All Motif:",motifShootAll);
             telemetryAddLine("");
             telemetryAddData("Target Flywheel Velocity",targetFlywheelVelocity);
+            telemetryAddLine("");
             telemetryAddData("Yaw Target",turretYaw.get("turretYawFront").getTarget());
+            telemetryAddData("Yaw Desired",-(turretYaw.get("turretYawFront").getTarget()-180)+follower.getHeading());
+            telemetryAddData("Yaw Raw Pos",turretYaw.get("turretYawFront").getDevice().getPosition());
+            telemetryAddLine("");
             telemetryAddData("Distance", Math.sqrt((follower.getPose().getX() - getTargetPoint()[0])*(follower.getPose().getX() - getTargetPoint()[0]) + (follower.getPose().getY() - getTargetPoint()[1])*(follower.getPose().getY() - getTargetPoint()[1])));
             telemetryAddData("Flywheel Velocity",flywheel.get("flywheelLeft").getVelocity());
             telemetryAddData("PoseX",follower.getPose().getX());

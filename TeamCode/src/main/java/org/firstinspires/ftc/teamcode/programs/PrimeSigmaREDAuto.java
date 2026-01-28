@@ -32,6 +32,7 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.motifShootAll;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.robotState;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.setState;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.shotType;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretYaw;
 
 import com.pedropathing.geometry.BezierCurve;
 import com.pedropathing.geometry.BezierLine;
@@ -177,6 +178,10 @@ public class PrimeSigmaREDAuto extends LinearOpMode {
             telemetryAddData("PoseHeading",Math.toDegrees(follower.getHeading()));
             telemetryAddData("Flywheel Left Power",flywheel.get("flywheelLeft").getPower());
             telemetryAddData("Flywheel Right Power",flywheel.get("flywheelRight").getPower());
+            telemetryAddLine("");
+            telemetryAddData("Yaw Target",turretYaw.get("turretYawFront").getTarget());
+            telemetryAddData("Yaw Desired",-(turretYaw.get("turretYawFront").getTarget()-180)+follower.getHeading());
+            telemetryAddData("Yaw Raw Pos",turretYaw.get("turretYawFront").getDevice().getPosition());
         });
         waitForStart();
         Components.activateActuatorControl();
