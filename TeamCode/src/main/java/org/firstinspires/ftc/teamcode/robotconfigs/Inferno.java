@@ -323,10 +323,11 @@ public class Inferno implements RobotConfig{
         }
     }
     public static class CheckFull extends Command{
-        private final static int COUNT = 4;
+        private final static int COUNT = 3;
         private int counter = 0;
         private double startTime;
         private final double timeout;
+        private int sensorNum = 0;
         public CheckFull(double timeout){
             this.timeout = timeout;
         }
@@ -335,10 +336,17 @@ public class Inferno implements RobotConfig{
         }
         @Override
         protected boolean runProcedure() {
-            if (isStart()) {counter = 0; startTime = timer.time();}
-            readBallStorage();
-            if (Objects.nonNull(ballStorage[0])&&Objects.nonNull(ballStorage[1])&&Objects.nonNull(ballStorage[2])) {counter+=1;} else {counter = 0;}
-            return counter < COUNT && (timer.time()-startTime<timeout);
+            if (isStart()) {counter = 0; this.sensorNum = 0; startTime = timer.time();}
+            int sensorNum;
+            if (robotState==RobotState.INTAKE_FRONT) sensorNum = 2-this.sensorNum; else sensorNum=this.sensorNum;
+            if (Objects.nonNull(colorSensorRead(sensorNum))){
+                counter+=1;
+            }
+            if (counter>=COUNT && this.sensorNum<2){
+                this.sensorNum+=1;
+                counter=0;
+            }
+            return (this.sensorNum!=2 || counter < COUNT) && (timer.time()-startTime<timeout);
         }
     }
     private abstract static class Fisiks {
@@ -554,9 +562,9 @@ public class Inferno implements RobotConfig{
                     backIntake.setPowerCommand("stopped"),
                     transferGate.instantSetTargetCommand("open"),
                     frontIntakeGate.instantSetTargetCommand("closed"),
-                    backIntakeGate.instantSetTargetCommand("closed"),
-                    new InstantCommand(Inferno::readBallStorage)
-                )
+                    backIntakeGate.instantSetTargetCommand("closed")
+                ),
+                new ConditionalCommand(new IfThen(()->gamePhase==GamePhase.AUTO,new InstantCommand(Inferno::readBallStorage)))
         );
         ParallelCommand expel = new ParallelCommand(
                 frontIntake.setPowerCommand("expel"),
