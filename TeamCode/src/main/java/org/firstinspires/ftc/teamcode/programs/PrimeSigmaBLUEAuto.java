@@ -20,6 +20,7 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.alliance;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.ballStorage;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.classifierBallCount;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.clearIntegralAtPeak;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.colorSensorReads;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.currentBallPath;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.findMotif;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.flywheel;
@@ -30,10 +31,13 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.getTargetPoint
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.loopFSM;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.motifShootAll;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.robotState;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.setShooter;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.setState;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.shotType;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretYaw;
 
+
+import static java.lang.Math.atan2;
 
 import com.pedropathing.geometry.BezierCurve;
 import com.pedropathing.geometry.BezierLine;
@@ -63,6 +67,9 @@ public class PrimeSigmaBLUEAuto extends LinearOpMode {
         executor.setWriteToTelemetry(()->{
             telemetryAddData("is busy",follower.isBusy());
             telemetryAddData("Ball Storage:", Arrays.asList(ballStorage));
+            telemetryAddData("sensor1",Arrays.asList(colorSensorReads.get(0).get()));
+            telemetryAddData("sensor2",Arrays.asList(colorSensorReads.get(1).get()));
+            telemetryAddData("sensor3",Arrays.asList(colorSensorReads.get(2).get()));
             telemetryAddLine("");
             telemetryAddData("Robot State:",robotState);
             telemetryAddLine("");
@@ -81,8 +88,8 @@ public class PrimeSigmaBLUEAuto extends LinearOpMode {
             telemetryAddData("Flywheel Right Power",flywheel.get("flywheelRight").getPower());
             telemetryAddLine("");
             telemetryAddData("Yaw Target",turretYaw.get("turretYawFront").getTarget());
-            telemetryAddData("Yaw Desired",-(turretYaw.get("turretYawFront").getTarget()-180)+follower.getHeading());
-            telemetryAddData("Yaw Raw Pos",turretYaw.get("turretYawFront").getDevice().getPosition());
+            telemetryAddData("Yaw Desired",-(turretYaw.get("turretYawFront").getTarget()-180)+Math.toDegrees(follower.getHeading()));
+            telemetryAddData("Yaw Raw Pos",turretYaw.get("turretYawFront").getDevice().getPosition()*355);
         });
         executor.setCommands(new SequentialCommand(
                         new SleepCommand(INITIAL_WAIT),
@@ -179,7 +186,12 @@ public class PrimeSigmaBLUEAuto extends LinearOpMode {
                 loopFSM,
                 findMotif,
                 Pedro.updateCommand());
-        waitForStart();
+        turretYaw.call((Components.BotServo servo)->servo.switchControl("setPos"));
+        executor.setCommands(
+                new InstantCommand(setShooter::run),
+                turretYaw.command((Components.BotServo servo)->servo.triggeredDynamicOffsetCommand(()->gamepad1.right_trigger>0.4,()->gamepad1.left_trigger>0.4,0.05))
+        );
+        executor.runLoop(this::opModeInInit);
         Components.activateActuatorControl();
         executor.runLoop(this::opModeIsActive);
     }

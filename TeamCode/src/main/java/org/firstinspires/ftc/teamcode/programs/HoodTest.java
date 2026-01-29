@@ -20,7 +20,7 @@ import org.firstinspires.ftc.teamcode.robotconfigs.Inferno;
 
 @TeleOp
 public class HoodTest extends LinearOpMode {
-    public double targetYaw = 228;
+    public double targetYaw = 180;
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -29,8 +29,12 @@ public class HoodTest extends LinearOpMode {
         Pedro.createFollower(new Pose(0,0,0));
         executor.setCommands(
                 turretPitch.command((Components.BotServo servo)->servo.triggeredDynamicTargetCommand(()->gamepad1.right_bumper,()->gamepad1.left_bumper,0.1)),
-                Commands.triggeredDynamicCommand(()->gamepad1.right_trigger>0.3,()->gamepad1.left_trigger>0.3,new Commands.InstantCommand(()->targetYaw-=1),new Commands.InstantCommand(()->targetYaw+=1)),
+                Commands.triggeredDynamicCommand(()->gamepad1.right_trigger>0.3,()->gamepad1.left_trigger>0.3,new Commands.InstantCommand(()->targetYaw-=0.05),new Commands.InstantCommand(()->targetYaw+=0.05)),
                 new Commands.RunResettingLoop(
+                        new Commands.InstantCommand(()->{
+                            if (targetYaw>180) targetYaw=180;
+                            else if (targetYaw<-135) targetYaw = -135;
+                        }),
                         turretYaw.command((Components.BotServo servo)-> servo.instantSetTargetCommand(()->180-(targetYaw - follower.getHeading())))
                 )
 

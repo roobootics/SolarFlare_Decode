@@ -108,8 +108,9 @@ public class Inferno implements RobotConfig{
     public static Command loopFSM;
     private static SequentialCommand frontTransfer;
     private static SequentialCommand backTransfer;
+    public static ContinuousCommand setShooter;
     private static boolean isSpinningUp = true;
-    private static ArrayList<Supplier<Double[]>> colorSensorReads = new ArrayList<>();
+    public static final ArrayList<Supplier<Double[]>> colorSensorReads = new ArrayList<>();
     private static Color colorSensorRead(int index){
         double [] greenCenter = new double[]{0.23,0.54,0.23};
         double [] purpleCenter = new double[]{0.4,0.2,0.4};
@@ -328,7 +329,7 @@ public class Inferno implements RobotConfig{
         private int counter = 0;
         private double startTime;
         private final double timeout;
-        private int sensorNum = 0;
+        //private int sensorNum = 0;
         public CheckFull(double timeout){
             this.timeout = timeout;
         }
@@ -337,17 +338,24 @@ public class Inferno implements RobotConfig{
         }
         @Override
         protected boolean runProcedure() {
+            /*
             if (isStart()) {counter = 0; this.sensorNum = 0; startTime = timer.time();}
+
             int sensorNum;
             if (robotState==RobotState.INTAKE_FRONT) sensorNum = 2-this.sensorNum; else sensorNum=this.sensorNum;
             if (Objects.nonNull(colorSensorRead(sensorNum))){
                 counter+=1;
-            }
+            } else {counter=0;}
             if (counter>=COUNT && this.sensorNum<2){
                 this.sensorNum+=1;
                 counter=0;
             }
-            return (this.sensorNum!=2 || counter < COUNT) && (timer.time()-startTime<timeout);
+            return (this.sensorNum<2 || counter < COUNT) && (timer.time()-startTime<timeout);
+            */
+            if (isStart()) {counter = 0; startTime = timer.time();}
+            readBallStorage();
+            if (Objects.nonNull(ballStorage[0])&&Objects.nonNull(ballStorage[1])&&Objects.nonNull(ballStorage[2])) counter+=1; else counter = 0;
+            return counter < COUNT && timer.time()-startTime<timeout;
         }
     }
     private abstract static class Fisiks {
@@ -438,8 +446,8 @@ public class Inferno implements RobotConfig{
                 new BotServo("turretPitchRight", Servo.Direction.FORWARD, 422, 5, 180, 180)
         );
         turretYaw = new SyncedActuators<>(
-                new BotServo("turretYawFront", Servo.Direction.FORWARD, 422, 5, 355, 0),
-                new BotServo("turretYawBack", Servo.Direction.FORWARD, 422, 5, 355, 0)
+                new BotServo("turretYawFront", Servo.Direction.FORWARD, 422, 5, 355,0),
+                new BotServo("turretYawBack", Servo.Direction.FORWARD, 422, 5, 355,0)
         );
         turretYaw.call((BotServo servo) -> servo.setTargetBounds(() -> 315*TURRET_YAW_RATIO, () -> 0.0));
         turretPitch.call((BotServo servo) -> servo.setTargetBounds(() -> 173.0, () -> 150-5*TURRET_PITCH_RATIO));
@@ -522,9 +530,11 @@ public class Inferno implements RobotConfig{
                 new ParallelCommand(
                     transferGate.instantSetTargetCommand("closed"),
                     frontIntakeGate.instantSetTargetCommand("open"),
-                    backIntakeGate.instantSetTargetCommand("closed")
+                    backIntakeGate.instantSetTargetCommand("closed"),
+                    frontIntake.setPowerCommand("stopped"),
+                    backIntake.setPowerCommand("stopped")
                 ),
-                new SleepCommand(0.2),
+                new SleepCommand(0.3),
                 new ParallelCommand(
                     frontIntake.setPowerCommand("intake"),
                     backIntake.setPowerCommand("otherSideIntake"),
@@ -538,9 +548,11 @@ public class Inferno implements RobotConfig{
                 new ParallelCommand(
                     transferGate.instantSetTargetCommand("closed"),
                     backIntakeGate.instantSetTargetCommand("open"),
-                    frontIntakeGate.instantSetTargetCommand("closed")
+                    frontIntakeGate.instantSetTargetCommand("closed"),
+                    frontIntake.setPowerCommand("stopped"),
+                    backIntake.setPowerCommand("stopped")
                 ),
-                new SleepCommand(0.2),
+                new SleepCommand(0.3),
                 new ParallelCommand(
                         backIntake.setPowerCommand("intake"),
                         frontIntake.setPowerCommand("otherSideIntake"),
@@ -600,22 +612,20 @@ public class Inferno implements RobotConfig{
                             new SemiSort()
                     )
         );
-        ContinuousCommand setShooter = new ContinuousCommand(()->{
+        setShooter = new ContinuousCommand(()->{
             double[] targetPoint = getTargetPoint();
             Pose pos = follower.getPose();
             double xPos = pos.getX();
             double yPos = pos.getY();
             double dist = sqrt((targetPoint[0]-xPos)*(targetPoint[0]-xPos) + (targetPoint[1]-yPos)*(targetPoint[1]-yPos));
             targetFlywheelVelocity = VelRegression.regressFormula(dist);
-            if ((robotState != RobotState.INTAKE_FRONT && robotState!= RobotState.INTAKE_BACK) || gamePhase == GamePhase.AUTO){
-                double heading = Math.toDegrees(follower.getHeading());
-                double vel = flywheel.get("flywheelLeft").getVelocity();
-                double[] turret = new double[]{HoodRegression.regressFormula(dist,vel),Math.toDegrees(atan2(targetPoint[1] - yPos,targetPoint[0] - xPos))};
-                if ((turret[1]-heading)<=-180) turret[1] += 360;
-                else if ((turret[1]-heading)>180) turret[1] -= 360;
-                turretPitch.call((BotServo servo)->servo.setTarget((turret[0]+TURRET_PITCH_OFFSET)*TURRET_PITCH_RATIO));
-                turretYaw.call((BotServo servo)->servo.setTarget((180-(turret[1]-heading))*TURRET_YAW_RATIO));
-            }
+            double heading = Math.toDegrees(follower.getHeading());
+            double vel = flywheel.get("flywheelLeft").getVelocity();
+            double[] turret = new double[]{HoodRegression.regressFormula(dist,vel),Math.toDegrees(atan2(targetPoint[1] - yPos,targetPoint[0] - xPos))};
+            if ((turret[1]-heading)<=-225) turret[1] += 360;
+            else if ((turret[1]-heading)>225) turret[1] -= 360;
+            turretPitch.call((BotServo servo)->servo.setTarget((turret[0]+TURRET_PITCH_OFFSET)*TURRET_PITCH_RATIO));
+            turretYaw.call((BotServo servo)->servo.setTarget((180-(turret[1]-heading))*TURRET_YAW_RATIO));
         });
 
         loopFSM = new RunResettingLoop(
@@ -635,7 +645,7 @@ public class Inferno implements RobotConfig{
     public void reset(){
         targetFlywheelVelocity = 0;
         shotType=ShotType.NORMAL;
-        robotState=RobotState.STOPPED;
+        robotState=null;
         currentBallPath = BallPath.LOW;
         motifShootAll = true;
         ballStorage = new Color[3];

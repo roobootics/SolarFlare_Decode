@@ -17,8 +17,8 @@ import java.util.HashMap;
 import java.util.Objects;
 
 public class PrimeSigmaConstants {
-    public static final double INITIAL_WAIT = 0.75;
-    public static final double SHOT_TIME = 0.8;
+    public static final double INITIAL_WAIT = 0.01;
+    public static final double SHOT_TIME = 1;
     public static final double slowDownT = 0.78;
     public static final double speedUpT = 0.22;
     public static final double stopIntakeT = 0.37;
@@ -36,7 +36,8 @@ public class PrimeSigmaConstants {
     }
     public static void initExpelActions(){
         backExpelShoot = new Commands.SequentialCommand(
-                new Commands.ParallelCommand(setState(Inferno.RobotState.SHOOTING), new Commands.SleepCommand(SHOT_TIME)),
+                new Commands.ParallelCommand(setState(Inferno.RobotState.SHOOTING), new Commands.SleepCommand(SHOT_TIME))
+                /*
                 new Commands.ParallelCommand(
                         frontIntake.setPowerCommand(-1.0),
                         backIntake.setPowerCommand(1.0),
@@ -45,9 +46,11 @@ public class PrimeSigmaConstants {
                         transferGate.instantSetTargetCommand("open")
                 ),
                 new Commands.SleepCommand(1)
+                */
         );
         frontExpelShoot = new Commands.SequentialCommand(
-                new Commands.ParallelCommand(setState(Inferno.RobotState.SHOOTING), new Commands.SleepCommand(SHOT_TIME)),
+                new Commands.ParallelCommand(setState(Inferno.RobotState.SHOOTING), new Commands.SleepCommand(SHOT_TIME))
+                /*
                 new Commands.ParallelCommand(
                         frontIntake.setPowerCommand(1.0),
                         backIntake.setPowerCommand(-1.0),
@@ -56,18 +59,19 @@ public class PrimeSigmaConstants {
                         transferGate.instantSetTargetCommand("open")
                 ),
                 new Commands.SleepCommand(1)
+                */
         );
     }
     static {
-        poses.put("start",new Pose(20, 122.62, Math.toRadians(-36.5)));
+        poses.put("start",new Pose(20, 122.62, Math.toRadians(143.5)));
         poses.put("firstShoot",new Pose(53.312,90.398,Math.toRadians(143.5)));
         poses.put("secondSpikeCtrl",new Pose(88.046, 59.413));
         poses.put("secondSpike",new Pose(18.129, 58.805));
         poses.put("secondShootCtrl",new Pose(54.282, 64.593));
         poses.put("secondShoot",new Pose(53.076, 87.680,Math.toRadians(0)));
         poses.put("gateOpenCtrl",new Pose(39.404, 37.087));
-        poses.put("gateOpen",new Pose(14.169, 60.686,Math.toRadians(-35)));
-        poses.put("gateIntake",new Pose(15.901, 52.334,Math.toRadians(-50)));
+        poses.put("gateOpen",new Pose(18.169, 60.686,Math.toRadians(-35)));
+        poses.put("gateIntake",new Pose(18.901, 52.334,Math.toRadians(-50)));
         poses.put("thirdShootCtrl",new Pose(44.169, 52.575));
         poses.put("thirdShoot",new Pose(53.370, 87.903,Math.toRadians(-10)));
         poses.put("firstSpike",new Pose(22.773, 79.829,Math.toRadians(0)));

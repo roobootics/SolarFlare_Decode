@@ -12,6 +12,7 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.backIntakeGate
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.ballStorage;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.classifierBallCount;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.clearIntegralAtPeak;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.colorSensorReads;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.currentBallPath;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.flywheel;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.frontIntakeGate;
@@ -70,7 +71,6 @@ public class DecodeTeleOp extends LinearOpMode {
         gamePhase = GamePhase.TELEOP;
         initializeConfig(new Inferno(),true);
         executor.setCommands(
-                new InstantCommand(()->{if (Objects.isNull(follower)) Pedro.createFollower(new Pose(72,72,0));}),
                 new RunResettingLoop(new InstantCommand(()->{if (gamepad1.dpad_left) {Inferno.alliance = Alliance.BLUE;}})),
                 new RunResettingLoop(new InstantCommand(()->{if (gamepad1.dpad_right) {Inferno.alliance = Alliance.RED;}}))
         );
@@ -150,6 +150,9 @@ public class DecodeTeleOp extends LinearOpMode {
         executor.setWriteToTelemetry(()->{
             telemetryAddLine("");
             telemetryAddData("Ball Storage:", Arrays.asList(ballStorage));
+            telemetryAddData("sensor1",Arrays.asList(colorSensorReads.get(0).get()));
+            telemetryAddData("sensor2",Arrays.asList(colorSensorReads.get(1).get()));
+            telemetryAddData("sensor3",Arrays.asList(colorSensorReads.get(2).get()));
             telemetryAddLine("");
             telemetryAddData("Robot State:",robotState);
             telemetryAddLine("");
@@ -162,8 +165,8 @@ public class DecodeTeleOp extends LinearOpMode {
             telemetryAddData("Target Flywheel Velocity",targetFlywheelVelocity);
             telemetryAddLine("");
             telemetryAddData("Yaw Target",turretYaw.get("turretYawFront").getTarget());
-            telemetryAddData("Yaw Desired",-(turretYaw.get("turretYawFront").getTarget()-180)+follower.getHeading());
-            telemetryAddData("Yaw Raw Pos",turretYaw.get("turretYawFront").getDevice().getPosition());
+            telemetryAddData("Yaw Desired",-(turretYaw.get("turretYawFront").getTarget()-180)+Math.toDegrees(follower.getHeading()));
+            telemetryAddData("Yaw Raw Pos",turretYaw.get("turretYawFront").getDevice().getPosition()*355);
             telemetryAddLine("");
             telemetryAddData("Distance", Math.sqrt((follower.getPose().getX() - getTargetPoint()[0])*(follower.getPose().getX() - getTargetPoint()[0]) + (follower.getPose().getY() - getTargetPoint()[1])*(follower.getPose().getY() - getTargetPoint()[1])));
             telemetryAddData("Flywheel Velocity",flywheel.get("flywheelLeft").getVelocity());

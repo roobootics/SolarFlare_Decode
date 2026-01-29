@@ -2,6 +2,8 @@ package org.firstinspires.ftc.teamcode.base;
 
 import static org.firstinspires.ftc.teamcode.base.Commands.executor;
 
+import static java.lang.Double.isNaN;
+
 import com.bylazar.telemetry.PanelsTelemetry;
 import com.bylazar.telemetry.TelemetryManager;
 import com.qualcomm.robotcore.hardware.CRServo;
@@ -855,7 +857,7 @@ public abstract class Components {
         }
     }
     public static class BotServo extends Actuator<Servo>{
-        private double currCommandedPos;
+        private double currCommandedPos = Double.NaN;
         private boolean ignoreSetPosCaching = false; //If this is true, then even if a commanded position is the same as its current commanded position, the actuator will call setPosition on the hardwareMap Servos it controls. Useful to counteract Axon nudge.
         private final double range; //Stores the range of the servo positions (e.g. 0-180 degrees)
         private Function<Double, Double> setPositionConversion;
@@ -863,7 +865,6 @@ public abstract class Components {
         public BotServo(String name, Servo.Direction direction, Function<Servo, Double> getCurrentPosition, int currentPosPollingInterval, double errorTol, double defaultTimeout, double range, //Degree range that servo is programmed to
                         double initialTarget, String[] controlFuncKeys, ControlSystem<BotServo>... controlFuncs) {
             super(name, getCurrentPosition, currentPosPollingInterval, errorTol, defaultTimeout, controlFuncKeys, controlFuncs);
-            setTarget(initialTarget);
             this.range=range;
             this.setPositionConversion=(Double pos)->pos/range;
             for (ControlSystem<BotServo> system:controlFuncs){
@@ -883,7 +884,7 @@ public abstract class Components {
         @Actuate
         public void setPosition(double position){ //Accepts position in degrees by default and sets the servos position to that.
             position=Math.max(minTargetFunc.get(),Math.min(position, maxTargetFunc.get()));
-            if (actuationStateUnlocked && (Math.abs(currCommandedPos-position)>1||ignoreSetPosCaching) && !Objects.isNull(getDevice())){
+            if (isNaN(currCommandedPos) || actuationStateUnlocked && (Math.abs(currCommandedPos-position)>1||ignoreSetPosCaching) && !Objects.isNull(getDevice())){
                 currCommandedPos=position;
                 getDevice().setPosition(setPositionConversion.apply(position));
                 if (getTimeBasedLocalization()){
