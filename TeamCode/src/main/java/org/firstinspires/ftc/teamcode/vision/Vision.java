@@ -10,37 +10,32 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
+import org.firstinspires.ftc.robotcore.external.navigation.Position;
+import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 import org.firstinspires.ftc.teamcode.vision.descriptors.AprilTagDescriptor;
 import org.firstinspires.ftc.teamcode.vision.descriptors.ArtifactDescriptor;
 
 import java.util.ArrayList;
 import java.util.List;
 
+
 public class Vision {
-    final double METERS_TO_INCHES = 39.3700787402;
-    // Translation from reference point, usually the lowest center middle of the robot to center of Limelight lens
-    final double CAMERA_VERTICAL_HEIGHT_INCHES = 0.2225 * METERS_TO_INCHES ; // Increases up from reference point TODO: find translations
-    final double CAMERA_OFFSET_X_INCHES = 0; // Increases to the right from reference point
-    final double CAMERA_OFFSET_Y_INCHES = 0.182 * METERS_TO_INCHES; // Increases forward from the reference point
-    final double CAMERA_DOWNWARD_PITCH_DEGREES = 0; // 90 degrees is facing straight forward, decreases looking down
     final int NN_PIPELINE_INDEX = 0;
     final int APRIL_TAGS_PIPELINE_INDEX = 1;
-    double fx = 1218.145;
-    double fy = 1219.481;
-    double cx = 621.829;
-    double cy = 500.362;
     Limelight3A limelight;
     List<String> queryClasses = new ArrayList<>();
     Telemetry telemetry;
-    public Vision(HardwareMap hardwareMap, Telemetry telemetry){
+    Pose3D cameraPoseOnRobot;
+    public Vision(HardwareMap hardwareMap, Telemetry telemetry, Pose3D cameraPoseOnRobot){
         limelight = hardwareMap.get(Limelight3A.class, "limelight");
         this.telemetry = telemetry;
         limelight.setPollRateHz(11);
         queryClasses.add("purple");
         queryClasses.add("green");
+        this.cameraPoseOnRobot = cameraPoseOnRobot;
     }
 
-    public List<ArtifactDescriptor> getArtifactDescriptors(Pose2D botPose){
+    public List<ArtifactDescriptor> getArtifactDescriptors(Pose botPosePedro){
         if (!limelight.isRunning()){
             limelight.start();
         }
@@ -57,28 +52,31 @@ public class Vision {
             String className = detectorResult.getClassName();
 
             if (queryClasses.contains(className)) {
-                List<List<Double>> corners = detectorResult.getTargetCorners();
-                double[] targetLocationPixels = new double[2];
-                targetLocationPixels[0] = (corners.get(2).get(0) + corners.get(3).get(0)) / 2; // We want the target to be the bottom center of the bounding box
-                targetLocationPixels[1] = (corners.get(3).get(1));
 
-                double tx = Math.toDegrees(Math.atan2(targetLocationPixels[0] - cx, fx));
-                double ty = Math.toDegrees(Math.atan2(cy - targetLocationPixels[1], fy)); // Y dimension of camera increases downward
-                double verticalAngle = CAMERA_DOWNWARD_PITCH_DEGREES + ty;
+                double tx = detectorResult.getTargetXDegrees();
+                double ty = detectorResult.getTargetYDegrees();
 
-                telemetry.addData("tx", tx);
-                telemetry.addData("ty", ty);
+                double totalAngleDeg = cameraPoseOnRobot.getOrientation().getPitch(AngleUnit.DEGREES) + ty;
+                double totalAngleRad = Math.toRadians(totalAngleDeg);
 
-                double depth = CAMERA_VERTICAL_HEIGHT_INCHES * Math.tan(Math.toRadians(verticalAngle)) + CAMERA_OFFSET_Y_INCHES + 2.5; // 2.5 is to find the location of the center of the artifact TODO: Tune this
+                double depth = cameraPoseOnRobot.getPosition().toUnit(DistanceUnit.INCH).z / -Math.tan(totalAngleRad)
+                                + cameraPoseOnRobot.getPosition().toUnit(DistanceUnit.INCH).x;
+                                 // artifact center offset TODO: Tune this
 
-                double horizontalOffset = depth * Math.tan(Math.toRadians(tx)) + CAMERA_OFFSET_X_INCHES;
+                double horizontal = depth * Math.tan(Math.toRadians(tx)) + cameraPoseOnRobot.getPosition().toUnit(DistanceUnit.INCH).y;
 
-                double x = botPose.getX(DistanceUnit.INCH);
-                double y = botPose.getY(DistanceUnit.INCH);
-                double headingRadians = botPose.getHeading(AngleUnit.RADIANS);
+                double x = botPosePedro.getX();
+                double y = botPosePedro.getY();
+                double theta = botPosePedro.getHeading();
 
-                double artifactX = x + horizontalOffset * Math.cos(headingRadians) - depth * Math.sin(headingRadians);
-                double artifactY = y + horizontalOffset * Math.sin(headingRadians) + depth * Math.cos(headingRadians);
+                double cos = Math.cos(theta);
+                double sin = Math.sin(theta);
+
+                double artifactX =
+                        x + depth * cos - horizontal * sin;
+
+                double artifactY =
+                        y + depth * sin + horizontal * cos;
 
                 artifactDescriptors.add(new ArtifactDescriptor(artifactX, artifactY, className));
             }
@@ -92,16 +90,18 @@ public class Vision {
         }
         limelight.pipelineSwitch(APRIL_TAGS_PIPELINE_INDEX);
 
-        Pose3D llPose;
+        Pose3D cameraPose;
 
         LLResult result = limelight.getLatestResult();
 
         if (result != null && result.isValid()){
-            llPose = result.getBotpose();
+            cameraPose = result.getBotpose();
         }
         else return null;
 
-        return limelightToPedroPose(llPose);
+        Pose3D robotPose = applyOffset(cameraPose, cameraPoseOnRobot);
+
+        return limelightToPedroPose(robotPose);
     }
 
     public Pose getBotPoseMT2(double yawDegreesStandard){
@@ -112,16 +112,18 @@ public class Vision {
 
         limelight.updateRobotOrientation(standardToLimelightYaw(yawDegreesStandard));
 
-        Pose3D llPose;
+        Pose3D cameraPose;
 
         LLResult result = limelight.getLatestResult();
 
         if (result != null && result.isValid()){
-            llPose = result.getBotpose_MT2();
+            cameraPose = result.getBotpose_MT2();
         }
         else return null;
 
-        return limelightToPedroPose(llPose);
+        Pose3D robotPose = applyOffset(cameraPose, cameraPoseOnRobot);
+
+        return limelightToPedroPose(robotPose);
     }
     public Pose getBotPoseMT2WithMT1() {
         if (!limelight.isRunning()) {
@@ -138,15 +140,17 @@ public class Vision {
 
             limelight.updateRobotOrientation(llYaw);
 
-            Pose3D llPose;
+            Pose3D cameraPose;
 
             LLResult result = limelight.getLatestResult();
 
             if (result != null && result.isValid()) {
-                llPose = result.getBotpose_MT2();
+                cameraPose = result.getBotpose_MT2();
             } else return null;
 
-            return limelightToPedroPose(llPose);
+            Pose3D robotPose = applyOffset(cameraPose, cameraPoseOnRobot);
+
+            return limelightToPedroPose(robotPose);
         }
         return null;
     }
@@ -154,24 +158,55 @@ public class Vision {
     public Pose limelightToPedroPose(Pose3D llPose){
         double llX = llPose.getPosition().toUnit(DistanceUnit.INCH).x;
         double llY = llPose.getPosition().toUnit(DistanceUnit.INCH).y;
-        double heading = llPose.getOrientation().getYaw(AngleUnit.DEGREES);
+        double llYaw = llPose.getOrientation().getYaw(AngleUnit.DEGREES);
 
         double xTransformed = llY + 72;
-        double yTransformed = -llX + 72;
-
-        double yawTransformed = (heading + 270) % 360;
-
-        if (yawTransformed < 0) {
-            yawTransformed += 360;
-        }
+        double yTransformed = 72 - llX;
+        double yawTransformed = limelightToStandardYaw(llYaw);
 
         yawTransformed = Math.toRadians(yawTransformed);
 
         return new Pose(xTransformed, yTransformed, yawTransformed);
     }
 
-    public double standardToLimelightYaw(double standardYaw){
-        double yawTransformed = standardYaw + 90;
+    public Pose2D pedroToStandardPose(Pose pedroPose){
+        double x = pedroPose.getX();
+        double y = pedroPose.getY();
+        double yaw = pedroPose.getHeading();
+
+        double xTransformed = 72 - y;
+        double yTransformed = x - 72;
+        double yawTransformed = Math.toDegrees(yaw);
+
+        return new Pose2D(DistanceUnit.INCH, xTransformed, yTransformed, AngleUnit.DEGREES, yawTransformed);
+    }
+
+    public Pose standardToPedroPose(Pose2D standardPose){
+        double x = standardPose.getX(DistanceUnit.INCH);
+        double y = standardPose.getY(DistanceUnit.INCH);
+        double yaw = standardPose.getHeading(AngleUnit.DEGREES);
+
+        double xTransformed = y + 72;
+        double yTransformed = 72 - x;
+        double yawTransformed = Math.toRadians(yaw);
+
+        return new Pose(xTransformed, yTransformed, yawTransformed);
+    }
+
+    public Pose3D pedroToLimelightPose(Pose pedroPose){
+        double x = pedroPose.getX();
+        double y = pedroPose.getY();
+        double yaw = Math.toDegrees(pedroPose.getHeading());
+
+        double llX = 72 - y;
+        double llY = x - 72;
+        double llYaw = standardToLimelightYaw(yaw);
+
+        return new Pose3D(new Position(DistanceUnit.INCH, llX, llY, 0, 0), new YawPitchRollAngles(AngleUnit.DEGREES, llYaw, 0, 0, 0));
+    }
+
+    public double standardToLimelightYaw(double standardYawDegrees){
+        double yawTransformed = standardYawDegrees + 90;
 
         if (yawTransformed >= 180.0) {
             yawTransformed -= 360.0;
@@ -179,13 +214,28 @@ public class Vision {
         return yawTransformed;
     }
 
-    public double limelightToStandardYaw(double llYaw){
-        double yawTransformed = (llYaw + 270) % 360;
+    public double limelightToStandardYaw(double llYawDegrees){
+        double yawTransformed = (llYawDegrees + 270) % 360;
 
         if (yawTransformed < 0) {
             yawTransformed += 360;
         }
         return yawTransformed;
+    }
+
+    public List<ArtifactDescriptor> pedroToStandardPoseArtifacts(List<ArtifactDescriptor> artifacts){
+        List<ArtifactDescriptor> out = new ArrayList<>();
+        for (ArtifactDescriptor artifactDescriptor : artifacts){
+            double x = artifactDescriptor.getX();
+            double y = artifactDescriptor.getY();
+            String className = artifactDescriptor.getClassName();
+
+            double xTransformed = 72 - y;
+            double yTransformed = x - 72;
+
+            out.add(new ArtifactDescriptor(xTransformed, yTransformed, className));
+        }
+        return out;
     }
 
     public void stopLimelight(){
@@ -236,5 +286,82 @@ public class Vision {
             }
         }
         return aprilTagDescriptors;
+    }
+
+    public static Pose3D applyOffset(Pose3D cameraPoseField,
+                                     Pose3D cameraPoseOnRobot) {
+
+        // Step 1: invert camera-in-robot pose
+        double ox = cameraPoseOnRobot.getPosition().toUnit(DistanceUnit.INCH).x;
+        double oy = cameraPoseOnRobot.getPosition().toUnit(DistanceUnit.INCH).y;
+        double oz = cameraPoseOnRobot.getPosition().toUnit(DistanceUnit.INCH).z;
+
+        YawPitchRollAngles or = cameraPoseOnRobot.getOrientation();
+
+        double ir = -or.getRoll(AngleUnit.RADIANS); // inverse roll
+        double ip = -or.getPitch(AngleUnit.RADIANS); // inverse pitch
+        double iy = -or.getYaw(AngleUnit.RADIANS); // inverse yaw
+
+        // Rotate the negative offset by the inverse rotation
+        double cr = Math.cos(ir), sr = Math.sin(ir);
+        double cp = Math.cos(ip), sp = Math.sin(ip);
+        double cy = Math.cos(iy), sy = Math.sin(iy);
+
+        double ix =
+                cy * cp * (-ox)
+                        + (cy * sp * sr - sy * cr) * (-oy)
+                        + (cy * sp * cr + sy * sr) * (-oz);
+
+        double iy_ =
+                sy * cp * (-ox)
+                        + (sy * sp * sr + cy * cr) * (-oy)
+                        + (sy * sp * cr - cy * sr) * (-oz);
+
+        double iz =
+                -sp * (-ox)
+                        + cp * sr * (-oy)
+                        + cp * cr * (-oz);
+
+        // Step 2: rotate offset into field frame
+        YawPitchRollAngles fr = cameraPoseField.getOrientation();
+
+        double frx = fr.getRoll(AngleUnit.RADIANS);
+        double fry = fr.getPitch(AngleUnit.RADIANS);
+        double frz = fr.getYaw(AngleUnit.RADIANS);
+
+        cr = Math.cos(frx); sr = Math.sin(frx);
+        cp = Math.cos(fry); sp = Math.sin(fry);
+        cy = Math.cos(frz); sy = Math.sin(frz);
+
+        double rx =
+                cy * cp * ix
+                        + (cy * sp * sr - sy * cr) * iy_
+                        + (cy * sp * cr + sy * sr) * iz;
+
+        double ry =
+                sy * cp * ix
+                        + (sy * sp * sr + cy * cr) * iy_
+                        + (sy * sp * cr - cy * sr) * iz;
+
+        double rz =
+                -sp * ix
+                        + cp * sr * iy_
+                        + cp * cr * iz;
+
+        // Step 3: add translations and rotations
+        return new Pose3D(
+                new Position(DistanceUnit.INCH,
+                cameraPoseField.getPosition().toUnit(DistanceUnit.INCH).x + rx,
+                cameraPoseField.getPosition().toUnit(DistanceUnit.INCH).y + ry,
+                cameraPoseField.getPosition().toUnit(DistanceUnit.INCH).z + rz, 0),
+
+                new YawPitchRollAngles(
+                        AngleUnit.RADIANS,
+                        frx + ir,
+                        fry + ip,
+                        frz + iy,
+                        0
+                )
+        );
     }
 }
