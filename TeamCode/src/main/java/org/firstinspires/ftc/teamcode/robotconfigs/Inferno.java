@@ -124,11 +124,12 @@ public class Inferno implements RobotConfig{
         else if ((red-purpleCenter[0])*(red-purpleCenter[0]) + (green-purpleCenter[1])*(green-purpleCenter[1]) + (blue-purpleCenter[2])*(blue-purpleCenter[2])<=purpleTolerance*purpleTolerance){
             color = Color.PURPLE;
         }
+        ballStorage[index] = color;
         return color;
     }
     public static void readBallStorage(){
         for (int i=0;i<3;i++){
-            ballStorage[i] = colorSensorRead(i);
+            colorSensorRead(i);
         }
     }
     private static Triple<ArrayList<BallPath>,Integer,Boolean> findMotifShotPlan(boolean shootAll){
