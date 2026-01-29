@@ -64,6 +64,14 @@ public class PrimeSigmaBLUEAuto extends LinearOpMode {
         gamePhase = GamePhase.AUTO;
         initExpelActions();
         Pedro.createFollower(getPose("start"));
+        turretYaw.call((Components.BotServo servo)->servo.switchControl("setPos"));
+        executor.setCommands(
+                new InstantCommand(setShooter::run),
+                turretYaw.command((Components.BotServo servo)->servo.triggeredDynamicOffsetCommand(()->gamepad1.right_trigger>0.4,()->gamepad1.left_trigger>0.4,0.2))
+        );
+        executor.setWriteToTelemetry(()->{telemetryAddData("offset",turretYaw.get("turretYawFront").getOffset());});
+        executor.runLoop(this::opModeInInit);
+        Components.activateActuatorControl();
         executor.setWriteToTelemetry(()->{
             telemetryAddData("is busy",follower.isBusy());
             telemetryAddData("Ball Storage:", Arrays.asList(ballStorage));
@@ -186,13 +194,6 @@ public class PrimeSigmaBLUEAuto extends LinearOpMode {
                 loopFSM,
                 findMotif,
                 Pedro.updateCommand());
-        turretYaw.call((Components.BotServo servo)->servo.switchControl("setPos"));
-        executor.setCommands(
-                new InstantCommand(setShooter::run),
-                turretYaw.command((Components.BotServo servo)->servo.triggeredDynamicOffsetCommand(()->gamepad1.right_trigger>0.4,()->gamepad1.left_trigger>0.4,0.05))
-        );
-        executor.runLoop(this::opModeInInit);
-        Components.activateActuatorControl();
         executor.runLoop(this::opModeIsActive);
     }
 }

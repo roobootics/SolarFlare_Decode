@@ -357,8 +357,8 @@ public abstract class Components {
             return name;
         }
         public void setOffsetBoundFuncs(Supplier<Double> maxTargetFunc,Supplier<Double> minTargetFunc){ //Sets bounds on the offset that can be set.
-            this.maxOffsetFunc=()->(maxTargetFunc.get());
-            this.minOffsetFunc=()->(minTargetFunc.get());
+            this.maxOffsetFunc= maxTargetFunc::get;
+            this.minOffsetFunc= minTargetFunc::get;
         }
         public double getErrorTol(){
             return errorTol;
@@ -416,6 +416,9 @@ public abstract class Components {
                 this.offset=offset;
                 setTarget(target-oldOffset);
             }
+        }
+        public double getOffset(){
+            return this.offset;
         }
         public void runControl(){
             if (!Objects.isNull(device)){

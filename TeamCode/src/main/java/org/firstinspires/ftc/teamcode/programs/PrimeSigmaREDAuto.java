@@ -67,6 +67,14 @@ public class PrimeSigmaREDAuto extends LinearOpMode {
         gamePhase = GamePhase.AUTO;
         initExpelActions();
         Pedro.createFollower(getMirroredPose("start"));
+        turretYaw.call((Components.BotServo servo)->servo.switchControl("setPos"));
+        executor.setCommands(
+                new Commands.InstantCommand(setShooter::run),
+                turretYaw.command((Components.BotServo servo)->servo.triggeredDynamicOffsetCommand(()->gamepad1.right_trigger>0.4,()->gamepad1.left_trigger>0.4,0.2))
+        );
+        executor.setWriteToTelemetry(()->{telemetryAddData("offset",turretYaw.get("turretYawFront").getOffset());});
+        executor.runLoop(this::opModeInInit);
+        Components.activateActuatorControl();
         executor.setCommands(new SequentialCommand(
                         new SleepCommand(INITIAL_WAIT),
                         new PedroLinearCommand(getMirroredPose("firstShoot"),true), frontExpelShoot, setState(RobotState.INTAKE_FRONT),
@@ -189,13 +197,6 @@ public class PrimeSigmaREDAuto extends LinearOpMode {
             telemetryAddData("Yaw Desired",-(turretYaw.get("turretYawFront").getTarget()-180)+Math.toDegrees(follower.getHeading()));
             telemetryAddData("Yaw Raw Pos",turretYaw.get("turretYawFront").getDevice().getPosition()*355);
         });
-        turretYaw.call((Components.BotServo servo)->servo.switchControl("setPos"));
-        executor.setCommands(
-                new Commands.InstantCommand(setShooter::run),
-                turretYaw.command((Components.BotServo servo)->servo.triggeredDynamicOffsetCommand(()->gamepad1.right_trigger>0.4,()->gamepad1.left_trigger>0.4,0.05))
-        );
-        executor.runLoop(this::opModeInInit);
-        Components.activateActuatorControl();
         executor.runLoop(this::opModeIsActive);
     }
 }

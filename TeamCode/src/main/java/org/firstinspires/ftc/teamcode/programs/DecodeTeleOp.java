@@ -65,6 +65,7 @@ public class DecodeTeleOp extends LinearOpMode {
         rightFront.getDevice().setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         rightRear.getDevice().setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
     }
+    private void stopDrivetrain(){leftFront.setPower(0); leftRear.setPower(0); rightFront.setPower(0); rightRear.setPower(0);}
     @Override
     public void runOpMode(){
         initialize(hardwareMap,telemetry);
@@ -102,12 +103,12 @@ public class DecodeTeleOp extends LinearOpMode {
                         new PressCommand(
                                 new IfThen(()->robotState==RobotState.SHOOTING,
                                         new SequentialCommand(
-                                            new InstantCommand(()->{holdingPosition = true; follower.holdPoint(follower.getPose());}),
+                                            new InstantCommand(()->{this.stopDrivetrain(); holdingPosition = true; follower.holdPoint(follower.getPose());}),
                                             new SleepCommand(1),
-                                            new InstantCommand(()->{breakFollowing(); frontIntakeGate.instantSetTargetCommand("closed"); backIntakeGate.instantSetTargetCommand("closed");})
+                                            new InstantCommand(()->{this.stopDrivetrain(); breakFollowing(); frontIntakeGate.instantSetTargetCommand("closed"); backIntakeGate.instantSetTargetCommand("closed");})
                                         )
                                 ),
-                                new IfThen(()->robotState!=RobotState.SHOOTING,new InstantCommand(this::breakFollowing))
+                                new IfThen(()->robotState!=RobotState.SHOOTING,new InstantCommand(()->{this.breakFollowing(); this.stopDrivetrain();}))
                         ),
                         new ConditionalCommand(
                                 new IfThen(
