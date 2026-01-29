@@ -23,6 +23,11 @@ import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
 
 
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
+import org.firstinspires.ftc.robotcore.external.navigation.Position;
+import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 import org.firstinspires.ftc.teamcode.base.Commands.*;
 import org.firstinspires.ftc.teamcode.base.Components;
 import org.firstinspires.ftc.teamcode.base.Components.*;
@@ -483,7 +488,7 @@ public class Inferno implements RobotConfig{
         transferGate = new BotServo("transferGate", Servo.Direction.FORWARD,422,5,270,148.5);
         transferGate.setKeyPositions(new String[]{"open","closed"},new double[]{148.5,86.4});
         voltageSensor = getHardwareMap().get(VoltageSensor.class,"Control Hub");
-        vision = new Vision(Components.getHardwareMap(),Components.getTelemetry());
+        vision = new Vision(Components.getHardwareMap(),Components.getTelemetry(), new Pose3D(new Position(DistanceUnit.METER, 0.182, 0, 0.2225, 0), new YawPitchRollAngles(AngleUnit.DEGREES, 0, -15, 0, 0)));
         frontTransfer = new SequentialCommand(
                 new ParallelCommand(
                     transferGate.instantSetTargetCommand("open"),
