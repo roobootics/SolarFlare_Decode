@@ -64,7 +64,7 @@ public class PrimeSigmaConstants {
     }
     static {
         poses.put("start",new Pose(20, 122.62, Math.toRadians(143.5)));
-        poses.put("firstShoot",new Pose(53.312,90.398,Math.toRadians(143.5)));
+        poses.put("firstShoot",new Pose(53.312,90.398,Math.toRadians(130)));
         poses.put("secondSpikeCtrl",new Pose(88.046, 59.413));
         poses.put("secondSpike",new Pose(18.129, 58.805));
         poses.put("secondShootCtrl",new Pose(54.282, 64.593));
