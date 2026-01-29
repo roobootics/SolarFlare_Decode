@@ -34,6 +34,7 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.robotState;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.setShooter;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.setState;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.shotType;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretOffsetFromAuto;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretYaw;
 
 
@@ -60,10 +61,12 @@ public class PrimeSigmaBLUEAuto extends LinearOpMode {
     public void runOpMode(){
         initialize(hardwareMap,telemetry);
         initializeConfig(new Inferno(), true);
+        turretOffsetFromAuto = 0;
         alliance = Inferno.Alliance.BLUE;
         gamePhase = GamePhase.AUTO;
         initExpelActions();
         Pedro.createFollower(getPose("start"));
+        follower.updatePose();
         turretYaw.call((Components.BotServo servo)->servo.switchControl("setPos"));
         executor.setCommands(
                 new InstantCommand(setShooter::run),
@@ -71,6 +74,7 @@ public class PrimeSigmaBLUEAuto extends LinearOpMode {
         );
         executor.setWriteToTelemetry(()->{telemetryAddData("offset",turretYaw.get("turretYawFront").getOffset());});
         executor.runLoop(this::opModeInInit);
+        turretOffsetFromAuto = turretYaw.get("turretYawFront").getOffset();
         Components.activateActuatorControl();
         executor.setWriteToTelemetry(()->{
             telemetryAddData("is busy",follower.isBusy());

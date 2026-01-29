@@ -29,6 +29,7 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.setState;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.shotType;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.targetFlywheelVelocity;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.toggleShotType;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretOffsetFromAuto;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretYaw;
 
 import org.firstinspires.ftc.teamcode.base.Commands.*;
@@ -76,6 +77,7 @@ public class DecodeTeleOp extends LinearOpMode {
                 new RunResettingLoop(new InstantCommand(()->{if (gamepad1.dpad_right) {Inferno.alliance = Alliance.RED;}}))
         );
         executor.runLoop(this::opModeInInit);
+        turretYaw.call((BotServo servo)->servo.setOffset(turretOffsetFromAuto));
         Components.activateActuatorControl();
         breakFollowing();
         follower.setTranslationalPIDFCoefficients(new PIDFCoefficients(0.4, 0.0007, 0, 0.015));

@@ -34,6 +34,7 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.robotState;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.setShooter;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.setState;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.shotType;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretOffsetFromAuto;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretYaw;
 
 import com.pedropathing.geometry.BezierCurve;
@@ -63,10 +64,12 @@ public class PrimeSigmaREDAuto extends LinearOpMode {
     public void runOpMode() {
         initialize(hardwareMap,telemetry);
         initializeConfig(new Inferno(), true);
+        turretOffsetFromAuto = 0;
         alliance = Alliance.RED;
         gamePhase = GamePhase.AUTO;
         initExpelActions();
         Pedro.createFollower(getMirroredPose("start"));
+        follower.updatePose();
         turretYaw.call((Components.BotServo servo)->servo.switchControl("setPos"));
         executor.setCommands(
                 new Commands.InstantCommand(setShooter::run),
@@ -74,6 +77,7 @@ public class PrimeSigmaREDAuto extends LinearOpMode {
         );
         executor.setWriteToTelemetry(()->{telemetryAddData("offset",turretYaw.get("turretYawFront").getOffset());});
         executor.runLoop(this::opModeInInit);
+        turretOffsetFromAuto = turretYaw.get("turretYawFront").getOffset();
         Components.activateActuatorControl();
         executor.setCommands(new SequentialCommand(
                         new SleepCommand(INITIAL_WAIT),
