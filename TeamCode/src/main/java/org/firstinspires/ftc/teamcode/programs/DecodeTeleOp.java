@@ -83,8 +83,8 @@ public class DecodeTeleOp extends LinearOpMode {
         turretYaw.call((BotServo servo)->servo.setOffset(turretOffsetFromAuto));
         Components.activateActuatorControl();
         breakFollowing();
-        follower.setTranslationalPIDFCoefficients(new PIDFCoefficients(0.4, 0.0007, 0, 0.015));
-        follower.setHeadingPIDFCoefficients(new PIDFCoefficients(1.8,0.001,0,0.01));
+        follower.setTranslationalPIDFCoefficients(new PIDFCoefficients(0.4, 0.0007, 0, 0));
+        follower.setHeadingPIDFCoefficients(new PIDFCoefficients(1.8,0.001,0,0));
         executor.setCommands(
                 new RunResettingLoop(
                         new ConditionalCommand(
