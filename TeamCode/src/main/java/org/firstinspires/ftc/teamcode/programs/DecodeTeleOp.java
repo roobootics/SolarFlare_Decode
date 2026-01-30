@@ -61,6 +61,9 @@ public class DecodeTeleOp extends LinearOpMode {
     private void breakFollowing(){
         holdingPosition = false;
         follower.breakFollowing();
+        setMotorsToBrake();
+    }
+    private void setMotorsToBrake(){
         leftFront.getDevice().setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         leftRear.getDevice().setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         rightFront.getDevice().setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -102,16 +105,6 @@ public class DecodeTeleOp extends LinearOpMode {
                         ),
                         turretYaw.command((BotServo servo)->servo.triggeredDynamicOffsetCommand(()->gamepad2.right_trigger>0.4,()->gamepad2.left_trigger>0.4,3)),
                         loopFSM,
-                        new PressCommand(
-                                new IfThen(()->robotState==RobotState.SHOOTING,
-                                        new SequentialCommand(
-                                            new InstantCommand(()->{this.stopDrivetrain(); holdingPosition = true; follower.holdPoint(follower.getPose());}),
-                                            new SleepCommand(1),
-                                            new InstantCommand(()->{this.stopDrivetrain(); breakFollowing(); frontIntakeGate.instantSetTargetCommand("closed"); backIntakeGate.instantSetTargetCommand("closed");})
-                                        )
-                                ),
-                                new IfThen(()->robotState!=RobotState.SHOOTING,new InstantCommand(()->{this.breakFollowing(); this.stopDrivetrain();}))
-                        ),
                         new ConditionalCommand(
                                 new IfThen(
                                         ()->!(follower.isBusy() || holdingPosition),
@@ -128,6 +121,16 @@ public class DecodeTeleOp extends LinearOpMode {
                                         ()->(follower.isBusy() || holdingPosition),
                                         Pedro.updateCommand()
                                 )
+                        ),
+                        new PressCommand(
+                                new IfThen(()->robotState==RobotState.SHOOTING,
+                                        new SequentialCommand(
+                                            new InstantCommand(()->{this.stopDrivetrain(); holdingPosition = true; follower.holdPoint(follower.getPose()); setMotorsToBrake();}),
+                                            new SleepCommand(1),
+                                            new InstantCommand(()->{this.stopDrivetrain(); breakFollowing(); frontIntakeGate.instantSetTargetCommand("closed"); backIntakeGate.instantSetTargetCommand("closed");})
+                                        )
+                                ),
+                                new IfThen(()->robotState!=RobotState.SHOOTING,new InstantCommand(()->{this.breakFollowing(); this.stopDrivetrain();}))
                         ),
                         //Commands.triggeredDynamicCommand(()->gamepad1.dpad_up,()->gamepad1.dpad_down,new InstantCommand(()->targetVelocity+=2),new InstantCommand(()->targetVelocity-=2)),
                         new InstantCommand(()->{
