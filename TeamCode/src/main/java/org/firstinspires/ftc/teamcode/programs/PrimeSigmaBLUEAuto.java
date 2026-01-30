@@ -70,7 +70,7 @@ public class PrimeSigmaBLUEAuto extends LinearOpMode {
         turretYaw.call((Components.BotServo servo)->servo.switchControl("setPos"));
         executor.setCommands(
                 new InstantCommand(setShooter::run),
-                turretYaw.command((Components.BotServo servo)->servo.triggeredDynamicOffsetCommand(()->gamepad1.right_trigger>0.4,()->gamepad1.left_trigger>0.4,0.2))
+                turretYaw.command((Components.BotServo servo)->servo.triggeredDynamicOffsetCommand(()->gamepad1.right_trigger>0.4,()->gamepad1.left_trigger>0.4,0.05))
         );
         executor.setWriteToTelemetry(()->{telemetryAddData("offset",turretYaw.get("turretYawFront").getOffset());});
         executor.runLoop(this::opModeInInit);

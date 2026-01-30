@@ -18,11 +18,11 @@ import java.util.Objects;
 
 public class PrimeSigmaConstants {
     public static final double INITIAL_WAIT = 0.01;
-    public static final double SHOT_TIME = 1;
+    public static final double SHOT_TIME = 1.2;
     public static final double slowDownT = 0.78;
     public static final double speedUpT = 0.22;
-    public static final double stopIntakeT = 0.37;
-    public static final double slowDownAmount = 0.57;
+    public static final double stopIntakeT = 0.5;
+    public static final double slowDownAmount = 0.67;
     public static final double gateWait = 0.8;
     public static final double gateIntakeTimeout = 1;
     public static Commands.Command backExpelShoot;

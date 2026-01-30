@@ -100,8 +100,8 @@ public class Inferno implements RobotConfig{
     public static ShotType shotType = ShotType.NORMAL;
     public static boolean motifShootAll = true;
     private final static double BALL_SHOT_TIMING = 0.17;
-    private final static double TRANSFER_SELECT_DELAY = 0.05;
-    private final static double TRANSFER_REBOOST_DELAY = 0.2;
+    private final static double TRANSFER_SELECT_DELAY = 0.1;
+    private final static double TRANSFER_REBOOST_DELAY = 0.3;
     public static Color[] motif = new Color[]{Color.PURPLE,Color.GREEN,Color.PURPLE};
     public static double classifierBallCount = 0;
     public static Alliance alliance = Alliance.RED;
@@ -467,11 +467,11 @@ public class Inferno implements RobotConfig{
         backIntake = new BotMotor("backIntake", DcMotorSimple.Direction.FORWARD);
         frontIntake.setKeyPowers(
                 new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel","frontDrive","sideSelect"},
-                new double[]{1.0,-0.75,1.0,0.5,0,-0.8,0.6,-0.8}
+                new double[]{1.0,-0.75,1.0,0.5,0,-0.8,0.75,-0.8}
         );
         backIntake.setKeyPowers(
                 new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel","frontDrive","sideSelect"},
-                new double[]{1.0,-0.75,1.0,0.5,0,-1.0,0.6,-0.8}
+                new double[]{1.0,-0.75,1.0,0.5,0,-1.0,0.75,-0.8}
         );
         frontIntakeGate = new BotServo("frontIntakeGate", Servo.Direction.FORWARD, 422, 5, 180, 90.8);
         backIntakeGate = new BotServo("backIntakeGate", Servo.Direction.FORWARD, 422, 5, 180, 99.5);
@@ -582,7 +582,7 @@ public class Inferno implements RobotConfig{
                     frontIntake.setPowerCommand("frontDrive"),
                     backIntake.setPowerCommand("frontDrive")
                 ),
-                new SleepCommand(0.3),
+                new SleepCommand(0.5),
                 new ParallelCommand(
                     frontIntake.setPowerCommand("stopped"),
                     backIntake.setPowerCommand("stopped"),
