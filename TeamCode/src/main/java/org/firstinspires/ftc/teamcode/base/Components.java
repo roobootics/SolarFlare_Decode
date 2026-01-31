@@ -887,7 +887,7 @@ public abstract class Components {
         @Actuate
         public void setPosition(double position){ //Accepts position in degrees by default and sets the servos position to that.
             position=Math.max(minTargetFunc.get(),Math.min(position, maxTargetFunc.get()));
-            if (isNaN(currCommandedPos) || actuationStateUnlocked && (Math.abs(currCommandedPos-position)>0.2||ignoreSetPosCaching) && !Objects.isNull(getDevice())){
+            if (isNaN(currCommandedPos) || actuationStateUnlocked && (Math.abs(currCommandedPos-position)>0.4||ignoreSetPosCaching) && !Objects.isNull(getDevice())){
                 currCommandedPos=position;
                 getDevice().setPosition(setPositionConversion.apply(position));
                 if (getTimeBasedLocalization()){
