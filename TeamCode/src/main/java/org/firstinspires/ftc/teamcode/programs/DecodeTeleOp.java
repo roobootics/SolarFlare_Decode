@@ -12,7 +12,6 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.backIntakeGate
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.ballStorage;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.classifierBallCount;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.clearIntegralAtPeak;
-import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.colorSensorReads;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.currentBallPath;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.flywheel;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.frontIntakeGate;
@@ -34,8 +33,7 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretYaw;
 
 import org.firstinspires.ftc.teamcode.base.Commands.*;
 
-import com.bylazar.telemetry.PanelsTelemetry;
-import com.bylazar.telemetry.TelemetryManager;
+import com.pedropathing.control.FilteredPIDFCoefficients;
 import com.pedropathing.control.PIDFCoefficients;
 import com.pedropathing.geometry.Pose;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -75,6 +73,8 @@ public class DecodeTeleOp extends LinearOpMode {
         initialize(hardwareMap,telemetry);
         gamePhase = GamePhase.TELEOP;
         initializeConfig(new Inferno(),true);
+        if (Objects.isNull(follower)) Pedro.createFollower(new Pose(72,72,0));
+        else Pedro.createFollower(follower.getPose());
         executor.setCommands(
                 new RunResettingLoop(new InstantCommand(()->{if (gamepad1.dpad_left) {Inferno.alliance = Alliance.BLUE;}})),
                 new RunResettingLoop(new InstantCommand(()->{if (gamepad1.dpad_right) {Inferno.alliance = Alliance.RED;}}))
@@ -83,8 +83,6 @@ public class DecodeTeleOp extends LinearOpMode {
         turretYaw.call((BotServo servo)->servo.setOffset(turretOffsetFromAuto));
         Components.activateActuatorControl();
         breakFollowing();
-        follower.setTranslationalPIDFCoefficients(new PIDFCoefficients(0.4, 0.0007, 0, 0));
-        follower.setHeadingPIDFCoefficients(new PIDFCoefficients(1.8,0.001,0,0));
         executor.setCommands(
                 new RunResettingLoop(
                         new ConditionalCommand(
@@ -104,7 +102,16 @@ public class DecodeTeleOp extends LinearOpMode {
                                 new IfThen(()->gamepad2.left_bumper,new ParallelCommand(aprilTagRelocalize,new SequentialCommand(new SleepCommand(0.5),new InstantCommand(aprilTagRelocalize::stop))))
                         ),
                         turretYaw.command((BotServo servo)->servo.triggeredDynamicOffsetCommand(()->gamepad2.right_trigger>0.4,()->gamepad2.left_trigger>0.4,3)),
-                        loopFSM,
+                        new PressCommand(
+                                new IfThen(()->robotState==RobotState.SHOOTING,
+                                        new SequentialCommand(
+                                                new InstantCommand(()->{this.stopDrivetrain(); holdingPosition = true; follower.holdPoint(follower.getPose()); setMotorsToBrake();}),
+                                                new SleepCommand(1.2),
+                                                new InstantCommand(()->{this.stopDrivetrain(); breakFollowing(); frontIntakeGate.instantSetTargetCommand("closed"); backIntakeGate.instantSetTargetCommand("closed");})
+                                        )
+                                ),
+                                new IfThen(()->robotState!=RobotState.SHOOTING,new InstantCommand(()->{this.breakFollowing(); this.stopDrivetrain();}))
+                        ),
                         new ConditionalCommand(
                                 new IfThen(
                                         ()->!(follower.isBusy() || holdingPosition),
@@ -122,17 +129,7 @@ public class DecodeTeleOp extends LinearOpMode {
                                         Pedro.updateCommand()
                                 )
                         ),
-                        new PressCommand(
-                                new IfThen(()->robotState==RobotState.SHOOTING,
-                                        new SequentialCommand(
-                                            new InstantCommand(()->{this.stopDrivetrain(); holdingPosition = true; follower.holdPoint(follower.getPose()); setMotorsToBrake();}),
-                                            new SleepCommand(1),
-                                            new InstantCommand(()->{this.stopDrivetrain(); breakFollowing(); frontIntakeGate.instantSetTargetCommand("closed"); backIntakeGate.instantSetTargetCommand("closed");})
-                                        )
-                                ),
-                                new IfThen(()->robotState!=RobotState.SHOOTING,new InstantCommand(()->{this.breakFollowing(); this.stopDrivetrain();}))
-                        ),
-                        //Commands.triggeredDynamicCommand(()->gamepad1.dpad_up,()->gamepad1.dpad_down,new InstantCommand(()->targetVelocity+=2),new InstantCommand(()->targetVelocity-=2)),
+                        loopFSM,
                         new InstantCommand(()->{
                             if (315-turretYaw.get("turretYawFront").getTarget()<15 && !gamepad1.isRumbling()){gamepad1.rumble(1000000000);}
                             else if (turretYaw.get("turretYawFront").getTarget()-0<15 && !gamepad1.isRumbling()){gamepad1.rumble(1000000000);}
@@ -148,7 +145,6 @@ public class DecodeTeleOp extends LinearOpMode {
                                 gamepad1.setLedColor(1,1,1,1000);
                             }
                             previousBallCount = count;
-                            //targetFlywheelVelocity = targetVelocity;
                         })
                 ),
                 clearIntegralAtPeak
@@ -156,9 +152,6 @@ public class DecodeTeleOp extends LinearOpMode {
         executor.setWriteToTelemetry(()->{
             telemetryAddLine("");
             telemetryAddData("Ball Storage:", Arrays.asList(ballStorage));
-            telemetryAddData("sensor1",Arrays.asList(colorSensorReads.get(0).get()));
-            telemetryAddData("sensor2",Arrays.asList(colorSensorReads.get(1).get()));
-            telemetryAddData("sensor3",Arrays.asList(colorSensorReads.get(2).get()));
             telemetryAddLine("");
             telemetryAddData("Robot State:",robotState);
             telemetryAddLine("");

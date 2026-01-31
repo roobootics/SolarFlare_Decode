@@ -5,6 +5,7 @@ import static org.firstinspires.ftc.teamcode.base.Components.initialize;
 import static org.firstinspires.ftc.teamcode.base.Components.initializeConfig;
 import static org.firstinspires.ftc.teamcode.base.Components.telemetryAddData;
 import static org.firstinspires.ftc.teamcode.base.Components.telemetryAddLine;
+import static org.firstinspires.ftc.teamcode.base.Components.timer;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
 import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.INITIAL_WAIT;
 import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.backExpelShoot;
@@ -20,7 +21,6 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.alliance;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.ballStorage;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.classifierBallCount;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.clearIntegralAtPeak;
-import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.colorSensorReads;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.currentBallPath;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.findMotif;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.flywheel;
@@ -60,6 +60,7 @@ import java.util.Arrays;
 
 @Autonomous
 public class PrimeSigmaREDAuto extends LinearOpMode {
+    private double lastTime;
     @Override
     public void runOpMode() {
         initialize(hardwareMap,telemetry);
@@ -167,21 +168,20 @@ public class PrimeSigmaREDAuto extends LinearOpMode {
                                         ).setConstantHeadingInterpolation(getMirroredHeading("fifthShoot"))
                                         .addParametricCallback(speedUpT,()->follower.setMaxPower(1.0))
                                         .addParametricCallback(stopIntakeT,()->setState(RobotState.STOPPED).run()),true
-                        ), backExpelShoot, setState(RobotState.INTAKE_FRONT),
+                        ), backExpelShoot, setState(RobotState.STOPPED),
                         new PedroLinearCommand(getMirroredPose("park"),true)
                 ),
                 clearIntegralAtPeak,
-                loopFSM,
-                findMotif,
-                Pedro.updateCommand());
+                Pedro.updateCommand(),
+                loopFSM);
         executor.setWriteToTelemetry(()->{
             telemetryAddData("is busy",follower.isBusy());
             telemetryAddData("Ball Storage:", Arrays.asList(ballStorage));
-            telemetryAddData("sensor1",Arrays.asList(colorSensorReads.get(0).get()));
-            telemetryAddData("sensor2",Arrays.asList(colorSensorReads.get(1).get()));
-            telemetryAddData("sensor3",Arrays.asList(colorSensorReads.get(2).get()));
             telemetryAddLine("");
             telemetryAddData("Robot State:",robotState);
+            telemetryAddData("follower power",follower.getMaxPowerScaling());
+            telemetryAddData("looptime",timer.time()-lastTime);
+            lastTime = timer.time();
             telemetryAddLine("");
             telemetryAddData("Shot Type:",shotType);
             telemetryAddLine("");

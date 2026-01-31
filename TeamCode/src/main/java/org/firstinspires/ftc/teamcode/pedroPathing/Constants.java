@@ -1,4 +1,7 @@
 package org.firstinspires.ftc.teamcode.pedroPathing;
+import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.gamePhase;
+
 import com.pedropathing.control.FilteredPIDFCoefficients;
 import com.pedropathing.control.PIDFCoefficients;
 import com.pedropathing.follower.Follower;
@@ -12,6 +15,7 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.teamcode.robotconfigs.Inferno;
 
 public class Constants {
 
@@ -22,8 +26,11 @@ public class Constants {
             .centripetalScaling(0.001)
             .translationalPIDFCoefficients(new PIDFCoefficients(0.2, 0.0007, 0.0001, 0.015))
             .headingPIDFCoefficients(new PIDFCoefficients(1.35,0.001,0,0.01))
-            .drivePIDFCoefficients(new FilteredPIDFCoefficients(0.01, 0, 0.00001, 0.6, 0.01))
-            .centripetalScaling(0.0004);
+            .drivePIDFCoefficients(new FilteredPIDFCoefficients(0.01, 0, 0.00003, 0.6, 0.01))
+            .centripetalScaling(0.0004)
+            .secondaryDrivePIDFCoefficients(new FilteredPIDFCoefficients(0.005, 0, 0.00003, 0.6, 0.01))
+            .secondaryTranslationalPIDFCoefficients(new PIDFCoefficients(0.07, 0.0007, 0.0003, 0.015))
+            .secondaryHeadingPIDFCoefficients(new PIDFCoefficients(1.25,0.001,0,0.01));
 
     public static MecanumConstants driveConstants = new MecanumConstants()
             .leftFrontMotorName("leftFront")
@@ -49,21 +56,36 @@ public class Constants {
             .strafeEncoderDirection(GoBildaPinpointDriver.EncoderDirection.FORWARD);
 
     public static PathConstraints pathConstraints = new PathConstraints(
-            0.95,
+            0.94,
             0.1,
             0.1,
             0.004,
             7,
             1.0,
             10,
-            0.96
+            0.85
     );
 
     public static Follower createFollower(HardwareMap hardwareMap) {
-        return new FollowerBuilder(followerConstants, hardwareMap)
+        if (gamePhase== Inferno.GamePhase.AUTO){
+            followerConstants.setUseSecondaryDrivePIDF(true);
+            followerConstants.setUseSecondaryTranslationalPIDF(true);
+            followerConstants.setUseSecondaryHeadingPIDF(true);
+        } else {
+            followerConstants.setHoldPointTranslationalScaling(0.6);
+            followerConstants.setUseSecondaryDrivePIDF(false);
+            followerConstants.setUseSecondaryTranslationalPIDF(false);
+            followerConstants.setUseSecondaryHeadingPIDF(false);
+        }
+        Follower follower = new FollowerBuilder(followerConstants, hardwareMap)
                 .mecanumDrivetrain(driveConstants)
                 .pinpointLocalizer(localizerConstants)
                 .pathConstraints(pathConstraints)
                 .build();
+        if (gamePhase== Inferno.GamePhase.TELEOP) {
+            follower.setTranslationalPIDFCoefficients(new PIDFCoefficients(0.85, 0.0007, 0, 0));
+            follower.setHeadingPIDFCoefficients(new PIDFCoefficients(1.5, 0.001, 0.00001, 0));
+        }
+        return follower;
     }
 }
