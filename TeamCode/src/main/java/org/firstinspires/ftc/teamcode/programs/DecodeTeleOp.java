@@ -2,7 +2,6 @@ package org.firstinspires.ftc.teamcode.programs;
 
 import static org.firstinspires.ftc.teamcode.base.Commands.executor;
 import static org.firstinspires.ftc.teamcode.base.Components.initialize;
-import static org.firstinspires.ftc.teamcode.base.Components.initializeConfig;
 import static org.firstinspires.ftc.teamcode.base.Components.telemetryAddData;
 import static org.firstinspires.ftc.teamcode.base.Components.telemetryAddLine;
 import static org.firstinspires.ftc.teamcode.base.Components.timer;
@@ -33,8 +32,6 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretYaw;
 
 import org.firstinspires.ftc.teamcode.base.Commands.*;
 
-import com.pedropathing.control.FilteredPIDFCoefficients;
-import com.pedropathing.control.PIDFCoefficients;
 import com.pedropathing.geometry.Pose;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -70,9 +67,8 @@ public class DecodeTeleOp extends LinearOpMode {
     private void stopDrivetrain(){leftFront.setPower(0); leftRear.setPower(0); rightFront.setPower(0); rightRear.setPower(0);}
     @Override
     public void runOpMode(){
-        initialize(hardwareMap,telemetry);
         gamePhase = GamePhase.TELEOP;
-        initializeConfig(new Inferno(),true);
+        initialize(hardwareMap,telemetry,new Inferno(),false,true);
         if (Objects.isNull(follower)) Pedro.createFollower(new Pose(72,72,0));
         else Pedro.createFollower(follower.getPose());
         executor.setCommands(

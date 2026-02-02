@@ -2,7 +2,6 @@ package org.firstinspires.ftc.teamcode.programs;
 
 import static org.firstinspires.ftc.teamcode.base.Commands.executor;
 import static org.firstinspires.ftc.teamcode.base.Components.initialize;
-import static org.firstinspires.ftc.teamcode.base.Components.initializeConfig;
 import static org.firstinspires.ftc.teamcode.base.Components.telemetryAddData;
 import static org.firstinspires.ftc.teamcode.base.Components.telemetryAddLine;
 import static org.firstinspires.ftc.teamcode.base.Components.timer;
@@ -22,7 +21,6 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.ballStorage;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.classifierBallCount;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.clearIntegralAtPeak;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.currentBallPath;
-import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.findMotif;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.flywheel;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.gamePhase;
 import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.getHeading;
@@ -58,8 +56,7 @@ public class PrimeSigmaBLUEAuto extends LinearOpMode {
     private double lastTime;
     @Override
     public void runOpMode(){
-        initialize(hardwareMap,telemetry);
-        initializeConfig(new Inferno(), true);
+        initialize(hardwareMap,telemetry,new Inferno(),true,true);
         turretOffsetFromAuto = 0;
         alliance = Inferno.Alliance.BLUE;
         gamePhase = GamePhase.AUTO;
@@ -71,7 +68,7 @@ public class PrimeSigmaBLUEAuto extends LinearOpMode {
                 new InstantCommand(setShooter::run),
                 turretYaw.command((Components.BotServo servo)->servo.triggeredDynamicOffsetCommand(()->gamepad1.right_trigger>0.4,()->gamepad1.left_trigger>0.4,0.05))
         );
-        executor.setWriteToTelemetry(()->{telemetryAddData("offset",turretYaw.get("turretYawFront").getOffset());});
+        executor.setWriteToTelemetry(()->telemetryAddData("offset",turretYaw.get("turretYawFront").getOffset()));
         executor.runLoop(this::opModeInInit);
         turretOffsetFromAuto = turretYaw.get("turretYawFront").getOffset();
         Components.activateActuatorControl();
