@@ -320,53 +320,41 @@ public abstract class Commands { //Command-based system
         }
     }
     public static class SequentialCommand extends Command{ //Runs commands sequentially
-        private ArrayList<Command> remainingCommands;
+        private int index = 0;
         private final ArrayList<Command> commands;
-        private final ArrayList<Boolean> isStarts;
 
         public SequentialCommand(Command... commands) {
             this.commands = new ArrayList<>(Arrays.asList(commands));
-            this.remainingCommands = new ArrayList<>(this.commands);
-            isStarts = new ArrayList<>(commands.length);
-            for (Command command : commands) {
-                isStarts.add(true);
-            }
         }
 
         @Override
         public boolean runProcedure() {
             if (isStart()) {
-                remainingCommands = new ArrayList<>(commands);
-                for (int i = 0; i < commands.size(); i++) {
-                    isStarts.set(i,true);
+                index = 0;
+                for (Command command : commands){
+                    command.reset();
                 }
             }
-            if (isStarts.get(commands.size() - remainingCommands.size())) {
-                remainingCommands.get(0).reset();
-                isStarts.set(commands.size() - remainingCommands.size(),false);
+            while (index!=commands.size()){
+                commands.get(index).run();
+                if (commands.get(index).isFinished()) index+=1;
+                else break;
             }
-            remainingCommands.get(0).run();
-            if (!remainingCommands.get(0).isBusy()) {
-                remainingCommands.remove(0);
-            }
-            return !remainingCommands.isEmpty();
+            return index!=commands.size();
         }
 
         @Override
         public void stopProcedure() {
-            remainingCommands.get(0).stop();
+            if (index!=commands.size()) commands.get(index).stop();
         }
         public Command getCurrentAction(){
-            if (remainingCommands.isEmpty()){
-                return commands.get(0);
-            }
-            return remainingCommands.get(0);
+            if (isStart()||isFinished()) return null;
+            else if (index== commands.size()) return commands.get(index-1);
+            else return commands.get(index);
         }
         public int getCurrentActionIndex(){
-            if (remainingCommands.isEmpty()){
-                return 0;
-            }
-            return commands.size()-remainingCommands.size();
+            if (index==commands.size()) return index-1;
+            else return index;
         }
     }
 

@@ -636,6 +636,13 @@ public class Inferno implements RobotConfig{
             system.setOutput(output);
         }
     }
+
+    @Override
+    public ArrayList<Actuator<?>> getActuators() {
+        return new ArrayList<>(Arrays.asList(leftFront, leftRear, rightFront, rightRear, frontIntake, backIntake, frontIntakeGate, backIntakeGate, transferGate,
+            flywheel.get("flywheelLeft"), flywheel.get("flywheelRight"), turretYaw.get("turretYawFront"), turretYaw.get("turretYawBack"), turretPitch.get("turretPitchLeft"), turretPitch.get("turretPitchRight")));
+    }
+
     @Override
     public void generalInit() {
         leftVelocityPID = new VelocityPID(false,BotMotor::getVelocity,0.001, 0.001, 0.00003);

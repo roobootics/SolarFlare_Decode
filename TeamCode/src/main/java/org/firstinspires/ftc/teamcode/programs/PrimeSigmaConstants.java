@@ -19,22 +19,13 @@ public class PrimeSigmaConstants {
     public static final double slowDownAmount = 0.67;
     public static final double gateWait = 0.4;
     public static final double gateIntakeTimeout = 1;
-    public static Commands.Command backExpelShoot;
-    public static Commands.Command frontExpelShoot;
+    public static Commands.Command shoot = new Commands.ParallelCommand(setState(Inferno.RobotState.SHOOTING), new Commands.SleepCommand(SHOT_TIME));
     public static final HashMap<String, Pose> poses = new HashMap<>();
     public static Pose mirrorPose(Pose input){
         return new Pose(144-input.getX(),input.getY(),mirrorHeading(input.getHeading()));
     }
     public static double mirrorHeading(double input){
         return 2*Math.PI - input;
-    }
-    public static void initExpelActions(){
-        backExpelShoot = new Commands.SequentialCommand(
-                new Commands.ParallelCommand(setState(Inferno.RobotState.SHOOTING), new Commands.SleepCommand(SHOT_TIME))
-        );
-        frontExpelShoot = new Commands.SequentialCommand(
-                new Commands.ParallelCommand(setState(Inferno.RobotState.SHOOTING), new Commands.SleepCommand(SHOT_TIME))
-        );
     }
     static {
         poses.put("start",new Pose(20, 122.62, Math.toRadians(143.5)));

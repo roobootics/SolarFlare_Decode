@@ -27,6 +27,7 @@ import org.firstinspires.ftc.teamcode.presets.TimeBasedLocalizers;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Target;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -85,6 +86,7 @@ public abstract class Components {
         }
     }
     public interface RobotConfig {
+        ArrayList<Actuator<?>> getActuators();
         default void generalInit(){}
         default void autoSpecificInit(){}
         default void teleOpSpecificInit(){}
@@ -96,14 +98,15 @@ public abstract class Components {
         private int resetCacheCounter = 1;
         private final int resetCacheLoopInterval; //If this is set to n, the cache is reset every nth iteration.
         private E storedReadValue = null;
-        private Integer hashCode = null;
-        public CachedReader(Supplier<E> read, int resetCacheLoopInterval){
+        private final boolean deleteInstance;
+        public CachedReader(Supplier<E> read, int resetCacheLoopInterval, boolean deleteInstance){
+            this.deleteInstance = deleteInstance;
             this.read=read;
             this.resetCacheLoopInterval = resetCacheLoopInterval;
-            if (!readers.add(this)){
-                readers.remove(this);
-                readers.add(this);
-            }
+            readers.add(this);
+        }
+        public CachedReader(Supplier<E> read, int resetCacheLoopInterval){
+            this(read,resetCacheLoopInterval,false);
         }
         public E cachedRead(){
             if (Objects.isNull(storedReadValue)){
@@ -123,19 +126,12 @@ public abstract class Components {
                 }
             }
         }
-        public void setHashCode(int hashCode){
-            this.hashCode = hashCode;
-        }
-        @Override
-        public int hashCode(){
-            if (Objects.isNull(hashCode)){
-                return super.hashCode();
-            } else return hashCode;
-        }
-        @Override
-        public boolean equals(Object other){
-            if (!(other instanceof CachedReader)) return false;
-            return this.hashCode()==other.hashCode();
+        protected static void clearReaders(){
+            ArrayList<CachedReader<?>> readersToClear = new ArrayList<>();
+            for (CachedReader<?> reader : readers){
+                if (reader.deleteInstance) readersToClear.add(reader);
+            }
+            readersToClear.forEach(readers::remove);
         }
     }
     @Target(ElementType.METHOD)
@@ -148,6 +144,10 @@ public abstract class Components {
         telemetryOutput.clear();
         prevTelemetryOutput.clear();
         actuators.clear();
+        for (Actuator<?> actuator : config.getActuators()){
+            actuators.put(actuator.name,actuator);
+        }
+        CachedReader.clearReaders();
         config.generalInit();
         if (autoSpecificInit) config.autoSpecificInit();
         if (teleOpSpecificInit) config.teleOpSpecificInit();
@@ -346,7 +346,6 @@ public abstract class Components {
             } else{
                 defaultControlKey=currControlFuncKey;
             }
-            actuators.put(name,this);
         }
         void initDevice(){
             this.device = (E) hardwareMap.tryGet(HardwareDevice.class,name);

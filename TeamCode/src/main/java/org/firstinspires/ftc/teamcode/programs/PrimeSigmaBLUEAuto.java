@@ -6,12 +6,10 @@ import static org.firstinspires.ftc.teamcode.base.Components.telemetryAddData;
 import static org.firstinspires.ftc.teamcode.base.Components.telemetryAddLine;
 import static org.firstinspires.ftc.teamcode.base.Components.timer;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
-import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.frontExpelShoot;
-import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.backExpelShoot;
+import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.shoot;
 import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.INITIAL_WAIT;
 import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.gateIntakeTimeout;
 import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.gateWait;
-import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.initExpelActions;
 import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.slowDownAmount;
 import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.slowDownT;
 import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.speedUpT;
@@ -60,7 +58,6 @@ public class PrimeSigmaBLUEAuto extends LinearOpMode {
         turretOffsetFromAuto = 0;
         alliance = Inferno.Alliance.BLUE;
         gamePhase = GamePhase.AUTO;
-        initExpelActions();
         Pedro.createFollower(getPose("start"));
         follower.updatePose();
         turretYaw.call((Components.BotServo servo)->servo.switchControl("setPos"));
@@ -101,7 +98,7 @@ public class PrimeSigmaBLUEAuto extends LinearOpMode {
         });
         executor.setCommands(new SequentialCommand(
                         new SleepCommand(INITIAL_WAIT),
-                        new PedroLinearCommand(getPose("firstShoot"),true), backExpelShoot, setState(RobotState.INTAKE_BACK),
+                        new PedroLinearCommand(getPose("firstShoot"),true), shoot, setState(RobotState.INTAKE_BACK),
                         new PedroCommand((PathBuilder b)->b.addPath(
                                         new BezierCurve(
                                                 follower::getPose,
@@ -118,7 +115,7 @@ public class PrimeSigmaBLUEAuto extends LinearOpMode {
                                 ).setConstantHeadingInterpolation(getHeading("secondShoot"))
                                 .addParametricCallback(speedUpT,()->follower.setMaxPower(1.0))
                                 .addParametricCallback(stopIntakeT,()->setState(RobotState.STOPPED).run()), true
-                        ), frontExpelShoot, setState(RobotState.INTAKE_BACK),
+                        ), PrimeSigmaConstants.shoot, setState(RobotState.INTAKE_BACK),
                         new PedroCommand(
                                 (PathBuilder b)->b.addPath(
                                         new BezierCurve(
@@ -152,7 +149,7 @@ public class PrimeSigmaBLUEAuto extends LinearOpMode {
                                         ).setLinearHeadingInterpolation(getHeading("gateIntake"), getHeading("thirdShoot"))
                                         .addParametricCallback(stopIntakeT,()->setState(RobotState.STOPPED).run()),
                                 true
-                        ), frontExpelShoot, setState(RobotState.INTAKE_BACK),
+                        ), PrimeSigmaConstants.shoot, setState(RobotState.INTAKE_BACK),
                         new PedroCommand((PathBuilder b)->b
                                 .addPath(
                                         new BezierLine(
@@ -169,7 +166,7 @@ public class PrimeSigmaBLUEAuto extends LinearOpMode {
                                 ).setConstantHeadingInterpolation(getHeading("fourthShoot"))
                                 .addParametricCallback(speedUpT,()->follower.setMaxPower(1.0))
                                 .addParametricCallback(stopIntakeT,()->setState(RobotState.STOPPED).run()),true
-                        ), frontExpelShoot, setState(RobotState.INTAKE_BACK),
+                        ), PrimeSigmaConstants.shoot, setState(RobotState.INTAKE_BACK),
                         new PedroCommand(
                                 (PathBuilder b)->b.addPath(
                                                 new BezierCurve(
@@ -187,7 +184,7 @@ public class PrimeSigmaBLUEAuto extends LinearOpMode {
                                         ).setConstantHeadingInterpolation(getHeading("fifthShoot"))
                                         .addParametricCallback(speedUpT,()->follower.setMaxPower(1.0))
                                         .addParametricCallback(stopIntakeT,()->setState(RobotState.STOPPED).run()),true
-                        ), frontExpelShoot, setState(RobotState.STOPPED),
+                        ), PrimeSigmaConstants.shoot, setState(RobotState.STOPPED),
                         new PedroLinearCommand(getPose("park"),true)
                 ),
                 clearIntegralAtPeak,
