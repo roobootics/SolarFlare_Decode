@@ -56,14 +56,13 @@ public class Vision {
                 double tx = detectorResult.getTargetXDegrees();
                 double ty = detectorResult.getTargetYDegrees();
 
-                double totalAngleDeg = cameraPoseOnRobot.getOrientation().getPitch(AngleUnit.DEGREES) + ty;
-                double totalAngleRad = Math.toRadians(totalAngleDeg);
+                double verticalAngleDeg = 90 + ty + cameraPoseOnRobot.getOrientation().getPitch(AngleUnit.DEGREES);
 
-                double depth = cameraPoseOnRobot.getPosition().toUnit(DistanceUnit.INCH).z / -Math.tan(totalAngleRad)
+                double depth = cameraPoseOnRobot.getPosition().toUnit(DistanceUnit.INCH).z * Math.tan(Math.toRadians(verticalAngleDeg))
                                 + cameraPoseOnRobot.getPosition().toUnit(DistanceUnit.INCH).x;
                                  // artifact center offset TODO: Tune this
 
-                double horizontal = depth * Math.tan(Math.toRadians(tx)) + cameraPoseOnRobot.getPosition().toUnit(DistanceUnit.INCH).y;
+                double horizontal = depth * Math.tan(Math.toRadians(-tx + cameraPoseOnRobot.getOrientation().getYaw(AngleUnit.DEGREES))) + cameraPoseOnRobot.getPosition().toUnit(DistanceUnit.INCH).y;
 
                 double x = botPosePedro.getX();
                 double y = botPosePedro.getY();
