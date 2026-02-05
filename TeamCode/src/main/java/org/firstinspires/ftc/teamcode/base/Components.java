@@ -334,7 +334,6 @@ public abstract class Components {
             this.getCurrentPosition=reader::cachedRead;
             resetCurrentPositionCache = reader::resetCache;
             for (int i=0;i< controlFuncKeys.length;i++){
-                controlFuncs[i].stopAndReset();
                 controlSystemMap.put(controlFuncKeys[i],controlFuncs[i]);
             }
             controlSystemMap.put("controlOff",new ControlSystem<>());
@@ -347,6 +346,9 @@ public abstract class Components {
         }
         void initDevice(){
             this.device = (E) hardwareMap.tryGet(HardwareDevice.class,name);
+            for (ControlSystem<?> system : controlSystemMap.values()){
+                system.stopAndReset();
+            }
         }
         public void setTargetBounds(Supplier<Double> maxTargetFunc, Supplier<Double> minTargetFunc){ //Sets the maximum and minimum target that can be set to the Actuator. They are functions because the maximum and minimum may change depending on other factors.
             this.maxTargetFunc = ()->(maxTargetFunc.get()+offset);
@@ -715,6 +717,24 @@ public abstract class Components {
                     new IfThen(downCondition, downwardFSMPowerCommand(powers))
             ));
         }
+        public class SetPowerForDistance extends CompoundCommand{ //Makes the motor set a power until it travels a certain distance.
+            private double startPosition;
+            public SetPowerForDistance(double power, double distance){
+                setGroup(new SequentialCommand(
+                        new InstantCommand(()->startPosition=getCurrentPosition()),
+                        new Commands.ParallelCommand(
+                                setPowerCommand(power)
+                        ),
+                        new SleepUntilTrue(()->(getCurrentPosition()-startPosition)>distance),
+                        new Commands.ParallelCommand(
+                                setPowerCommand(0)
+                        )
+                ));
+            }
+        }
+        public SetPowerForDistance setPowerForDistance(double power, double distance){
+            return new SetPowerForDistance(power,distance);
+        }
     }
     //Each of the bottom-level subclass constructors will accept getCurrentPosition functions and control functions, since those cater to a specific subclass.
     public static class BotMotor extends CRActuator<DcMotorEx> {
@@ -833,24 +853,6 @@ public abstract class Components {
 
         public PressCommand triggeredStallResetCommand(Supplier<Boolean> condition, double resetPosition, double stallAmps) { //Command to initiate a stall reset on a button press
             return new PressCommand(new IfThen(condition, stallResetCommand(resetPosition, stallAmps)));
-        }
-        public class SetPowerForDistance extends CompoundCommand{ //Makes the motor set a power until it travels a certain distance.
-            private double startPosition;
-            public SetPowerForDistance(double power, double distance){
-                setGroup(new SequentialCommand(
-                        new InstantCommand(()->startPosition=getCurrentPosition()),
-                        new Commands.ParallelCommand(
-                                setPowerCommand(power)
-                        ),
-                        new SleepUntilTrue(()->(getCurrentPosition()-startPosition)>distance),
-                        new Commands.ParallelCommand(
-                                setPowerCommand(0)
-                        )
-                ));
-            }
-        }
-        public SetPowerForDistance setPowerForDistance(double power, double distance){
-            return new SetPowerForDistance(power,distance);
         }
         @Actuate
         public void setVelocity(double velocity){ //Sets the velocity of the motor. Like setPower, but with velocity control
