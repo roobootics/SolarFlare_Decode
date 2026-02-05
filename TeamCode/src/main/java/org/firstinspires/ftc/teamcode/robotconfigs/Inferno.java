@@ -10,8 +10,11 @@ import static java.lang.Math.sqrt;
 
 import org.apache.commons.lang3.tuple.Triple;
 
+import com.pedropathing.geometry.BezierCurve;
+import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.math.Vector;
+import com.pedropathing.paths.PathBuilder;
 import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.NormalizedRGBA;
@@ -27,6 +30,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 import org.firstinspires.ftc.teamcode.base.Commands.*;
 import org.firstinspires.ftc.teamcode.base.Components;
 import org.firstinspires.ftc.teamcode.base.Components.*;
+import org.firstinspires.ftc.teamcode.pedroPathing.Pedro.*;
 import org.firstinspires.ftc.teamcode.presets.PresetControl.*;
 import org.firstinspires.ftc.teamcode.vision.Vision;
 
@@ -63,6 +67,71 @@ public class Inferno implements RobotConfig{
     public static BotServo transferGate  = new BotServo("transferGate", Servo.Direction.FORWARD,422,5,270,148.5);
     public static VoltageSensor voltageSensor;
     public static Vision vision;
+
+    public static Command autoGateIntake;
+    private static boolean isSpinningUp = true;
+    public static final ArrayList<Supplier<Double[]>> colorSensorReads = new ArrayList<>();
+    public static double turretOffsetFromAuto = 0;
+    public static Color[] ballStorage = new Color[3];
+    public static BallPath currentBallPath = BallPath.LOW;
+    public static RobotState robotState = RobotState.STOPPED;
+    public static ShotType shotType = ShotType.NORMAL;
+    public static boolean motifShootAll = true;
+    private final static double BALL_SHOT_TIMING = 0.17;
+    private final static double TRANSFER_SELECT_DELAY = 0.1;
+    private final static double TRANSFER_REBOOST_DELAY = 0.3;
+    public static Color[] motif = new Color[]{Color.PURPLE,Color.GREEN,Color.PURPLE};
+    public static double classifierBallCount = 0;
+    public static Alliance alliance = Alliance.RED;
+    public static GamePhase gamePhase = GamePhase.AUTO;
+    public static VelocityPID leftVelocityPID = new VelocityPID(false,BotMotor::getVelocity,0.001, 0.001, 0.00003);
+    public static VelocityPID rightVelocityPID = new VelocityPID(false,(BotMotor motor)->flywheel.get("flywheelLeft").getVelocity(),0.001, 0.001 , 0.00003);;
+
+    static {
+        for (int i=0;i<3;i++){
+            int finalI = i;
+            colorSensorReads.add(new CachedReader<>(
+                    ()->{
+                        NormalizedColorSensor sensor = sensors[finalI];
+                        NormalizedRGBA normal = sensor.getNormalizedColors();
+                        double red = normal.red*256; double green = normal.green*256; double blue = normal.blue*256;
+                        double brightness = red+green+blue; red/=brightness; green/=brightness; blue/=brightness;
+                        return new Double[]{red,green,blue};
+                    },2
+            )::cachedRead);
+        }
+        flywheel = new SyncedActuators<>(
+                new BotMotor("flywheelLeft", DcMotorSimple.Direction.REVERSE, 0, 0, new String[]{"VelocityPIDF"},
+                        new ControlSystem<>(new String[]{"targetVelocity"}, List.of(() -> targetFlywheelVelocity), leftVelocityPID, new CustomFeedforward(1, ()->targetFlywheelVelocity/(80/0.58 * voltageSensor.getVoltage() + 673)), new Clamp(),
+                                new CustomFeedforward(1, ()->{
+                                    if (isSpinningUp || ((robotState==RobotState.SHOOTING || robotState==RobotState.INTAKE_FRONT_AND_SHOOT || robotState==RobotState.INTAKE_BACK_AND_SHOOT)&&flywheel.get("flywheelLeft").getVelocity()<targetFlywheelVelocity)) {return 1.0;}
+                                    if ((robotState==RobotState.SHOOTING || robotState==RobotState.INTAKE_FRONT_AND_SHOOT || robotState==RobotState.INTAKE_BACK_AND_SHOOT)&&flywheel.get("flywheelLeft").getVelocity()>targetFlywheelVelocity+54){return -0.5;}
+                                    else if (flywheel.get("flywheelLeft").getVelocity()>targetFlywheelVelocity+85){return -0.5;}
+                                    else {return 0.0;}})
+                        )),
+                new BotMotor("flywheelRight", DcMotorSimple.Direction.FORWARD, 0, 0, new String[]{"VelocityPIDF"},
+                        new ControlSystem<>(new String[]{"targetVelocity"}, List.of(() -> targetFlywheelVelocity), rightVelocityPID, new CustomFeedforward(1, ()->targetFlywheelVelocity/(80/0.58 * voltageSensor.getVoltage() + 673)), new Clamp(),
+                                new CustomFeedforward(1, ()->{
+                                    if (isSpinningUp || ((robotState==RobotState.SHOOTING || robotState==RobotState.INTAKE_FRONT_AND_SHOOT || robotState==RobotState.INTAKE_BACK_AND_SHOOT)&&flywheel.get("flywheelLeft").getVelocity()<targetFlywheelVelocity)) {return 1.0;}
+                                    else if ((robotState==RobotState.SHOOTING || robotState==RobotState.INTAKE_FRONT_AND_SHOOT || robotState==RobotState.INTAKE_BACK_AND_SHOOT)&&flywheel.get("flywheelLeft").getVelocity()>targetFlywheelVelocity+54){return -0.5;}
+                                    else if (flywheel.get("flywheelLeft").getVelocity()>targetFlywheelVelocity+85){return -0.5;}
+                                    else {return 0.0;}})
+                        ))
+        );
+        turretYaw.call((BotServo servo) -> servo.setTargetBounds(() -> 315*TURRET_YAW_RATIO, () -> 0.0));
+        turretPitch.call((BotServo servo) -> servo.setTargetBounds(() -> 173.0, () -> 150-5*TURRET_PITCH_RATIO));
+        frontIntake.setKeyPowers(
+                new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel","frontDrive","sideSelect"},
+                new double[]{1.0,-0.75,1.0,0.9,0,-0.8,0.75,-1.0}
+        );
+        backIntake.setKeyPowers(
+                new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel","frontDrive","sideSelect"},
+                new double[]{1.0,-0.75,1.0,0.9,0,-1.0,0.75,-1.0}
+        );
+        frontIntakeGate.setKeyPositions(new String[]{"open", "closed","push"}, new double[]{180,60.9,55.9});
+        backIntakeGate.setKeyPositions(new String[]{"open", "closed","push"}, new double[]{180,75.9,70.9});
+        transferGate.setKeyPositions(new String[]{"open","closed"},new double[]{148.5,86.4});
+    }
     public enum Color{
         PURPLE,
         GREEN,
@@ -95,20 +164,6 @@ public class Inferno implements RobotConfig{
         AUTO,
         TELEOP
     }
-    public static Color[] ballStorage = new Color[3];
-    public static BallPath currentBallPath = BallPath.LOW;
-    public static RobotState robotState = RobotState.STOPPED;
-    public static ShotType shotType = ShotType.NORMAL;
-    public static boolean motifShootAll = true;
-    private final static double BALL_SHOT_TIMING = 0.17;
-    private final static double TRANSFER_SELECT_DELAY = 0.1;
-    private final static double TRANSFER_REBOOST_DELAY = 0.3;
-    public static Color[] motif = new Color[]{Color.PURPLE,Color.GREEN,Color.PURPLE};
-    public static double classifierBallCount = 0;
-    public static Alliance alliance = Alliance.RED;
-    public static GamePhase gamePhase = GamePhase.AUTO;
-    public static VelocityPID leftVelocityPID;
-    public static VelocityPID rightVelocityPID;
     private static final SequentialCommand frontTransfer  = new SequentialCommand(
             new ParallelCommand(
                     transferGate.instantSetTargetCommand("open"),
@@ -274,54 +329,6 @@ public class Inferno implements RobotConfig{
         //new InstantCommand(()->{if ((robotState!=RobotState.SHOOTING && robotState!=RobotState.STOPPED) || shotType==ShotType.NORMAL){currentBallPath=BallPath.LOW;}}),
         setShooter
     );
-    private static boolean isSpinningUp = true;
-    public static final ArrayList<Supplier<Double[]>> colorSensorReads = new ArrayList<>();
-    public static double turretOffsetFromAuto = 0;
-    static {
-        for (int i=0;i<3;i++){
-            int finalI = i;
-            colorSensorReads.add(new CachedReader<>(
-                    ()->{
-                        NormalizedColorSensor sensor = sensors[finalI];
-                        NormalizedRGBA normal = sensor.getNormalizedColors();
-                        double red = normal.red*256; double green = normal.green*256; double blue = normal.blue*256;
-                        double brightness = red+green+blue; red/=brightness; green/=brightness; blue/=brightness;
-                        return new Double[]{red,green,blue};
-                    },2
-            )::cachedRead);
-        }
-        flywheel = new SyncedActuators<>(
-                new BotMotor("flywheelLeft", DcMotorSimple.Direction.REVERSE, 0, 0, new String[]{"VelocityPIDF"},
-                        new ControlSystem<>(new String[]{"targetVelocity"}, List.of(() -> targetFlywheelVelocity), leftVelocityPID, new CustomFeedforward(1, ()->targetFlywheelVelocity/(80/0.58 * voltageSensor.getVoltage() + 673)), new Clamp(),
-                                new CustomFeedforward(1, ()->{
-                                    if (isSpinningUp || ((robotState==RobotState.SHOOTING || robotState==RobotState.INTAKE_FRONT_AND_SHOOT || robotState==RobotState.INTAKE_BACK_AND_SHOOT)&&flywheel.get("flywheelLeft").getVelocity()<targetFlywheelVelocity)) {return 1.0;}
-                                    if ((robotState==RobotState.SHOOTING || robotState==RobotState.INTAKE_FRONT_AND_SHOOT || robotState==RobotState.INTAKE_BACK_AND_SHOOT)&&flywheel.get("flywheelLeft").getVelocity()>targetFlywheelVelocity+54){return -0.5;}
-                                    else if (flywheel.get("flywheelLeft").getVelocity()>targetFlywheelVelocity+85){return -0.5;}
-                                    else {return 0.0;}})
-                        )),
-                new BotMotor("flywheelRight", DcMotorSimple.Direction.FORWARD, 0, 0, new String[]{"VelocityPIDF"},
-                        new ControlSystem<>(new String[]{"targetVelocity"}, List.of(() -> targetFlywheelVelocity), rightVelocityPID, new CustomFeedforward(1, ()->targetFlywheelVelocity/(80/0.58 * voltageSensor.getVoltage() + 673)), new Clamp(),
-                                new CustomFeedforward(1, ()->{
-                                    if (isSpinningUp || ((robotState==RobotState.SHOOTING || robotState==RobotState.INTAKE_FRONT_AND_SHOOT || robotState==RobotState.INTAKE_BACK_AND_SHOOT)&&flywheel.get("flywheelLeft").getVelocity()<targetFlywheelVelocity)) {return 1.0;}
-                                    else if ((robotState==RobotState.SHOOTING || robotState==RobotState.INTAKE_FRONT_AND_SHOOT || robotState==RobotState.INTAKE_BACK_AND_SHOOT)&&flywheel.get("flywheelLeft").getVelocity()>targetFlywheelVelocity+54){return -0.5;}
-                                    else if (flywheel.get("flywheelLeft").getVelocity()>targetFlywheelVelocity+85){return -0.5;}
-                                    else {return 0.0;}})
-                        ))
-        );
-        turretYaw.call((BotServo servo) -> servo.setTargetBounds(() -> 315*TURRET_YAW_RATIO, () -> 0.0));
-        turretPitch.call((BotServo servo) -> servo.setTargetBounds(() -> 173.0, () -> 150-5*TURRET_PITCH_RATIO));
-        frontIntake.setKeyPowers(
-                new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel","frontDrive","sideSelect"},
-                new double[]{1.0,-0.75,1.0,0.9,0,-0.8,0.75,-1.0}
-        );
-        backIntake.setKeyPowers(
-                new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel","frontDrive","sideSelect"},
-                new double[]{1.0,-0.75,1.0,0.9,0,-1.0,0.75,-1.0}
-        );
-        frontIntakeGate.setKeyPositions(new String[]{"open", "closed","push"}, new double[]{180,60.9,55.9});
-        backIntakeGate.setKeyPositions(new String[]{"open", "closed","push"}, new double[]{180,75.9,70.9});
-        transferGate.setKeyPositions(new String[]{"open","closed"},new double[]{148.5,86.4});
-    }
     private static Color colorSensorRead(int index){
         double [] greenCenter = new double[]{0.23,0.54,0.23};
         double [] purpleCenter = new double[]{0.4,0.2,0.4};
@@ -645,8 +652,6 @@ public class Inferno implements RobotConfig{
 
     @Override
     public void generalInit() {
-        leftVelocityPID = new VelocityPID(false,BotMotor::getVelocity,0.001, 0.001, 0.00003);
-        rightVelocityPID = new VelocityPID(false,(BotMotor motor)->flywheel.get("flywheelLeft").getVelocity(),0.001, 0.001 , 0.00003);
         sensors[0] = Components.getHardwareMap().get(NormalizedColorSensor.class, "sensor1");
         sensors[1] = Components.getHardwareMap().get(NormalizedColorSensor.class, "sensor2");
         sensors[2] = Components.getHardwareMap().get(NormalizedColorSensor.class, "sensor3");
@@ -660,5 +665,39 @@ public class Inferno implements RobotConfig{
         ballStorage = new Color[3];
         classifierBallCount=0;
         isSpinningUp = true;
+        if (alliance == Alliance.RED) autoGateIntake = new ParallelCommand(setState(RobotState.STOPPED), new ConditionalCommand(
+                new IfThen(()->follower.getHeading()<Math.toRadians(90) && follower.getHeading()>Math.toRadians(-90),
+                        new PedroCommand(
+                                (PathBuilder b)->b.addPath(new BezierLine(follower::getPose,new Pose(128,70)))
+                                        .setLinearHeadingInterpolation(follower.getHeading(),Math.toRadians(0))
+                                        .addPath(new BezierCurve(follower::getPose,new Pose(126,58),new Pose(133,55)))
+                                        .setLinearHeadingInterpolation(Math.toRadians(0),Math.toRadians(45))
+                                        .addParametricCallback(0,setState(RobotState.INTAKE_FRONT)::run),true
+                )), new IfThen(()->follower.getHeading()>Math.toRadians(90) || follower.getHeading()<Math.toRadians(-90),
+                new PedroCommand(
+                        (PathBuilder b)->b.addPath(new BezierLine(follower::getPose,new Pose(128,70)))
+                                .setLinearHeadingInterpolation(follower.getHeading(),Math.toRadians(180))
+                                .addPath(new BezierCurve(follower::getPose,new Pose(126,58),new Pose(133,55)))
+                                .setLinearHeadingInterpolation(Math.toRadians(180),Math.toRadians(225))
+                                .addParametricCallback(0,setState(RobotState.INTAKE_BACK)::run),true
+                ))
+        ));
+        else autoGateIntake = new ParallelCommand(setState(RobotState.STOPPED), new ConditionalCommand(
+                new IfThen(()->follower.getHeading()>Math.toRadians(90) || follower.getHeading()<Math.toRadians(-90),
+                        new PedroCommand(
+                                (PathBuilder b)->b.addPath(new BezierLine(follower::getPose,new Pose(16,70)))
+                                        .setLinearHeadingInterpolation(follower.getHeading(),Math.toRadians(180))
+                                        .addPath(new BezierCurve(follower::getPose,new Pose(18,58),new Pose(11,55)))
+                                        .setLinearHeadingInterpolation(Math.toRadians(180),Math.toRadians(135))
+                                        .addParametricCallback(0,setState(RobotState.INTAKE_FRONT)::run),true
+                )), new IfThen(()->follower.getHeading()<Math.toRadians(90) && follower.getHeading()>-Math.toRadians(-90),
+                new PedroCommand(
+                        (PathBuilder b)->b.addPath(new BezierLine(follower::getPose,new Pose(16,70)))
+                                .setLinearHeadingInterpolation(follower.getHeading(),Math.toRadians(0))
+                                .addPath(new BezierCurve(follower::getPose,new Pose(18,58),new Pose(11,55)))
+                                .setLinearHeadingInterpolation(Math.toRadians(0),Math.toRadians(-45))
+                                .addParametricCallback(0,setState(RobotState.INTAKE_BACK)::run),true
+                ))
+        ));
     }
 }

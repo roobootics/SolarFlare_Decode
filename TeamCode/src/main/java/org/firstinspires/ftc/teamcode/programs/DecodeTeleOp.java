@@ -7,6 +7,7 @@ import static org.firstinspires.ftc.teamcode.base.Components.telemetryAddLine;
 import static org.firstinspires.ftc.teamcode.base.Components.timer;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.aprilTagRelocalize;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.autoGateIntake;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.backIntakeGate;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.ballStorage;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.classifierBallCount;
@@ -81,11 +82,12 @@ public class DecodeTeleOp extends LinearOpMode {
         breakFollowing();
         executor.setCommands(
                 new RunResettingLoop(
-                        new ConditionalCommand(
+                        new PressCommand(
                                 new IfThen(()->gamepad1.right_bumper, setState(RobotState.INTAKE_FRONT)),
                                 new IfThen(()->gamepad1.left_bumper, setState(RobotState.INTAKE_BACK)),
                                 new IfThen(()->gamepad1.right_trigger>0.8, setState(RobotState.SHOOTING)),
-                                new IfThen(()->gamepad1.y, setState(RobotState.STOPPED))
+                                new IfThen(()->gamepad1.y, setState(RobotState.STOPPED)),
+                                new IfThen(()->gamepad1.a, autoGateIntake)
                         ),
                         new PressCommand(
                                 new IfThen(()->gamepad2.y,toggleShotType()),

@@ -330,13 +330,11 @@ public abstract class Components {
             this.name=actuatorName;
             this.defaultMovementTimeout = defaultMovementTimeout;
             this.errorTol=errorTol;
-            CachedReader<Double> reader;
-            if (!Objects.isNull(device)){
-                reader = new CachedReader<>(()->(getCurrentPosition.apply(device)),currentPosPollingInterval);
-            } else{reader = new CachedReader<>(()->(0.0),currentPosPollingInterval);}
+            CachedReader<Double> reader = new CachedReader<>(()->{if (Objects.nonNull(device)) return getCurrentPosition.apply(device); else return 0.0;},currentPosPollingInterval);
             this.getCurrentPosition=reader::cachedRead;
             resetCurrentPositionCache = reader::resetCache;
             for (int i=0;i< controlFuncKeys.length;i++){
+                controlFuncs[i].stopAndReset();
                 controlSystemMap.put(controlFuncKeys[i],controlFuncs[i]);
             }
             controlSystemMap.put("controlOff",new ControlSystem<>());
