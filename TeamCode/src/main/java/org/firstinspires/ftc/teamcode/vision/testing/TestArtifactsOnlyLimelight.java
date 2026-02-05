@@ -18,28 +18,29 @@ import org.firstinspires.ftc.teamcode.vision.descriptors.ArtifactDescriptor;
 
 import java.util.List;
 
-@Config
 @TeleOp
-public class TestArtifactDetection extends OpMode {
-    Vision vision;
+@Config
+public class TestArtifactsOnlyLimelight extends OpMode {
     final static double ARTIFACT_CENTER_OFFSET = 2.5;
-    Pose3D cameraPose = new Pose3D(new Position(DistanceUnit.METER, 0.182, 0, 0.2225, 0), new YawPitchRollAngles(AngleUnit.DEGREES, 0, 0, 0, 0));
+    Pose3D testerRig = new Pose3D(new Position(DistanceUnit.MM, -29, 0, 123, 0), new YawPitchRollAngles(AngleUnit.DEGREES, 0, 0, 0, 0));;
+    Pose3D cameraPoseOnRobot = new Pose3D(new Position(DistanceUnit.METER, 0.182, 0, 0.2225, 0), new YawPitchRollAngles(AngleUnit.DEGREES, 0, 0, 0, 0));
+    Vision vision;
+    Pose botPosePedro = new Pose(72, 0, Math.toRadians(90));
     FtcDashboard dashboard;
 
     @Override
     public void init(){
-        vision = new Vision(hardwareMap, telemetry, cameraPose);
+        vision = new Vision(hardwareMap, telemetry, cameraPoseOnRobot);
         dashboard = FtcDashboard.getInstance();
-    }
 
+    }
     @Override
     public void loop(){
         TelemetryPacket packet = new TelemetryPacket();
         Canvas fieldOverlay = packet.fieldOverlay();
 
-        Pose botPose = new Pose(72, 0, Math.toRadians(90));
-
-        List<ArtifactDescriptor> artifacts = vision.getArtifactDescriptors(botPose);
+        vision.getArtifactDescriptors(botPosePedro);
+        List<ArtifactDescriptor> artifacts = vision.getArtifactDescriptors(botPosePedro);
 
         if (artifacts != null) {
             artifacts = vision.pedroToStandardPoseArtifacts(artifacts);
@@ -60,9 +61,6 @@ public class TestArtifactDetection extends OpMode {
                 fieldOverlay.setFill(className);
                 fieldOverlay.fillCircle(x, y, 2.5);
             }
-        }
-        else {
-            telemetry.addLine("No artifacts detected");
         }
 
         dashboard.sendTelemetryPacket(packet);
