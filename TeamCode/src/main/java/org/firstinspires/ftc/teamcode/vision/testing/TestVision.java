@@ -63,7 +63,7 @@ public class TestVision extends OpMode {
 
         List<ArtifactDescriptor> artifacts = vision.getArtifactDescriptors(botPose);
 
-        if (artifacts != null) {
+        if (!artifacts.isEmpty()) {
             artifacts = vision.pedroToStandardPoseArtifacts(artifacts);
 
             for (ArtifactDescriptor artifact : artifacts) {

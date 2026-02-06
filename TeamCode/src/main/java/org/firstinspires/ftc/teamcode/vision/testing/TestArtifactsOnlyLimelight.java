@@ -25,45 +25,31 @@ public class TestArtifactsOnlyLimelight extends OpMode {
     Pose3D testerRig = new Pose3D(new Position(DistanceUnit.MM, -29, 0, 123, 0), new YawPitchRollAngles(AngleUnit.DEGREES, 0, 0, 0, 0));;
     Pose3D cameraPoseOnRobot = new Pose3D(new Position(DistanceUnit.METER, 0.182, 0, 0.2225, 0), new YawPitchRollAngles(AngleUnit.DEGREES, 0, 0, 0, 0));
     Vision vision;
-    Pose botPosePedro = new Pose(72, 0, Math.toRadians(90));
-    FtcDashboard dashboard;
 
     @Override
     public void init(){
-        vision = new Vision(hardwareMap, telemetry, cameraPoseOnRobot);
-        dashboard = FtcDashboard.getInstance();
-
+        vision = new Vision(hardwareMap, telemetry, testerRig);
     }
     @Override
     public void loop(){
-        TelemetryPacket packet = new TelemetryPacket();
-        Canvas fieldOverlay = packet.fieldOverlay();
 
-        vision.getArtifactDescriptors(botPosePedro);
-        List<ArtifactDescriptor> artifacts = vision.getArtifactDescriptors(botPosePedro);
+        List<ArtifactDescriptor> artifacts = vision.getRelativeArtifactDescriptors();
 
-        if (artifacts != null) {
-            artifacts = vision.pedroToStandardPoseArtifacts(artifacts);
-
+        if (!artifacts.isEmpty()) {
             for (ArtifactDescriptor artifact : artifacts) {
                 double x = artifact.getX();
-                double y = artifact.getY();
+                double y = artifact.getY() + ARTIFACT_CENTER_OFFSET;
                 String className = artifact.getClassName();
-
-                packet.put("x", x);
-                packet.put("y", y + ARTIFACT_CENTER_OFFSET);
-                packet.put("className", className);
 
                 telemetry.addData("x", x);
                 telemetry.addData("y", y);
                 telemetry.addData("className", className);
-
-                fieldOverlay.setFill(className);
-                fieldOverlay.fillCircle(x, y, 2.5);
             }
         }
+        else {
+            telemetry.addLine("No artifacts detected");
+        }
 
-        dashboard.sendTelemetryPacket(packet);
         telemetry.update();
     }
 }

@@ -656,8 +656,7 @@ public class Inferno implements RobotConfig{
         sensors[1] = Components.getHardwareMap().get(NormalizedColorSensor.class, "sensor2");
         sensors[2] = Components.getHardwareMap().get(NormalizedColorSensor.class, "sensor3");
         voltageSensor = getHardwareMap().get(VoltageSensor.class,"Control Hub");
-        Pose3D cameraPoseOnRobot = new Pose3D(new Position(DistanceUnit.METER, 0.182, 0, 0.2225, 0), new YawPitchRollAngles(AngleUnit.DEGREES, 0, 0, 0, 0));
-        vision = new Vision(Components.getHardwareMap(),Components.getTelemetry(), cameraPoseOnRobot);
+        vision = new Vision(Components.getHardwareMap(),Components.getTelemetry());
         targetFlywheelVelocity = 0;
         shotType=ShotType.NORMAL;
         robotState=null;
