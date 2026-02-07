@@ -72,7 +72,8 @@ public class Constants {
             followerConstants.setUseSecondaryTranslationalPIDF(true);
             followerConstants.setUseSecondaryHeadingPIDF(true);
         } else {
-            followerConstants.setHoldPointTranslationalScaling(0.6);
+            followerConstants.setHoldPointTranslationalScaling(1.9);
+            followerConstants.setHoldPointHeadingScaling(0.4);
             followerConstants.setUseSecondaryDrivePIDF(false);
             followerConstants.setUseSecondaryTranslationalPIDF(false);
             followerConstants.setUseSecondaryHeadingPIDF(false);
@@ -83,8 +84,8 @@ public class Constants {
                 .pathConstraints(pathConstraints)
                 .build();
         if (gamePhase== Inferno.GamePhase.TELEOP) {
-            follower.setTranslationalPIDFCoefficients(new PIDFCoefficients(0.85, 0.0007, 0, 0));
-            follower.setHeadingPIDFCoefficients(new PIDFCoefficients(1.5, 0.001, 0.00001, 0));
+            follower.setTranslationalPIDFCoefficients(new PIDFCoefficients(0.2, 0.0007, 0.0001, 0));
+            follower.setHeadingPIDFCoefficients(new PIDFCoefficients(1.35,0.001,0,0));
         }
         return follower;
     }

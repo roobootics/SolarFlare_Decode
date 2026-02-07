@@ -108,10 +108,6 @@ public abstract class PresetControl { //Holds control functions that actuators c
         public void clearIntegral(){
             PID.clearIntegral();
         }
-        @Override
-        public void stopProcedure(){
-            parentActuator.setPower(0);
-        }
         public void setPIDCoefficients(double kP, double kI, double kD){
             PID.setPIDCoefficients(kP,kI,kD);
         }
@@ -146,10 +142,6 @@ public abstract class PresetControl { //Holds control functions that actuators c
             }
             double output=PID.getPIDOutput(system.getInstantReference("targetVelocity"), getVelocity.apply(parentActuator));
             system.setOutput(system.getOutput()+output);
-        }
-        @Override
-        public void stopProcedure(){
-            parentActuator.setPower(0);
         }
         public void clearIntegral(){
             PID.clearIntegral();
@@ -216,10 +208,6 @@ public abstract class PresetControl { //Holds control functions that actuators c
             system.setOutput(
                     kP * Math.sqrt(Math.abs(error))*Math.signum(error)+system.getOutput()
             );
-        }
-        @Override
-        public void stopProcedure(){
-            parentActuator.setPower(0);
         }
     }
     public static class TrapezoidalMotionProfile extends ControlFunc<Actuator<?>>{ //Trapezoidal motion profile for any actuator.

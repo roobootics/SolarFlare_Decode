@@ -8,12 +8,14 @@ import static org.firstinspires.ftc.teamcode.base.Components.timer;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.aprilTagRelocalize;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.autoGateIntake;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.backIntake;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.backIntakeGate;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.ballStorage;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.classifierBallCount;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.clearIntegralAtPeak;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.currentBallPath;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.flywheel;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.frontIntake;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.frontIntakeGate;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.gamePhase;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.getTargetPoint;
@@ -103,9 +105,21 @@ public class DecodeTeleOp extends LinearOpMode {
                         new PressCommand(
                                 new IfThen(()->robotState==RobotState.SHOOTING,
                                         new SequentialCommand(
-                                                new InstantCommand(()->{this.stopDrivetrain(); holdingPosition = true; follower.holdPoint(follower.getPose()); setMotorsToBrake();}),
-                                                new SleepCommand(1.2),
-                                                new InstantCommand(()->{this.stopDrivetrain(); breakFollowing(); frontIntakeGate.instantSetTargetCommand("closed"); backIntakeGate.instantSetTargetCommand("closed");})
+                                                new InstantCommand(()->{this.stopDrivetrain(); holdingPosition = true;}),
+                                                new SleepCommand(0.15),
+                                                new InstantCommand(()->{follower.holdPoint(follower.getPose()); setMotorsToBrake();}),
+                                                new ParallelCommand(
+                                                        new SequentialCommand(
+                                                                new SleepUntilTrue(()->
+                                                                        Math.sqrt(gamepad1.left_stick_x*gamepad1.left_stick_x + gamepad1.left_stick_y*gamepad1.left_stick_y)>0.5 || Math.abs(gamepad1.right_stick_x)>0.5
+                                                                        ,1.2),
+                                                                new InstantCommand(()->{this.stopDrivetrain(); breakFollowing(); frontIntakeGate.setTarget(frontIntakeGate.getPos("closed")); backIntakeGate.setTarget(backIntakeGate.getPos("closed"));})
+                                                        ),
+                                                        new SequentialCommand(
+                                                                new SleepCommand(1.2),
+                                                                new InstantCommand(()->{frontIntake.setPower(-1.0); backIntake.setPower(-1.0);})
+                                                        )
+                                                )
                                         )
                                 ),
                                 new IfThen(()->robotState!=RobotState.SHOOTING,new InstantCommand(()->{this.breakFollowing(); this.stopDrivetrain();}))

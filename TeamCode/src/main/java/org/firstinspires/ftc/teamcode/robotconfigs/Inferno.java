@@ -131,6 +131,8 @@ public class Inferno implements RobotConfig{
         frontIntakeGate.setKeyPositions(new String[]{"open", "closed","push"}, new double[]{180,60.9,55.9});
         backIntakeGate.setKeyPositions(new String[]{"open", "closed","push"}, new double[]{180,75.9,70.9});
         transferGate.setKeyPositions(new String[]{"open","closed"},new double[]{148.5,86.4});
+        frontIntake.setZeroPowerFloat();
+        backIntake.setZeroPowerFloat();
     }
     public enum Color{
         PURPLE,
@@ -666,39 +668,23 @@ public class Inferno implements RobotConfig{
         ballStorage = new Color[3];
         classifierBallCount=0;
         isSpinningUp = true;
-        if (alliance == Alliance.RED) autoGateIntake = new ParallelCommand(setState(RobotState.STOPPED), new ConditionalCommand(
-                new IfThen(()->follower.getHeading()<Math.toRadians(90) && follower.getHeading()>Math.toRadians(-90),
-                        new PedroCommand(
-                                (PathBuilder b)->b.addPath(new BezierLine(follower::getPose,new Pose(128,70)))
-                                        .setLinearHeadingInterpolation(follower.getHeading(),Math.toRadians(0))
-                                        .addPath(new BezierCurve(follower::getPose,new Pose(126,58),new Pose(133,55)))
-                                        .setLinearHeadingInterpolation(Math.toRadians(0),Math.toRadians(45))
-                                        .addParametricCallback(0,setState(RobotState.INTAKE_FRONT)::run),true
-                )), new IfThen(()->follower.getHeading()>Math.toRadians(90) || follower.getHeading()<Math.toRadians(-90),
+        if (alliance == Alliance.RED) autoGateIntake = new ParallelCommand(setState(RobotState.STOPPED),
                 new PedroCommand(
                         (PathBuilder b)->b.addPath(new BezierLine(follower::getPose,new Pose(128,70)))
-                                .setLinearHeadingInterpolation(follower.getHeading(),Math.toRadians(180))
+                                .setLinearHeadingInterpolation(follower.getHeading(),Math.toRadians(0))
                                 .addPath(new BezierCurve(follower::getPose,new Pose(126,58),new Pose(133,55)))
-                                .setLinearHeadingInterpolation(Math.toRadians(180),Math.toRadians(225))
-                                .addParametricCallback(0,setState(RobotState.INTAKE_BACK)::run),true
-                ))
-        ));
-        else autoGateIntake = new ParallelCommand(setState(RobotState.STOPPED), new ConditionalCommand(
-                new IfThen(()->follower.getHeading()>Math.toRadians(90) || follower.getHeading()<Math.toRadians(-90),
-                        new PedroCommand(
-                                (PathBuilder b)->b.addPath(new BezierLine(follower::getPose,new Pose(16,70)))
-                                        .setLinearHeadingInterpolation(follower.getHeading(),Math.toRadians(180))
-                                        .addPath(new BezierCurve(follower::getPose,new Pose(18,58),new Pose(11,55)))
-                                        .setLinearHeadingInterpolation(Math.toRadians(180),Math.toRadians(135))
-                                        .addParametricCallback(0,setState(RobotState.INTAKE_FRONT)::run),true
-                )), new IfThen(()->follower.getHeading()<Math.toRadians(90) && follower.getHeading()>-Math.toRadians(-90),
+                                .setLinearHeadingInterpolation(Math.toRadians(0),Math.toRadians(45))
+                                .addParametricCallback(0,setState(RobotState.INTAKE_FRONT)::run),true
+                )
+        );
+        else autoGateIntake = new ParallelCommand(setState(RobotState.STOPPED),
                 new PedroCommand(
                         (PathBuilder b)->b.addPath(new BezierLine(follower::getPose,new Pose(16,70)))
-                                .setLinearHeadingInterpolation(follower.getHeading(),Math.toRadians(0))
+                                .setLinearHeadingInterpolation(follower.getHeading(),Math.toRadians(180))
                                 .addPath(new BezierCurve(follower::getPose,new Pose(18,58),new Pose(11,55)))
-                                .setLinearHeadingInterpolation(Math.toRadians(0),Math.toRadians(-45))
-                                .addParametricCallback(0,setState(RobotState.INTAKE_BACK)::run),true
-                ))
-        ));
+                                .setLinearHeadingInterpolation(Math.toRadians(180),Math.toRadians(135))
+                                .addParametricCallback(0,setState(RobotState.INTAKE_FRONT)::run),true
+                )
+        );
     }
 }
