@@ -20,12 +20,27 @@ import java.util.List;
 
 // TODO: automatic bottom-center bounding box, calculate bounding box offset for artifacts
 public class Vision {
+
+    // Config: Fill this stuff out
+    enum CAMERA_ORIENTATION{
+        NORMAL,
+        UPSIDE_DOWN,
+
+    }
     final int NN_PIPELINE_INDEX = 0;
     final int APRIL_TAGS_PIPELINE_INDEX = 1;
+    Pose3D cameraPoseOnRobot =  new Pose3D(new Position(DistanceUnit.METER, 0.182, 0, 0.2225, 0), new YawPitchRollAngles(AngleUnit.DEGREES, 0, 0, 0, 0));
     Limelight3A limelight;
     List<String> queryClasses = new ArrayList<>();
     Telemetry telemetry;
-    Pose3D cameraPoseOnRobot;
+    public Vision(HardwareMap hardwareMap, Telemetry telemetry){
+        limelight = hardwareMap.get(Limelight3A.class, "limelight");
+        this.telemetry = telemetry;
+        limelight.setPollRateHz(11);
+        queryClasses.add("purple");
+        queryClasses.add("green");
+    }
+
     public Vision(HardwareMap hardwareMap, Telemetry telemetry, Pose3D cameraPoseOnRobot){
         limelight = hardwareMap.get(Limelight3A.class, "limelight");
         this.telemetry = telemetry;
@@ -33,6 +48,45 @@ public class Vision {
         queryClasses.add("purple");
         queryClasses.add("green");
         this.cameraPoseOnRobot = cameraPoseOnRobot;
+    }
+
+
+    public List<ArtifactDescriptor> getRelativeArtifactDescriptors(){
+        if (!limelight.isRunning()){
+            limelight.start();
+        }
+        limelight.pipelineSwitch(NN_PIPELINE_INDEX);
+
+        List<ArtifactDescriptor> artifactDescriptors = new ArrayList<>(); // Output array
+        LLResult result = limelight.getLatestResult();
+
+        if (result == null || !result.isValid()) {
+            return artifactDescriptors;
+        }
+
+        for (LLResultTypes.DetectorResult detectorResult : result.getDetectorResults()) {
+            String className = detectorResult.getClassName();
+
+            if (queryClasses.contains(className)) {
+
+                double tx = detectorResult.getTargetXDegrees();
+                double ty = detectorResult.getTargetYDegrees();
+                telemetry.addData("tx", tx);
+                telemetry.addData("ty", ty);
+
+                double verticalAngleDeg = 90 + ty + cameraPoseOnRobot.getOrientation().getPitch(AngleUnit.DEGREES);
+
+                telemetry.addData("vertical angle", verticalAngleDeg);
+
+                double depth = cameraPoseOnRobot.getPosition().toUnit(DistanceUnit.INCH).z * Math.tan(Math.toRadians(verticalAngleDeg))
+                        + cameraPoseOnRobot.getPosition().toUnit(DistanceUnit.INCH).x;
+                // artifact center offset TODO: Tune this
+
+                double horizontal = depth * Math.tan(Math.toRadians(-tx + cameraPoseOnRobot.getOrientation().getYaw(AngleUnit.DEGREES))) + cameraPoseOnRobot.getPosition().toUnit(DistanceUnit.INCH).y;
+                artifactDescriptors.add(new ArtifactDescriptor(horizontal, depth, className));
+            }
+        }
+        return artifactDescriptors;
     }
 
     public List<ArtifactDescriptor> getArtifactDescriptors(Pose botPosePedro){
@@ -56,14 +110,13 @@ public class Vision {
                 double tx = detectorResult.getTargetXDegrees();
                 double ty = detectorResult.getTargetYDegrees();
 
-                double totalAngleDeg = cameraPoseOnRobot.getOrientation().getPitch(AngleUnit.DEGREES) + ty;
-                double totalAngleRad = Math.toRadians(totalAngleDeg);
+                double verticalAngleDeg = 90 + ty + cameraPoseOnRobot.getOrientation().getPitch(AngleUnit.DEGREES);
 
-                double depth = cameraPoseOnRobot.getPosition().toUnit(DistanceUnit.INCH).z / -Math.tan(totalAngleRad)
+                double depth = cameraPoseOnRobot.getPosition().toUnit(DistanceUnit.INCH).z * Math.tan(Math.toRadians(verticalAngleDeg))
                                 + cameraPoseOnRobot.getPosition().toUnit(DistanceUnit.INCH).x;
                                  // artifact center offset TODO: Tune this
 
-                double horizontal = depth * Math.tan(Math.toRadians(tx)) + cameraPoseOnRobot.getPosition().toUnit(DistanceUnit.INCH).y;
+                double horizontal = depth * Math.tan(Math.toRadians(-tx + cameraPoseOnRobot.getOrientation().getYaw(AngleUnit.DEGREES))) + cameraPoseOnRobot.getPosition().toUnit(DistanceUnit.INCH).y;
 
                 double x = botPosePedro.getX();
                 double y = botPosePedro.getY();

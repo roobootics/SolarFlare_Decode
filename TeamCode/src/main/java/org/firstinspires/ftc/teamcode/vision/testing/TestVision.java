@@ -1,6 +1,8 @@
 package org.firstinspires.ftc.teamcode.vision.testing;
 
+import static org.firstinspires.ftc.teamcode.base.Components.initialize;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.gamePhase;
 
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.canvas.Canvas;
@@ -16,6 +18,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 import org.firstinspires.ftc.teamcode.pedroPathing.Pedro;
+import org.firstinspires.ftc.teamcode.robotconfigs.Inferno;
 import org.firstinspires.ftc.teamcode.vision.Vision;
 import org.firstinspires.ftc.teamcode.vision.descriptors.ArtifactDescriptor;
 
@@ -32,10 +35,13 @@ public class TestVision extends OpMode {
 
     @Override
     public void init(){
+        gamePhase = Inferno.GamePhase.TELEOP;
+        initialize(hardwareMap, telemetry, new Inferno(), false, true);
         vision = new Vision(hardwareMap, telemetry, cameraPose);
         dashboard = FtcDashboard.getInstance();
         Pedro.createFollower(initPosePedro);
         follower.setStartingPose(initPosePedro);
+        follower.update();
     }
 
     @Override
@@ -57,7 +63,7 @@ public class TestVision extends OpMode {
 
         List<ArtifactDescriptor> artifacts = vision.getArtifactDescriptors(botPose);
 
-        if (artifacts != null) {
+        if (!artifacts.isEmpty()) {
             artifacts = vision.pedroToStandardPoseArtifacts(artifacts);
 
             for (ArtifactDescriptor artifact : artifacts) {

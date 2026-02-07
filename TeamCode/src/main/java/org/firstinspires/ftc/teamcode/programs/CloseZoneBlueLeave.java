@@ -3,7 +3,6 @@ package org.firstinspires.ftc.teamcode.programs;
 import static org.firstinspires.ftc.teamcode.base.Commands.executor;
 import static org.firstinspires.ftc.teamcode.base.Components.activateActuatorControl;
 import static org.firstinspires.ftc.teamcode.base.Components.initialize;
-import static org.firstinspires.ftc.teamcode.base.Components.initializeConfig;
 import static org.firstinspires.ftc.teamcode.base.Components.telemetryAddData;
 import static org.firstinspires.ftc.teamcode.base.Components.telemetryAddLine;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
@@ -39,8 +38,7 @@ public class CloseZoneBlueLeave extends LinearOpMode{
     public void runOpMode() throws InterruptedException {
         alliance = Alliance.BLUE;
         gamePhase = GamePhase.AUTO;
-        initialize(hardwareMap,telemetry);
-        initializeConfig(new Inferno(), true);
+        initialize(hardwareMap,telemetry,new Inferno(),true,true);
         Pedro.createFollower(new Pose(20, 122.62, Math.toRadians(143.5)));
         executor.setWriteToTelemetry(()->{
             telemetryAddData("is busy",follower.isBusy());

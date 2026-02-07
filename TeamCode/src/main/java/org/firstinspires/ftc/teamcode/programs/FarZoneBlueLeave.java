@@ -3,7 +3,6 @@ package org.firstinspires.ftc.teamcode.programs;
 import static org.firstinspires.ftc.teamcode.base.Commands.executor;
 import static org.firstinspires.ftc.teamcode.base.Components.activateActuatorControl;
 import static org.firstinspires.ftc.teamcode.base.Components.initialize;
-import static org.firstinspires.ftc.teamcode.base.Components.initializeConfig;
 import static org.firstinspires.ftc.teamcode.base.Components.telemetryAddData;
 import static org.firstinspires.ftc.teamcode.base.Components.telemetryAddLine;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
@@ -38,8 +37,7 @@ public class FarZoneBlueLeave extends LinearOpMode{
     public void runOpMode() throws InterruptedException {
         alliance = Inferno.Alliance.BLUE;
         gamePhase = GamePhase.AUTO;
-        initialize(hardwareMap,telemetry);
-        initializeConfig(new Inferno(), true);
+        initialize(hardwareMap,telemetry,new Inferno(),true,true);
         Pedro.createFollower(new Pose(41.5,7,Math.toRadians(90)));
         executor.setWriteToTelemetry(()->{
             telemetryAddData("is busy",follower.isBusy());

@@ -2,7 +2,6 @@ package org.firstinspires.ftc.teamcode.programs;
 
 import static org.firstinspires.ftc.teamcode.base.Commands.executor;
 import static org.firstinspires.ftc.teamcode.base.Components.initialize;
-import static org.firstinspires.ftc.teamcode.base.Components.initializeConfig;
 import static org.firstinspires.ftc.teamcode.base.Components.telemetryAddData;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.flywheel;
@@ -24,8 +23,7 @@ public class HoodTest extends LinearOpMode {
 
     @Override
     public void runOpMode() throws InterruptedException {
-        initialize(hardwareMap,telemetry);
-        initializeConfig(new Inferno(),true);
+        initialize(hardwareMap,telemetry,new Inferno(),true,true);
         Pedro.createFollower(new Pose(0,0,0));
         executor.setCommands(
                 turretPitch.command((Components.BotServo servo)->servo.triggeredDynamicTargetCommand(()->gamepad1.right_bumper,()->gamepad1.left_bumper,0.1)),
