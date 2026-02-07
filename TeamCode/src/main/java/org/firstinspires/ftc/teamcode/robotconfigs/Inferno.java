@@ -122,11 +122,11 @@ public class Inferno implements RobotConfig{
         turretPitch.call((BotServo servo) -> servo.setTargetBounds(() -> 173.0, () -> 150-5*TURRET_PITCH_RATIO));
         frontIntake.setKeyPowers(
                 new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel","frontDrive","sideSelect"},
-                new double[]{1.0,-0.75,1.0,0.9,0,-0.8,0.75,-1.0}
+                new double[]{1.0,-1.0,1.0,0.9,0,-0.8,0.75,-1.0}
         );
         backIntake.setKeyPowers(
                 new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel","frontDrive","sideSelect"},
-                new double[]{1.0,-0.75,1.0,0.9,0,-1.0,0.75,-1.0}
+                new double[]{1.0,-1.0,1.0,0.9,0,-1.0,0.75,-1.0}
         );
         frontIntakeGate.setKeyPositions(new String[]{"open", "closed","push"}, new double[]{180,60.9,55.9});
         backIntakeGate.setKeyPositions(new String[]{"open", "closed","push"}, new double[]{180,75.9,70.9});
@@ -181,8 +181,6 @@ public class Inferno implements RobotConfig{
             ),
             new SleepCommand(TRANSFER_REBOOST_DELAY),
             new ParallelCommand(
-                    backIntakeGate.instantSetTargetCommand("open"),
-                    frontIntakeGate.instantSetTargetCommand("open"),
                     frontIntake.setPowerCommand("transfer"),
                     backIntake.setPowerCommand("transfer")
             )
@@ -202,8 +200,6 @@ public class Inferno implements RobotConfig{
             ),
             new SleepCommand(TRANSFER_REBOOST_DELAY),
             new ParallelCommand(
-                    backIntakeGate.instantSetTargetCommand("open"),
-                    frontIntakeGate.instantSetTargetCommand("open"),
                     frontIntake.setPowerCommand("transfer"),
                     backIntake.setPowerCommand("transfer")
             )
@@ -544,12 +540,38 @@ public class Inferno implements RobotConfig{
             ));
         }
     }
-    public static class CheckFull extends Command{
+    private static class CheckBallPresent extends Command{
         private final static int COUNT = 3;
         private int counter = 0;
+        private final ArrayList<Integer> sensorIndices;
+        public CheckBallPresent(Integer...indices){
+            sensorIndices = new ArrayList<>(Arrays.asList(indices));
+        }
+        @Override
+        protected boolean runProcedure() {
+            if (isStart()) {counter = 0;}
+            boolean allFull = true;
+            for (Integer i : sensorIndices){
+                colorSensorRead(i);
+                if (Objects.isNull(ballStorage[i])){
+                    allFull = false;
+                }
+            }
+            if (allFull) counter+=1; else counter = 0;
+            return counter < COUNT;
+        }
+    }
+    public static class CheckFull extends CompoundCommand{
         private double startTime;
         private final double timeout;
-        //private int sensorNum = 0;
+        private final SequentialCommand frontIntakeCheck = new SequentialCommand(
+                new CheckBallPresent(2),
+                new CheckBallPresent(1,0)
+        );
+        private final SequentialCommand backIntakeCheck = new SequentialCommand(
+                new CheckBallPresent(0),
+                new CheckBallPresent(1,2)
+        );
         public CheckFull(double timeout){
             this.timeout = timeout;
         }
@@ -558,24 +580,14 @@ public class Inferno implements RobotConfig{
         }
         @Override
         protected boolean runProcedure() {
-            /*
-            if (isStart()) {counter = 0; this.sensorNum = 0; startTime = timer.time();}
-
-            int sensorNum;
-            if (robotState==RobotState.INTAKE_FRONT) sensorNum = 2-this.sensorNum; else sensorNum=this.sensorNum;
-            if (Objects.nonNull(colorSensorRead(sensorNum))){
-                counter+=1;
-            } else {counter=0;}
-            if (counter>=COUNT && this.sensorNum<2){
-                this.sensorNum+=1;
-                counter=0;
+            if (isStart()) {startTime = timer.time(); frontIntakeCheck.reset(); backIntakeCheck.reset();}
+            if (robotState==RobotState.INTAKE_FRONT){
+                frontIntakeCheck.run();
+                return frontIntakeCheck.isBusy() && timer.time()-startTime<timeout;
+            } else {
+                backIntakeCheck.run();
+                return backIntakeCheck.isBusy() && timer.time()-startTime<timeout;
             }
-            return (this.sensorNum<2 || counter < COUNT) && (timer.time()-startTime<timeout);
-            */
-            if (isStart()) {counter = 0; startTime = timer.time();}
-            readBallStorage();
-            if (Objects.nonNull(ballStorage[0])&&Objects.nonNull(ballStorage[1])&&Objects.nonNull(ballStorage[2])) counter+=1; else counter = 0;
-            return counter < COUNT && timer.time()-startTime<timeout;
         }
     }
     private abstract static class Fisiks {

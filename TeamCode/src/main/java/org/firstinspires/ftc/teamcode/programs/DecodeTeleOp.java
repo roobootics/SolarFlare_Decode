@@ -112,8 +112,8 @@ public class DecodeTeleOp extends LinearOpMode {
                                                         new SequentialCommand(
                                                                 new SleepUntilTrue(()->
                                                                         Math.sqrt(gamepad1.left_stick_x*gamepad1.left_stick_x + gamepad1.left_stick_y*gamepad1.left_stick_y)>0.5 || Math.abs(gamepad1.right_stick_x)>0.5
-                                                                        ,1.2),
-                                                                new InstantCommand(()->{this.stopDrivetrain(); breakFollowing(); frontIntakeGate.setTarget(frontIntakeGate.getPos("closed")); backIntakeGate.setTarget(backIntakeGate.getPos("closed"));})
+                                                                        ,Double.POSITIVE_INFINITY),
+                                                                new InstantCommand(()->{this.stopDrivetrain(); breakFollowing();})
                                                         ),
                                                         new SequentialCommand(
                                                                 new SleepCommand(1.2),
