@@ -13,6 +13,7 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareDevice;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
+import com.qualcomm.robotcore.hardware.ServoImpl;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
@@ -887,7 +888,7 @@ public abstract class Components {
         @Actuate
         public void setPosition(double position){ //Accepts position in degrees by default and sets the servos position to that.
             position=Math.max(minTargetFunc.get(),Math.min(position, maxTargetFunc.get()));
-            if (isNaN(currCommandedPos) || actuationStateUnlocked && (Math.abs(currCommandedPos-position)>0.2||ignoreSetPosCaching) && !Objects.isNull(getDevice())){
+            if (isNaN(currCommandedPos) || actuationStateUnlocked && (Math.abs(currCommandedPos-position)>0.3||ignoreSetPosCaching) && !Objects.isNull(getDevice())){
                 currCommandedPos=position;
                 getDevice().setPosition(setPositionConversion.apply(position));
                 if (getTimeBasedLocalization()){

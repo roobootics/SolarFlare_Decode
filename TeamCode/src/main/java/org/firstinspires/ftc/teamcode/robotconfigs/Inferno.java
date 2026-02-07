@@ -95,8 +95,8 @@ public class Inferno implements RobotConfig{
     public static ShotType shotType = ShotType.NORMAL;
     public static boolean motifShootAll = true;
     private final static double BALL_SHOT_TIMING = 0.17;
-    private final static double TRANSFER_SELECT_DELAY = 0.1;
-    private final static double TRANSFER_REBOOST_DELAY = 0.3;
+    private final static double TRANSFER_SELECT_DELAY = 0.173;
+    private final static double TRANSFER_REBOOST_DELAY = 0.23;
     public static Color[] motif = new Color[]{Color.PURPLE,Color.GREEN,Color.PURPLE};
     public static double classifierBallCount = 0;
     public static Alliance alliance = Alliance.RED;
@@ -464,11 +464,11 @@ public class Inferno implements RobotConfig{
         backIntake = new BotMotor("backIntake", DcMotorSimple.Direction.FORWARD);
         frontIntake.setKeyPowers(
                 new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel","frontDrive","sideSelect"},
-                new double[]{1.0,-0.75,1.0,0.9,0,-0.8,0.75,-1.0}
+                new double[]{1.0,-0.75,1.0,0.87,0,-0.8,1.0,-1.0}
         );
         backIntake.setKeyPowers(
                 new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel","frontDrive","sideSelect"},
-                new double[]{1.0,-0.75,1.0,0.9,0,-1.0,0.75,-1.0}
+                new double[]{1.0,-0.75,1.0,0.87,0,-1.0,1.0,-1.0}
         );
         frontIntakeGate = new BotServo("frontIntakeGate", Servo.Direction.FORWARD, 422, 5, 180, 90.8);
         backIntakeGate = new BotServo("backIntakeGate", Servo.Direction.FORWARD, 422, 5, 180, 99.5);
@@ -513,6 +513,11 @@ public class Inferno implements RobotConfig{
                         frontIntakeGate.instantSetTargetCommand("open"),
                         frontIntake.setPowerCommand("transfer"),
                         backIntake.setPowerCommand("transfer")
+                ),
+                new SleepCommand(1),
+                new ParallelCommand(
+                        backIntakeGate.instantSetTargetCommand("closed"),
+                        frontIntakeGate.instantSetTargetCommand("closed")
                 )
         );
         backTransfer = new SequentialCommand(
@@ -534,6 +539,11 @@ public class Inferno implements RobotConfig{
                         frontIntakeGate.instantSetTargetCommand("open"),
                         frontIntake.setPowerCommand("transfer"),
                         backIntake.setPowerCommand("transfer")
+                ),
+                new SleepCommand(1),
+                new ParallelCommand(
+                        backIntakeGate.instantSetTargetCommand("closed"),
+                        frontIntakeGate.instantSetTargetCommand("closed")
                 )
         );
         Command frontIntakeAction = new SequentialCommand(
@@ -615,7 +625,7 @@ public class Inferno implements RobotConfig{
         ConditionalCommand transfer = new ConditionalCommand(
                     new IfThen(
                             () -> shotType == ShotType.NORMAL,
-                            new ParallelCommand(backTransfer,new InstantCommand(()-> currentBallPath = BallPath.LOW))
+                            new ParallelCommand(frontTransfer,new InstantCommand(()-> currentBallPath = BallPath.LOW))
                     ),
                     new IfThen(
                             () -> shotType == ShotType.MOTIF,

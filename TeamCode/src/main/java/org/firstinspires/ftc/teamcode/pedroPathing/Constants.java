@@ -83,7 +83,7 @@ public class Constants {
                 .pathConstraints(pathConstraints)
                 .build();
         if (gamePhase== Inferno.GamePhase.TELEOP) {
-            follower.setTranslationalPIDFCoefficients(new PIDFCoefficients(0.85, 0.0007, 0, 0));
+            follower.setTranslationalPIDFCoefficients(new PIDFCoefficients(0.87, 0.0007, 0, 0));
             follower.setHeadingPIDFCoefficients(new PIDFCoefficients(1.5, 0.001, 0.00001, 0));
         }
         return follower;

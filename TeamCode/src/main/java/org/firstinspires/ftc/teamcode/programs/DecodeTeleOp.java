@@ -33,8 +33,6 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretYaw;
 
 import org.firstinspires.ftc.teamcode.base.Commands.*;
 
-import com.pedropathing.control.FilteredPIDFCoefficients;
-import com.pedropathing.control.PIDFCoefficients;
 import com.pedropathing.geometry.Pose;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -101,7 +99,7 @@ public class DecodeTeleOp extends LinearOpMode {
                                 new IfThen(()->gamepad2.back,setState(RobotState.EXPEL)),
                                 new IfThen(()->gamepad2.left_bumper,new ParallelCommand(aprilTagRelocalize,new SequentialCommand(new SleepCommand(0.5),new InstantCommand(aprilTagRelocalize::stop))))
                         ),
-                        turretYaw.command((BotServo servo)->servo.triggeredDynamicOffsetCommand(()->gamepad2.right_trigger>0.4,()->gamepad2.left_trigger>0.4,3)),
+                        turretYaw.command((BotServo servo)->servo.triggeredDynamicOffsetCommand(()->gamepad2.right_trigger>0.4,()->gamepad2.left_trigger>0.4,0.5)),
                         new PressCommand(
                                 new IfThen(()->robotState==RobotState.SHOOTING,
                                         new SequentialCommand(

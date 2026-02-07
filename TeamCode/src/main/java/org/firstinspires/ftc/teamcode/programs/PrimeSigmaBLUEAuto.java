@@ -7,6 +7,8 @@ import static org.firstinspires.ftc.teamcode.base.Components.telemetryAddData;
 import static org.firstinspires.ftc.teamcode.base.Components.telemetryAddLine;
 import static org.firstinspires.ftc.teamcode.base.Components.timer;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
+import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.fourthShootSlowAmount;
+import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.fourthShootSlowT;
 import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.frontExpelShoot;
 import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.backExpelShoot;
 import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.INITIAL_WAIT;
@@ -22,7 +24,6 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.ballStorage;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.classifierBallCount;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.clearIntegralAtPeak;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.currentBallPath;
-import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.findMotif;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.flywheel;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.gamePhase;
 import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.getHeading;
@@ -71,7 +72,14 @@ public class PrimeSigmaBLUEAuto extends LinearOpMode {
                 new InstantCommand(setShooter::run),
                 turretYaw.command((Components.BotServo servo)->servo.triggeredDynamicOffsetCommand(()->gamepad1.right_trigger>0.4,()->gamepad1.left_trigger>0.4,0.05))
         );
-        executor.setWriteToTelemetry(()->{telemetryAddData("offset",turretYaw.get("turretYawFront").getOffset());});
+        executor.setWriteToTelemetry(()->{
+            telemetryAddData("offset",turretYaw.get("turretYawFront").getOffset());
+            telemetryAddLine("");
+            telemetryAddData("target without offset",turretYaw.get("turretYawFront").getTargetMinusOffset());
+            telemetryAddData("target with offset",turretYaw.get("turretYawFront").getTarget());
+            telemetryAddData("raw servo pos",turretYaw.get("turretYawFront").getDevice().getPosition()*355);
+            telemetryAddData("actual angle target",-(turretYaw.get("turretYawFront").getTarget()-180)+Math.toDegrees(follower.getHeading()));
+        });
         executor.runLoop(this::opModeInInit);
         turretOffsetFromAuto = turretYaw.get("turretYawFront").getOffset();
         Components.activateActuatorControl();
@@ -171,7 +179,8 @@ public class PrimeSigmaBLUEAuto extends LinearOpMode {
                                         )
                                 ).setConstantHeadingInterpolation(getHeading("fourthShoot"))
                                 .addParametricCallback(speedUpT,()->follower.setMaxPower(1.0))
-                                .addParametricCallback(stopIntakeT,()->setState(RobotState.STOPPED).run()),true
+                                .addParametricCallback(stopIntakeT,()->setState(RobotState.STOPPED).run())
+                                .addParametricCallback(fourthShootSlowT,()->follower.setMaxPower(fourthShootSlowAmount)),true
                         ), frontExpelShoot, setState(RobotState.INTAKE_BACK),
                         new PedroCommand(
                                 (PathBuilder b)->b.addPath(
@@ -181,6 +190,7 @@ public class PrimeSigmaBLUEAuto extends LinearOpMode {
                                                         getPose("thirdSpike")
                                                 )
                                         ).setConstantHeadingInterpolation(getHeading("thirdSpike"))
+                                        .addParametricCallback(0,()->follower.setMaxPower(1.0))
                                         .addParametricCallback(slowDownT,()->follower.setMaxPower(slowDownAmount))
                                         .addPath(
                                                 new BezierLine(

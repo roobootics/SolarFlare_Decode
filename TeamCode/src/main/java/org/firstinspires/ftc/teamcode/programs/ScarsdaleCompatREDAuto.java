@@ -14,6 +14,8 @@ import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.fourth
 import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.frontExpelShoot;
 import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.gateIntakeTimeout;
 import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.gateWait;
+import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.getMirroredHeading;
+import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.getMirroredPose;
 import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.initExpelActions;
 import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.slowDownAmount;
 import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.slowDownT;
@@ -26,8 +28,6 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.clearIntegralA
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.currentBallPath;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.flywheel;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.gamePhase;
-import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.getMirroredHeading;
-import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.getMirroredPose;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.getTargetPoint;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.loopFSM;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.motifShootAll;
@@ -60,7 +60,7 @@ import org.firstinspires.ftc.teamcode.robotconfigs.Inferno.RobotState;
 import java.util.Arrays;
 
 @Autonomous
-public class PrimeSigmaREDAuto extends LinearOpMode {
+public class ScarsdaleCompatREDAuto extends LinearOpMode {
     private double lastTime;
     @Override
     public void runOpMode() {
@@ -162,22 +162,38 @@ public class PrimeSigmaREDAuto extends LinearOpMode {
                         ), backExpelShoot, setState(RobotState.INTAKE_FRONT),
                         new PedroCommand(
                                 (PathBuilder b)->b.addPath(
-                                                new BezierCurve(
-                                                        follower::getPose,
-                                                        getMirroredPose("thirdSpikeCtrl"),
-                                                        getMirroredPose("thirdSpike")
-                                                )
-                                        ).setConstantHeadingInterpolation(getMirroredHeading("thirdSpike"))
-                                        .addParametricCallback(0,()->follower.setMaxPower(1.0))
-                                        .addParametricCallback(slowDownT,()->follower.setMaxPower(slowDownAmount))
+                                        new BezierCurve(
+                                                follower::getPose,
+                                                getMirroredPose("gateOpenCtrl"),
+                                                getMirroredPose("gateOpen")
+                                        )
+                                ).setLinearHeadingInterpolation(getMirroredHeading("secondShoot"), getMirroredHeading("gateOpen"))
+                                .addParametricCallback(0,()->follower.setMaxPower(1.0)),
+                                true
+                        ),
+                        new SleepCommand(gateWait),
+                        new PedroCommand(
+                                (PathBuilder b)->b
                                         .addPath(
                                                 new BezierLine(
                                                         follower::getPose,
-                                                        getMirroredPose("fifthShoot")
+                                                        getMirroredPose("gateIntake")
                                                 )
-                                        ).setConstantHeadingInterpolation(getMirroredHeading("fifthShoot"))
-                                        .addParametricCallback(speedUpT,()->follower.setMaxPower(1.0))
-                                        .addParametricCallback(stopIntakeT,()->setState(RobotState.STOPPED).run()),true
+                                        )
+                                        .setLinearHeadingInterpolation(getMirroredHeading("gateOpen"), getMirroredHeading("gateIntake")),
+                                true
+                        ),
+                        new CheckFull(gateIntakeTimeout),
+                        new PedroCommand(
+                                (PathBuilder b)->b.addPath(
+                                                new BezierCurve(
+                                                        follower::getPose,
+                                                        getMirroredPose("thirdShootCtrl"),
+                                                        getMirroredPose("thirdShoot")
+                                                )
+                                        ).setLinearHeadingInterpolation(getMirroredHeading("gateIntake"), getMirroredHeading("thirdShoot"))
+                                        .addParametricCallback(stopIntakeT,()->setState(RobotState.STOPPED).run()),
+                                true
                         ), backExpelShoot, setState(RobotState.STOPPED),
                         new PedroLinearCommand(getMirroredPose("park"),true)
                 ),
