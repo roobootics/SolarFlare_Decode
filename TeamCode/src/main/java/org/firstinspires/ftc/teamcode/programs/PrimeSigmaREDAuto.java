@@ -7,6 +7,8 @@ import static org.firstinspires.ftc.teamcode.base.Components.telemetryAddLine;
 import static org.firstinspires.ftc.teamcode.base.Components.timer;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
 import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.INITIAL_WAIT;
+import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.fourthShootSlowAmount;
+import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.fourthShootSlowT;
 import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.shoot;
 import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.gateIntakeTimeout;
 import static org.firstinspires.ftc.teamcode.programs.PrimeSigmaConstants.gateWait;
@@ -143,7 +145,9 @@ public class PrimeSigmaREDAuto extends LinearOpMode {
                                         )
                                 ).setConstantHeadingInterpolation(getMirroredHeading("fourthShoot"))
                                 .addParametricCallback(speedUpT,()->follower.setMaxPower(1.0))
-                                .addParametricCallback(stopIntakeT,()->setState(RobotState.STOPPED).run()),true
+                                .addParametricCallback(stopIntakeT,()->setState(RobotState.STOPPED).run())
+                                .addParametricCallback(fourthShootSlowT,()->follower.setMaxPower(fourthShootSlowAmount))
+                                .addParametricCallback(0.93,()->follower.setMaxPower(1.0)),true
                         ), shoot, setState(RobotState.INTAKE_FRONT),
                         new PedroCommand(
                                 (PathBuilder b)->b.addPath(
