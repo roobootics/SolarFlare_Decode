@@ -14,6 +14,7 @@ import com.pedropathing.geometry.BezierCurve;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.math.Vector;
+import com.pedropathing.paths.HeadingInterpolator;
 import com.pedropathing.paths.PathBuilder;
 import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
@@ -178,6 +179,11 @@ public class Inferno implements RobotConfig{
             new ParallelCommand(
                     frontIntake.setPowerCommand("transfer"),
                     backIntake.setPowerCommand("transfer")
+            ),
+            new SleepCommand(0.7),
+            new ParallelCommand(
+                    frontIntake.setPowerCommand(-1.0),
+                    backIntake.setPowerCommand(-1.0)
             )
     );
     private static final SequentialCommand backTransfer = new SequentialCommand(
@@ -197,6 +203,11 @@ public class Inferno implements RobotConfig{
             new ParallelCommand(
                     frontIntake.setPowerCommand("transfer"),
                     backIntake.setPowerCommand("transfer")
+            ),
+            new SleepCommand(0.7),
+            new ParallelCommand(
+                    frontIntake.setPowerCommand(-1.0),
+                    backIntake.setPowerCommand(-1.0)
             )
     );
     public static final Command frontIntakeAction = new SequentialCommand(
@@ -286,7 +297,8 @@ public class Inferno implements RobotConfig{
                 () -> shotType == ShotType.MOTIF,
                 new SemiSort()
             )
-        )
+        ),
+        new ContinuousCommand(()->{})
     );
     public static final Command setShooter = new ContinuousCommand(()->{
         double[] targetPoint = getTargetPoint();
@@ -683,10 +695,12 @@ public class Inferno implements RobotConfig{
                         (PathBuilder b)->{RobotState intakeDirection = RobotState.INTAKE_FRONT; double targetHeading = 0;
                             if (Math.toDegrees(follower.getHeading())>90 || Math.toDegrees(follower.getHeading())<-90) {intakeDirection = RobotState.INTAKE_BACK; targetHeading = 180;}
                             return b.addPath(new BezierLine(follower::getPose,new Pose(128,70)))
-                                .setConstantHeadingInterpolation(Math.toRadians(targetHeading))
+                                .setConstantHeadingInterpolation(atan2(70-follower.getPose().getY(),128-follower.getPose().getX()))
+                                .addParametricCallback(0.85,()->follower.setMaxPower(0.5))
                                 .addPath(new BezierCurve(follower::getPose,new Pose(126,58),new Pose(128,55)))
                                 .setLinearHeadingInterpolation(Math.toRadians(targetHeading),Math.toRadians(targetHeading+45))
-                                .addParametricCallback(0,setState(intakeDirection)::run);},false
+                                .addParametricCallback(0,setState(intakeDirection)::run)
+                                .addParametricCallback(0.2,()->follower.setMaxPower(1.0));},false
                 )
         );
         else autoGateIntake = new ParallelCommand(setState(RobotState.STOPPED),
@@ -694,10 +708,12 @@ public class Inferno implements RobotConfig{
                         (PathBuilder b)->{RobotState intakeDirection = RobotState.INTAKE_FRONT; double targetHeading = 180;
                             if (Math.toDegrees(follower.getHeading())<90 && Math.toDegrees(follower.getHeading())>-90) {intakeDirection = RobotState.INTAKE_BACK; targetHeading = 0;}
                             return b.addPath(new BezierLine(follower::getPose,new Pose(16,70)))
-                                .setConstantHeadingInterpolation(Math.toRadians(targetHeading))
+                                .setConstantHeadingInterpolation(atan2(70-follower.getPose().getY(),16-follower.getPose().getX()))
+                                .addParametricCallback(0.85,()->follower.setMaxPower(0.5))
                                 .addPath(new BezierCurve(follower::getPose,new Pose(18,58),new Pose(16,55)))
                                 .setLinearHeadingInterpolation(Math.toRadians(targetHeading),Math.toRadians(targetHeading-45))
-                                .addParametricCallback(0,setState(intakeDirection)::run);},false
+                                .addParametricCallback(0,setState(intakeDirection)::run)
+                                .addParametricCallback(0.2,()->follower.setMaxPower(1.0));},false
                 )
         );
     }
