@@ -692,12 +692,20 @@ public class Inferno implements RobotConfig{
         isSpinningUp = true;
         if (alliance == Alliance.RED) autoGateIntake = new ParallelCommand(setState(RobotState.STOPPED),
                 new PedroCommand(
-                        (PathBuilder b)->{RobotState intakeDirection = RobotState.INTAKE_FRONT; double targetHeading = 0;
-                            if (Math.toDegrees(follower.getHeading())>90 || Math.toDegrees(follower.getHeading())<-90) {intakeDirection = RobotState.INTAKE_BACK; targetHeading = 180;}
-                            return b.addPath(new BezierLine(follower::getPose,new Pose(128,70)))
-                                .setConstantHeadingInterpolation(atan2(70-follower.getPose().getY(),128-follower.getPose().getX()))
+                        (PathBuilder b)->{RobotState intakeDirection = RobotState.INTAKE_FRONT; double targetHeading = 0; HeadingInterpolator initialInterpolation = HeadingInterpolator.tangent;
+                            if (Math.toDegrees(follower.getHeading())>90 || Math.toDegrees(follower.getHeading())<-90) {intakeDirection = RobotState.INTAKE_BACK; targetHeading = 180; initialInterpolation = HeadingInterpolator.tangent.reverse();}
+                            final double finalTargetHeading = targetHeading;
+                            return b.addPath(new BezierLine(follower::getPose,new Pose(128,64)))
+                                .setHeadingInterpolation(HeadingInterpolator.piecewise(
+                                        new HeadingInterpolator.PiecewiseNode(
+                                                0.0,0.75,initialInterpolation
+                                        ),
+                                        new HeadingInterpolator.PiecewiseNode(
+                                                0.75,1.0,HeadingInterpolator.linearFromPoint(follower::getHeading,()->finalTargetHeading,1.0)
+                                        )
+                                ))
                                 .addParametricCallback(0.85,()->follower.setMaxPower(0.5))
-                                .addPath(new BezierCurve(follower::getPose,new Pose(126,58),new Pose(128,55)))
+                                .addPath(new BezierCurve(follower::getPose,new Pose(126,58),new Pose(128,57)))
                                 .setLinearHeadingInterpolation(Math.toRadians(targetHeading),Math.toRadians(targetHeading+45))
                                 .addParametricCallback(0,setState(intakeDirection)::run)
                                 .addParametricCallback(0.2,()->follower.setMaxPower(1.0));},false
@@ -705,12 +713,20 @@ public class Inferno implements RobotConfig{
         );
         else autoGateIntake = new ParallelCommand(setState(RobotState.STOPPED),
                 new PedroCommand(
-                        (PathBuilder b)->{RobotState intakeDirection = RobotState.INTAKE_FRONT; double targetHeading = 180;
-                            if (Math.toDegrees(follower.getHeading())<90 && Math.toDegrees(follower.getHeading())>-90) {intakeDirection = RobotState.INTAKE_BACK; targetHeading = 0;}
-                            return b.addPath(new BezierLine(follower::getPose,new Pose(16,70)))
-                                .setConstantHeadingInterpolation(atan2(70-follower.getPose().getY(),16-follower.getPose().getX()))
+                        (PathBuilder b)->{RobotState intakeDirection = RobotState.INTAKE_FRONT; double targetHeading = 180; HeadingInterpolator initialInterpolation = HeadingInterpolator.tangent;
+                            if (Math.toDegrees(follower.getHeading())<90 && Math.toDegrees(follower.getHeading())>-90) {intakeDirection = RobotState.INTAKE_BACK; targetHeading = 0; initialInterpolation = HeadingInterpolator.tangent.reverse();}
+                            final double finalTargetHeading = targetHeading;
+                            return b.addPath(new BezierLine(follower::getPose,new Pose(16,64)))
+                                .setHeadingInterpolation(HeadingInterpolator.piecewise(
+                                        new HeadingInterpolator.PiecewiseNode(
+                                                0.0,0.75,initialInterpolation
+                                        ),
+                                        new HeadingInterpolator.PiecewiseNode(
+                                                0.75,1.0,HeadingInterpolator.linearFromPoint(follower::getHeading,()->finalTargetHeading,1.0)
+                                        )
+                                ))
                                 .addParametricCallback(0.85,()->follower.setMaxPower(0.5))
-                                .addPath(new BezierCurve(follower::getPose,new Pose(18,58),new Pose(16,55)))
+                                .addPath(new BezierCurve(follower::getPose,new Pose(18,58),new Pose(16,57)))
                                 .setLinearHeadingInterpolation(Math.toRadians(targetHeading),Math.toRadians(targetHeading-45))
                                 .addParametricCallback(0,setState(intakeDirection)::run)
                                 .addParametricCallback(0.2,()->follower.setMaxPower(1.0));},false

@@ -73,7 +73,7 @@ public class Constants {
             followerConstants.setUseSecondaryHeadingPIDF(true);
         } else {
             followerConstants.setHoldPointTranslationalScaling(1.4);
-            followerConstants.setHoldPointHeadingScaling(0.5);
+            followerConstants.setHoldPointHeadingScaling(0.4);
             followerConstants.setUseSecondaryDrivePIDF(false);
             followerConstants.setUseSecondaryTranslationalPIDF(false);
             followerConstants.setUseSecondaryHeadingPIDF(false);
