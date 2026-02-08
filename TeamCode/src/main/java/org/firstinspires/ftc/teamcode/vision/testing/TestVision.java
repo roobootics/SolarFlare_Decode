@@ -28,7 +28,7 @@ import java.util.List;
 @TeleOp
 public class TestVision extends OpMode {
     Vision vision;
-    final static double ARTIFACT_CENTER_OFFSET = 2.5;
+    public static double ARTIFACT_CENTER_OFFSET = 2.5;
     Pose3D cameraPose = new Pose3D(new Position(DistanceUnit.METER, 0.182, 0, 0.2225, 0), new YawPitchRollAngles(AngleUnit.DEGREES, 0, 0, 0, 0));
     FtcDashboard dashboard;
     Pose initPosePedro = new Pose(0,0,Math.toRadians(90));
@@ -37,7 +37,7 @@ public class TestVision extends OpMode {
     public void init(){
         gamePhase = Inferno.GamePhase.TELEOP;
         initialize(hardwareMap, telemetry, new Inferno(), false, true);
-        vision = new Vision(hardwareMap, telemetry, cameraPose);
+        vision = new Vision(hardwareMap, telemetry, cameraPose, Vision.CAMERA_ORIENTATION.NORMAL);
         dashboard = FtcDashboard.getInstance();
         Pedro.createFollower(initPosePedro);
         follower.setStartingPose(initPosePedro);
