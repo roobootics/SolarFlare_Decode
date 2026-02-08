@@ -22,11 +22,6 @@ import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
 
 
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
-import org.firstinspires.ftc.robotcore.external.navigation.Position;
-import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 import org.firstinspires.ftc.teamcode.base.Commands.*;
 import org.firstinspires.ftc.teamcode.base.Components;
 import org.firstinspires.ftc.teamcode.base.Components.*;
@@ -84,8 +79,8 @@ public class Inferno implements RobotConfig{
     public static double classifierBallCount = 0;
     public static Alliance alliance = Alliance.RED;
     public static GamePhase gamePhase = GamePhase.AUTO;
-    public static VelocityPID leftVelocityPID = new VelocityPID(false,BotMotor::getVelocity,0.001, 0.001, 0.00003);
-    public static VelocityPID rightVelocityPID = new VelocityPID(false,(BotMotor motor)->flywheel.get("flywheelLeft").getVelocity(),0.001, 0.001 , 0.00003);;
+    public static VelocityPID leftVelocityPID = new VelocityPID(false,BotMotor::getVelocity,0.0012, 0.0012, 0.00003);
+    public static VelocityPID rightVelocityPID = new VelocityPID(false,(BotMotor motor)->flywheel.get("flywheelLeft").getVelocity(),0.0012, 0.0012 , 0.00003);
 
     static {
         for (int i=0;i<3;i++){
@@ -280,15 +275,18 @@ public class Inferno implements RobotConfig{
             backIntakeGate.instantSetTargetCommand("open"),
             frontIntakeGate.instantSetTargetCommand("closed")
     );
-    public static final ConditionalCommand transfer = new ConditionalCommand(
+    public static final Command transfer = new ParallelCommand(
+        new InstantCommand(()->ballStorage = new Color[3]),
+        new ConditionalCommand(
             new IfThen(
-                    () -> shotType == ShotType.NORMAL,
-                    new ParallelCommand(backTransfer,new InstantCommand(()-> currentBallPath = BallPath.LOW))
+                () -> shotType == ShotType.NORMAL,
+                new ParallelCommand(backTransfer,new InstantCommand(()-> currentBallPath = BallPath.LOW))
             ),
             new IfThen(
-                    () -> shotType == ShotType.MOTIF,
-                    new SemiSort()
+                () -> shotType == ShotType.MOTIF,
+                new SemiSort()
             )
+        )
     );
     public static final Command setShooter = new ContinuousCommand(()->{
         double[] targetPoint = getTargetPoint();
@@ -321,13 +319,13 @@ public class Inferno implements RobotConfig{
                 new IfThen(()->robotState==RobotState.INTAKE_FRONT, frontIntakeAction),
                 new IfThen(()->robotState==RobotState.INTAKE_BACK_AND_SHOOT, backIntakeAndTransfer),
                 new IfThen(()->robotState==RobotState.INTAKE_FRONT_AND_SHOOT, frontIntakeAndTransfer),
-                new IfThen(()->robotState==RobotState.SHOOTING, new ParallelCommand(transfer)),
+                new IfThen(()->robotState==RobotState.SHOOTING, transfer),
                 new IfThen(()->Objects.isNull(robotState),stopAll)
             ),
         //new InstantCommand(()->{if ((robotState!=RobotState.SHOOTING && robotState!=RobotState.STOPPED) || shotType==ShotType.NORMAL){currentBallPath=BallPath.LOW;}}),
         setShooter
     );
-    private static Color colorSensorRead(int index){
+    private static void colorSensorRead(int index){
         double [] greenCenter = new double[]{0.23,0.54,0.23};
         double [] purpleCenter = new double[]{0.4,0.2,0.4};
         double greenTolerance = 0.17;
@@ -342,7 +340,6 @@ public class Inferno implements RobotConfig{
             color = Color.PURPLE;
         }
         ballStorage[index] = color;
-        return color;
     }
     public static void readBallStorage(){
         for (int i=0;i<3;i++){
@@ -561,7 +558,7 @@ public class Inferno implements RobotConfig{
             return counter < COUNT;
         }
     }
-    public static class CheckFull extends CompoundCommand{
+    public static class CheckFull extends Command{
         private double startTime;
         private final double timeout;
         private final SequentialCommand frontIntakeCheck = new SequentialCommand(
@@ -644,9 +641,11 @@ public class Inferno implements RobotConfig{
     }
     public static double[] getTargetPoint(){
         if (alliance==Alliance.RED){
-            return new double[]{141.5,141.5,44};
+            if (follower.getPose().getY()<=108) return new double[]{141.5,141.5,44};
+            else return new double[]{141.5,139.5,44};
         } else {
-            return new double[]{2.5,141.5,44};
+            if (follower.getPose().getY()<=108) return new double[]{2.5,141.5,44};
+            else return new double[]{2.5,139.5,44};
         }
     }
     public static class Clamp extends ControlFunc<BotMotor>{
@@ -681,20 +680,24 @@ public class Inferno implements RobotConfig{
         isSpinningUp = true;
         if (alliance == Alliance.RED) autoGateIntake = new ParallelCommand(setState(RobotState.STOPPED),
                 new PedroCommand(
-                        (PathBuilder b)->b.addPath(new BezierLine(follower::getPose,new Pose(128,70)))
-                                .setLinearHeadingInterpolation(follower.getHeading(),Math.toRadians(0))
-                                .addPath(new BezierCurve(follower::getPose,new Pose(126,58),new Pose(133,55)))
-                                .setLinearHeadingInterpolation(Math.toRadians(0),Math.toRadians(45))
-                                .addParametricCallback(0,setState(RobotState.INTAKE_FRONT)::run),true
+                        (PathBuilder b)->{RobotState intakeDirection = RobotState.INTAKE_FRONT; double targetHeading = 0;
+                            if (Math.toDegrees(follower.getHeading())>90 || Math.toDegrees(follower.getHeading())<-90) {intakeDirection = RobotState.INTAKE_BACK; targetHeading = 180;}
+                            return b.addPath(new BezierLine(follower::getPose,new Pose(128,70)))
+                                .setConstantHeadingInterpolation(Math.toRadians(targetHeading))
+                                .addPath(new BezierCurve(follower::getPose,new Pose(126,58),new Pose(128,55)))
+                                .setLinearHeadingInterpolation(Math.toRadians(targetHeading),Math.toRadians(targetHeading+45))
+                                .addParametricCallback(0,setState(intakeDirection)::run);},false
                 )
         );
         else autoGateIntake = new ParallelCommand(setState(RobotState.STOPPED),
                 new PedroCommand(
-                        (PathBuilder b)->b.addPath(new BezierLine(follower::getPose,new Pose(16,70)))
-                                .setLinearHeadingInterpolation(follower.getHeading(),Math.toRadians(180))
-                                .addPath(new BezierCurve(follower::getPose,new Pose(18,58),new Pose(11,55)))
-                                .setLinearHeadingInterpolation(Math.toRadians(180),Math.toRadians(135))
-                                .addParametricCallback(0,setState(RobotState.INTAKE_FRONT)::run),true
+                        (PathBuilder b)->{RobotState intakeDirection = RobotState.INTAKE_FRONT; double targetHeading = 180;
+                            if (Math.toDegrees(follower.getHeading())<90 && Math.toDegrees(follower.getHeading())>-90) {intakeDirection = RobotState.INTAKE_BACK; targetHeading = 0;}
+                            return b.addPath(new BezierLine(follower::getPose,new Pose(16,70)))
+                                .setConstantHeadingInterpolation(Math.toRadians(targetHeading))
+                                .addPath(new BezierCurve(follower::getPose,new Pose(18,58),new Pose(16,55)))
+                                .setLinearHeadingInterpolation(Math.toRadians(targetHeading),Math.toRadians(targetHeading-45))
+                                .addParametricCallback(0,setState(intakeDirection)::run);},false
                 )
         );
     }

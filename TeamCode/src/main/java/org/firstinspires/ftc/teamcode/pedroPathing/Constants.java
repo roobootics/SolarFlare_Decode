@@ -24,7 +24,7 @@ public class Constants {
             .forwardZeroPowerAcceleration(-31.9940432459363933)
             .lateralZeroPowerAcceleration(-68.69912366702141)
             .centripetalScaling(0.001)
-            .translationalPIDFCoefficients(new PIDFCoefficients(0.2, 0.0007, 0.0001, 0.015))
+            .translationalPIDFCoefficients(new PIDFCoefficients(0.2, 0.0003, 0.001, 0.015))
             .headingPIDFCoefficients(new PIDFCoefficients(1.35,0.001,0,0.01))
             .drivePIDFCoefficients(new FilteredPIDFCoefficients(0.01, 0, 0.00003, 0.6, 0.01))
             .centripetalScaling(0.0004)
@@ -72,8 +72,8 @@ public class Constants {
             followerConstants.setUseSecondaryTranslationalPIDF(true);
             followerConstants.setUseSecondaryHeadingPIDF(true);
         } else {
-            followerConstants.setHoldPointTranslationalScaling(1.9);
-            followerConstants.setHoldPointHeadingScaling(0.4);
+            followerConstants.setHoldPointTranslationalScaling(1.4);
+            followerConstants.setHoldPointHeadingScaling(0.5);
             followerConstants.setUseSecondaryDrivePIDF(false);
             followerConstants.setUseSecondaryTranslationalPIDF(false);
             followerConstants.setUseSecondaryHeadingPIDF(false);
@@ -84,7 +84,7 @@ public class Constants {
                 .pathConstraints(pathConstraints)
                 .build();
         if (gamePhase== Inferno.GamePhase.TELEOP) {
-            follower.setTranslationalPIDFCoefficients(new PIDFCoefficients(0.2, 0.0007, 0.0001, 0));
+            follower.setTranslationalPIDFCoefficients(new PIDFCoefficients(0.2, 0, 0.001, 0));
             follower.setHeadingPIDFCoefficients(new PIDFCoefficients(1.35,0.001,0,0));
         }
         return follower;

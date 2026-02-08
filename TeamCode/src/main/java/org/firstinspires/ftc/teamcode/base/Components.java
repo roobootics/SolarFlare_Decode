@@ -347,6 +347,7 @@ public abstract class Components {
         }
         void initDevice(){
             this.device = (E) hardwareMap.tryGet(HardwareDevice.class,name);
+            currControlFuncKey="controlOff";
             for (ControlSystem<?> system : controlSystemMap.values()){
                 system.stopAndReset();
             }

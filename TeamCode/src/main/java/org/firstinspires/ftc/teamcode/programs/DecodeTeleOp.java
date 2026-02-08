@@ -9,14 +9,12 @@ import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.aprilTagRelocalize;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.autoGateIntake;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.backIntake;
-import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.backIntakeGate;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.ballStorage;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.classifierBallCount;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.clearIntegralAtPeak;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.currentBallPath;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.flywheel;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.frontIntake;
-import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.frontIntakeGate;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.gamePhase;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.getTargetPoint;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftFront;
@@ -30,6 +28,7 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.setState;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.shotType;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.targetFlywheelVelocity;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.toggleShotType;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.transfer;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretOffsetFromAuto;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretYaw;
 
@@ -74,6 +73,7 @@ public class DecodeTeleOp extends LinearOpMode {
         initialize(hardwareMap,telemetry,new Inferno(),false,true);
         if (Objects.isNull(follower)) Pedro.createFollower(new Pose(72,72,0));
         else Pedro.createFollower(follower.getPose());
+        follower.updatePose();
         executor.setCommands(
                 new RunResettingLoop(new InstantCommand(()->{if (gamepad1.dpad_left) {Inferno.alliance = Alliance.BLUE;}})),
                 new RunResettingLoop(new InstantCommand(()->{if (gamepad1.dpad_right) {Inferno.alliance = Alliance.RED;}}))
@@ -87,7 +87,7 @@ public class DecodeTeleOp extends LinearOpMode {
                         new PressCommand(
                                 new IfThen(()->gamepad1.right_bumper, setState(RobotState.INTAKE_FRONT)),
                                 new IfThen(()->gamepad1.left_bumper, setState(RobotState.INTAKE_BACK)),
-                                new IfThen(()->gamepad1.right_trigger>0.8, setState(RobotState.SHOOTING)),
+                                new IfThen(()->gamepad1.right_trigger>0.8, new InstantCommand(()->{transfer.reset(); setState(RobotState.SHOOTING).run();})),
                                 new IfThen(()->gamepad1.y, setState(RobotState.STOPPED)),
                                 new IfThen(()->gamepad1.a, autoGateIntake)
                         ),
@@ -116,13 +116,13 @@ public class DecodeTeleOp extends LinearOpMode {
                                                                 new InstantCommand(()->{this.stopDrivetrain(); breakFollowing();})
                                                         ),
                                                         new SequentialCommand(
-                                                                new SleepCommand(1.2),
+                                                                new SleepCommand(1.3),
                                                                 new InstantCommand(()->{frontIntake.setPower(-1.0); backIntake.setPower(-1.0);})
                                                         )
                                                 )
                                         )
                                 ),
-                                new IfThen(()->robotState!=RobotState.SHOOTING,new InstantCommand(()->{this.breakFollowing(); this.stopDrivetrain();}))
+                                new IfThen(()->robotState!=RobotState.SHOOTING,new InstantCommand(()->{if (!follower.isBusy()){this.breakFollowing(); this.stopDrivetrain();}}))
                         ),
                         new ConditionalCommand(
                                 new IfThen(
