@@ -66,7 +66,6 @@ public class PrimeSigmaREDAuto extends LinearOpMode {
         alliance = Alliance.RED;
         gamePhase = GamePhase.AUTO;
         Pedro.createFollower(getMirroredPose("start"));
-        follower.updatePose();
         turretYaw.call((Components.BotServo servo)->servo.switchControl("setPos"));
         executor.setCommands(
                 new Commands.InstantCommand(setShooter::run),

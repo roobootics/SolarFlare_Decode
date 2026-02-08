@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode.base;
 
 import static java.lang.Double.isNaN;
 
+import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
@@ -140,7 +141,6 @@ public abstract class Components {
         Components.hardwareMap=hardwareMap;
         Components.telemetry=telemetry;
         telemetry.update();
-        timer.reset(); //Static variables are preserved between runs, so timer needs to be reset
         telemetryOutput.clear();
         prevTelemetryOutput.clear();
         actuators.clear();
@@ -154,6 +154,11 @@ public abstract class Components {
         for (Actuator<?> actuator : actuators.values()){
             actuator.initDevice();
         }
+        List<LynxModule> allHubs = hardwareMap.getAll(LynxModule.class);
+        for (LynxModule hub : allHubs) {
+            hub.setBulkCachingMode(LynxModule.BulkCachingMode.AUTO);
+        }
+        timer.reset(); //Static variables are preserved between runs, so timer needs to be reset
     }
     public abstract static class ControlFunc<E extends Actuator<?>>{ //Control functions extend this subclass
         protected E parentActuator;

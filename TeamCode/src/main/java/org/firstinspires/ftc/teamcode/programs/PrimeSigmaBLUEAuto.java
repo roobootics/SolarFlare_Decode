@@ -61,7 +61,6 @@ public class PrimeSigmaBLUEAuto extends LinearOpMode {
         alliance = Inferno.Alliance.BLUE;
         gamePhase = GamePhase.AUTO;
         Pedro.createFollower(getPose("start"));
-        follower.updatePose();
         turretYaw.call((Components.BotServo servo)->servo.switchControl("setPos"));
         executor.setCommands(
                 new InstantCommand(setShooter::run),

@@ -73,7 +73,6 @@ public class DecodeTeleOp extends LinearOpMode {
         initialize(hardwareMap,telemetry,new Inferno(),false,true);
         if (Objects.isNull(follower)) Pedro.createFollower(new Pose(72,72,0));
         else Pedro.createFollower(follower.getPose());
-        follower.updatePose();
         executor.setCommands(
                 new RunResettingLoop(new InstantCommand(()->{if (gamepad1.dpad_left) {Inferno.alliance = Alliance.BLUE;}})),
                 new RunResettingLoop(new InstantCommand(()->{if (gamepad1.dpad_right) {Inferno.alliance = Alliance.RED;}}))
@@ -135,8 +134,8 @@ public class DecodeTeleOp extends LinearOpMode {
                                         Pedro.updateCommand()
                                 )
                         ),
-                        loopFSM,
-                        new InstantCommand(()->{
+                        loopFSM
+                        /*new InstantCommand(()->{
                             if (315-turretYaw.get("turretYawFront").getTarget()<15 && !gamepad1.isRumbling()){gamepad1.rumble(1000000000);}
                             else if (turretYaw.get("turretYawFront").getTarget()-0<15 && !gamepad1.isRumbling()){gamepad1.rumble(1000000000);}
                             else if (turretYaw.get("turretYawFront").getTarget()-0>15 && 315-turretYaw.get("turretYawFront").getTarget()>15 && gamepad1.isRumbling()){gamepad1.stopRumble();}
@@ -151,7 +150,7 @@ public class DecodeTeleOp extends LinearOpMode {
                                 gamepad1.setLedColor(1,1,1,1000);
                             }
                             previousBallCount = count;
-                        })
+                        })*/
                 ),
                 clearIntegralAtPeak
         );
