@@ -32,7 +32,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -48,28 +47,17 @@ public abstract class Components {
     public static Telemetry getTelemetry(){
         return telemetry;
     }
-    private static final LinkedHashMap<String,Object> telemetryOutput=new LinkedHashMap<>();
-    private static LinkedHashMap<String,Object> prevTelemetryOutput = new LinkedHashMap<>();
+    private static int telemetryUpdateCounter = 0;
+    private static final int telemetryCacheThreshold = 4;
     public static void telemetryAddData(String caption, Object data){
-        telemetryOutput.put(caption, data);
+        telemetry.addData(caption, data);
     }
     public static void telemetryAddLine(String line){
-        telemetryOutput.put(line,null);
+        telemetry.addLine(line);
     }
     static void updateTelemetry(){
-        if (!prevTelemetryOutput.equals(telemetryOutput)){
-            prevTelemetryOutput=new LinkedHashMap<>(telemetryOutput);
-            for (String caption: telemetryOutput.keySet()){
-                if (Objects.isNull(telemetryOutput.get(caption))){
-                    telemetry.addLine(caption);
-                }
-                else{
-                    telemetry.addData(caption,telemetryOutput.get(caption));
-                }
-            }
-            telemetry.update();
-        }
-        telemetryOutput.clear();
+        if (telemetryUpdateCounter==0) telemetry.update();
+        if (telemetryUpdateCounter<telemetryCacheThreshold) telemetryUpdateCounter+=1; else telemetryUpdateCounter = 0;
     }
     public static final ElapsedTime timer = new ElapsedTime(); //Central timer used by everything (e.g. sleep  command, motion profile)
     public static final HashMap<String,Actuator<?>> actuators = new HashMap<>(); //Map of all actuators, each accessible through its name
@@ -137,12 +125,11 @@ public abstract class Components {
     }
     @Target(ElementType.METHOD)
     public @interface Actuate{} //Used to denote methods that actually move a part, like setPower or setPosition
+    protected static final List<LynxModule> allHubs = new ArrayList<>();
     public static void initialize(HardwareMap hardwareMap, Telemetry telemetry, RobotConfig config, boolean autoSpecificInit, boolean teleOpSpecificInit){ //Method to initialize hardwareMap, telemetry, and a RobotConfig.
         Components.hardwareMap=hardwareMap;
         Components.telemetry=telemetry;
         telemetry.update();
-        telemetryOutput.clear();
-        prevTelemetryOutput.clear();
         actuators.clear();
         for (Actuator<?> actuator : config.getActuators()){
             actuators.put(actuator.name,actuator);
@@ -154,9 +141,10 @@ public abstract class Components {
         for (Actuator<?> actuator : actuators.values()){
             actuator.initDevice();
         }
-        List<LynxModule> allHubs = hardwareMap.getAll(LynxModule.class);
+        allHubs.clear();
+        allHubs.addAll(hardwareMap.getAll(LynxModule.class));
         for (LynxModule hub : allHubs) {
-            hub.setBulkCachingMode(LynxModule.BulkCachingMode.AUTO);
+            hub.setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL);
         }
         timer.reset(); //Static variables are preserved between runs, so timer needs to be reset
     }

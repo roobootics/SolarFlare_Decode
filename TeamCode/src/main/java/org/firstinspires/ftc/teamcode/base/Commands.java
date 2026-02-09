@@ -2,8 +2,11 @@ package org.firstinspires.ftc.teamcode.base;
 
 import static org.firstinspires.ftc.teamcode.base.Components.BotMotor;
 import static org.firstinspires.ftc.teamcode.base.Components.actuators;
+import static org.firstinspires.ftc.teamcode.base.Components.allHubs;
 import static org.firstinspires.ftc.teamcode.base.Components.timer;
 import static org.firstinspires.ftc.teamcode.base.Components.updateTelemetry;
+
+import com.qualcomm.hardware.lynx.LynxModule;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -13,7 +16,6 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 public abstract class Commands { //Command-based system
     public static final CommandExecutor executor=new CommandExecutor(); //This runs Commands
@@ -374,15 +376,10 @@ public abstract class Commands { //Command-based system
                     command.reset();
                 }
             }
-            ArrayList<Command> removingCommands = new ArrayList<>();
-            for (Command command:remainingCommands){
-                command.run();
-                if(!command.isBusy()){
-                    removingCommands.add(command);
-                }
-            }
-            for (Command command:removingCommands){
-                remainingCommands.remove(command);
+            for (int i = 0 ; i < remainingCommands.size(); i++) {
+                remainingCommands.get(i).run();
+            } for (int i = remainingCommands.size() - 1; i >= 0; i--) {
+                if (!remainingCommands.get(i).isBusy()) remainingCommands.remove(i);
             }
             return !remainingCommands.isEmpty();
         }
@@ -1048,11 +1045,18 @@ public abstract class Commands { //Command-based system
             this.writeToTelemetry=procedure;
         }
         public void runOnce(){
+            for (LynxModule hub : allHubs) {
+                hub.clearBulkCache();
+            }
             this.commands.addAll(commandsToAdd);
             this.commands.removeAll(commandsToRemove);
             commandsToAdd.clear();
             commandsToRemove.clear();
-            this.commands = commands.stream().filter((Command command)->{command.run(); return command.isBusy();}).collect(Collectors.toCollection(ArrayList::new));
+            for (int i = 0 ; i < commands.size(); i++) {
+                commands.get(i).run();
+            } for (int i = commands.size() - 1; i >= 0; i--) {
+                if (!commands.get(i).isBusy()) commands.remove(i);
+            }
             for (Components.Actuator<?> actuator : actuators.values()) {
                 actuator.runControl();
                 actuator.resetNewTarget(); actuator.resetNewActuation();
