@@ -147,7 +147,7 @@ public abstract class Commands { //Command-based system
         }
     }
 
-    //PRELOADED commandS
+    //PRELOADED commands
     public static class CommandHolder extends Command{ //An command that can run a given command when run. The command it runs can be changed.
         //The idea behind this is that you can build sequences using an CommandHolder, and set, change, or remove the command inside the CommandHolder later on without having to rebuild the entire sequence again.
         private Command command = null;
@@ -323,10 +323,10 @@ public abstract class Commands { //Command-based system
     }
     public static class SequentialCommand extends Command{ //Runs commands sequentially
         private int index = 0;
-        private final ArrayList<Command> commands;
+        private final Command[] commands;
 
         public SequentialCommand(Command... commands) {
-            this.commands = new ArrayList<>(Arrays.asList(commands));
+            this.commands = commands;
         }
 
         @Override
@@ -337,57 +337,65 @@ public abstract class Commands { //Command-based system
                     command.reset();
                 }
             }
-            while (index!=commands.size()){
-                commands.get(index).run();
-                if (commands.get(index).isFinished()) index+=1;
+            while (index!=commands.length){
+                commands[index].run();
+                if (commands[index].isFinished()) index+=1;
                 else break;
             }
-            return index!=commands.size();
+            return index!=commands.length;
         }
 
         @Override
         public void stopProcedure() {
-            if (index!=commands.size()) commands.get(index).stop();
+            if (index!=commands.length) commands[index].stop();
         }
         public Command getCurrentAction(){
             if (isStart()||isFinished()) return null;
-            else if (index== commands.size()) return commands.get(index-1);
-            else return commands.get(index);
+            else if (index== commands.length) return commands[index-1];
+            else return commands[index];
         }
         public int getCurrentActionIndex(){
-            if (index==commands.size()) return index-1;
+            if (index==commands.length) return index-1;
             else return index;
         }
     }
 
     public static class ParallelCommand extends Command{ //Runs commands in parallel
-        private ArrayList<Command> remainingCommands;
-        protected final ArrayList<Command> commands;
+        protected final Command[] commands;
+        private final boolean[] commandActive;
         public ParallelCommand(Command... commands) {
-            this.commands = new ArrayList<>(Arrays.asList(commands));
-            this.remainingCommands = new ArrayList<>(this.commands);
+            this.commands = commands;
+            this.commandActive = new boolean[commands.length];
+            Arrays.fill(commandActive,true);
         }
 
         @Override
         public boolean runProcedure() {
             if (isStart()) {
-                remainingCommands = new ArrayList<>(commands);
-                for (Command command : remainingCommands) {
+                Arrays.fill(commandActive,true);
+                for (Command command : commands) {
                     command.reset();
                 }
             }
-            for (int i = 0 ; i < remainingCommands.size(); i++) {
-                remainingCommands.get(i).run();
-            } for (int i = remainingCommands.size() - 1; i >= 0; i--) {
-                if (!remainingCommands.get(i).isBusy()) remainingCommands.remove(i);
+            for (int i=0;i<commands.length;i++) {
+                if (commandActive[i]){
+                    commands[i].run();
+                    if (!commands[i].isBusy()){
+                        commandActive[i]=false;
+                    }
+                }
             }
-            return !remainingCommands.isEmpty();
+            boolean anyLeft = false;
+            for (boolean active : commandActive){
+                if (active) {anyLeft = true; break;}
+            }
+            return anyLeft;
         }
 
         @Override
         public void stopProcedure() {
-            for (Command command : remainingCommands) {
-                command.stop();
+            for (int i=0;i<commands.length;i++) {
+                if (commandActive[i]) commands[i].stop();
             }
         }
     }
@@ -555,26 +563,26 @@ public abstract class Commands { //Command-based system
     }
 
     public static class PressCommand extends ConditionalCommand { //ConditionalCommand, but all Conditions are converted into button-presses, such that they will not return 'true' two loop-iterations in a row.
-        private final ArrayList<Boolean> isPressed;
+        private final ArrayList<Boolean> wasPressed;
         public PressCommand(IfThen... ConditionalPairs) {
             super(ConditionalPairs);
             commands.clear();
-            isPressed = new ArrayList<>();
+            wasPressed = new ArrayList<>();
             for (int i = 0; i < ConditionalPairs.length; i++) {
                 int finalI = i;
-                isPressed.add(false);
+                wasPressed.add(false);
                 commands.put(
                         () -> {
                             if (ConditionalPairs[finalI].condition.get()) {
-                                if (!isPressed.get(finalI)){
-                                    isPressed.set(finalI,true);
+                                if (!wasPressed.get(finalI)){
+                                    wasPressed.set(finalI,true);
                                     return true;
                                 }
                                 else{
                                     return false;
                                 }
                             } else {
-                                isPressed.set(finalI,false);
+                                wasPressed.set(finalI,false);
                                 return false;
                             }
                         },
@@ -997,11 +1005,6 @@ public abstract class Commands { //Command-based system
             reset(); super.runProcedure();
             return true;
         }
-        public void stopProcedure(){
-            for (Command command : commands){
-                command.stop();
-            }
-        }
     }
     public static class RunLoop extends ParallelCommand{ //Group of commands that runs commands in parallel in a while loop
         public RunLoop(Command...commands){
@@ -1015,11 +1018,6 @@ public abstract class Commands { //Command-based system
                 }
             }
             return true;
-        }
-        public void stopProcedure(){
-            for (Command command : commands){
-                command.stop();
-            }
         }
     }
     public static class CommandExecutor { //Executes commands given to it in parallel

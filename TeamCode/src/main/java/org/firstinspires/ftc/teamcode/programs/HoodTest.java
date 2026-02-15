@@ -23,7 +23,7 @@ public class HoodTest extends LinearOpMode {
 
     @Override
     public void runOpMode() throws InterruptedException {
-        initialize(hardwareMap,telemetry,new Inferno(),true,true);
+        initialize(this,new Inferno(),true,true);
         Pedro.createFollower(new Pose(0,0,0));
         executor.setCommands(
                 turretPitch.command((Components.BotServo servo)->servo.triggeredDynamicTargetCommand(()->gamepad1.right_bumper,()->gamepad1.left_bumper,0.1)),

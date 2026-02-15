@@ -3,10 +3,12 @@ package org.firstinspires.ftc.teamcode.base;
 import static java.lang.Double.isNaN;
 
 import com.qualcomm.hardware.lynx.LynxModule;
+import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.hardware.HardwareDevice;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
@@ -59,6 +61,8 @@ public abstract class Components {
         if (telemetryUpdateCounter==0) telemetry.update();
         if (telemetryUpdateCounter<telemetryCacheThreshold) telemetryUpdateCounter+=1; else telemetryUpdateCounter = 0;
     }
+    public static Gamepad gamepad1;
+    public static Gamepad gamepad2;
     public static final ElapsedTime timer = new ElapsedTime(); //Central timer used by everything (e.g. sleep  command, motion profile)
     public static final HashMap<String,Actuator<?>> actuators = new HashMap<>(); //Map of all actuators, each accessible through its name
     public static void activateActuatorControl(){
@@ -126,9 +130,11 @@ public abstract class Components {
     @Target(ElementType.METHOD)
     public @interface Actuate{} //Used to denote methods that actually move a part, like setPower or setPosition
     protected static final List<LynxModule> allHubs = new ArrayList<>();
-    public static void initialize(HardwareMap hardwareMap, Telemetry telemetry, RobotConfig config, boolean autoSpecificInit, boolean teleOpSpecificInit){ //Method to initialize hardwareMap, telemetry, and a RobotConfig.
-        Components.hardwareMap=hardwareMap;
-        Components.telemetry=telemetry;
+    public static void initialize(OpMode opMode, RobotConfig config, boolean autoSpecificInit, boolean teleOpSpecificInit){ //Method to initialize hardwareMap, telemetry, and a RobotConfig.
+        Components.gamepad1 = opMode.gamepad1;
+        Components.gamepad2 = opMode.gamepad2;
+        Components.hardwareMap=opMode.hardwareMap;
+        Components.telemetry=opMode.telemetry;
         telemetry.update();
         actuators.clear();
         for (Actuator<?> actuator : config.getActuators()){

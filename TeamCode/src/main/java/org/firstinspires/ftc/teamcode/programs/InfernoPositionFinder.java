@@ -10,7 +10,7 @@ import org.firstinspires.ftc.teamcode.robotconfigs.Inferno;
 @TeleOp
 public class InfernoPositionFinder extends GenericPositionFinder {
     public void runOpMode(){
-        initialize(hardwareMap,telemetry,new Inferno(),true,true);
+        initialize(this,new Inferno(),true,true);
         Components.activateActuatorControl();
         super.runOpMode();
     }

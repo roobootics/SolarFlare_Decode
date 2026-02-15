@@ -8,19 +8,16 @@ import static org.firstinspires.ftc.teamcode.base.Components.timer;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.aprilTagRelocalize;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.autoGateIntake;
-import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.backIntake;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.ballStorage;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.classifierBallCount;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.clearIntegralAtPeak;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.currentBallPath;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.flywheel;
-import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.frontIntake;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.gamePhase;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.getTargetPoint;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftFront;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftRear;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.loopFSM;
-import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.motifShootAll;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.rightFront;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.rightRear;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.robotState;
@@ -70,7 +67,7 @@ public class DecodeTeleOp extends LinearOpMode {
     @Override
     public void runOpMode(){
         gamePhase = GamePhase.TELEOP;
-        initialize(hardwareMap,telemetry,new Inferno(),false,true);
+        initialize(this,new Inferno(),false,true);
         if (Objects.isNull(follower)) Pedro.createFollower(new Pose(72,72,0));
         else Pedro.createFollower(follower.getPose());
         executor.setCommands(
@@ -102,17 +99,11 @@ public class DecodeTeleOp extends LinearOpMode {
                         ),
                         turretYaw.command((BotServo servo)->servo.triggeredDynamicOffsetCommand(()->gamepad2.right_trigger>0.4,()->gamepad2.left_trigger>0.4,0.5)),
                         new PressCommand(
-                                new IfThen(()->robotState==RobotState.SHOOTING,
+                                new IfThen(()->robotState==RobotState.SHOOTING && !(Math.sqrt(gamepad1.left_stick_x*gamepad1.left_stick_x + gamepad1.left_stick_y*gamepad1.left_stick_y)>0.35 || Math.abs(gamepad1.right_stick_x)>0.35),
                                         new SequentialCommand(
                                                 new InstantCommand(()->{this.stopDrivetrain(); holdingPosition = true;}),
                                                 new SleepCommand(0.15),
-                                                new InstantCommand(()->{follower.holdPoint(follower.getPose()); setMotorsToBrake();}),
-                                                new SequentialCommand(
-                                                        new SleepUntilTrue(()->
-                                                                Math.sqrt(gamepad1.left_stick_x*gamepad1.left_stick_x + gamepad1.left_stick_y*gamepad1.left_stick_y)>0.5 || Math.abs(gamepad1.right_stick_x)>0.5,
-                                                                Double.POSITIVE_INFINITY),
-                                                        new InstantCommand(()->{this.stopDrivetrain(); breakFollowing();})
-                                                )
+                                                new InstantCommand(()->{follower.holdPoint(follower.getPose()); setMotorsToBrake();})
                                         )
                                 ),
                                 new IfThen(()->robotState!=RobotState.SHOOTING,new InstantCommand(()->{if (!follower.isBusy()){this.breakFollowing(); this.stopDrivetrain();}}))
@@ -141,13 +132,13 @@ public class DecodeTeleOp extends LinearOpMode {
                             else if (turretYaw.get("turretYawFront").getTarget()-0>15 && 315-turretYaw.get("turretYawFront").getTarget()>15 && gamepad1.isRumbling()){gamepad1.stopRumble();}
                             long count = Arrays.stream(ballStorage).filter(Objects::isNull).count();
                             if (count==3 && count!=previousBallCount){
-                                gamepad1.setLedColor(0,0,0,1000);
+                                gamepad1.setLedColor(0,0,0,1000000000);
                             } else if (count==2 && count!=previousBallCount){
-                                gamepad1.setLedColor(1,0,0,1000);
+                                gamepad1.setLedColor(1,0,0,1000000000);
                             } else if (count==1 && count!=previousBallCount){
-                                gamepad1.setLedColor(0,0,1,1000);
+                                gamepad1.setLedColor(0,0,1,1000000000);
                             } else if (count==0 && count!=previousBallCount){
-                                gamepad1.setLedColor(1,1,1,1000);
+                                gamepad1.setLedColor(1,1,1,1000000000);
                             }
                             previousBallCount = count;
                         })*/
@@ -156,34 +147,29 @@ public class DecodeTeleOp extends LinearOpMode {
         );
         executor.setWriteToTelemetry(()->{
             telemetryAddLine("");
-            telemetryAddData("Ball Storage:", Arrays.asList(ballStorage));
+            telemetryAddData("Ball Storage", Arrays.asList(ballStorage));
             telemetryAddLine("");
-            telemetryAddData("Robot State:",robotState);
+            telemetryAddData("Robot State",robotState);
             telemetryAddLine("");
-            telemetryAddData("Shot Type:",shotType);
+            telemetryAddData("Shot Type",shotType);
             telemetryAddLine("");
-            telemetryAddData("Classifier Count:",classifierBallCount);
-            telemetryAddData("Current Shot Height:",currentBallPath);
-            telemetryAddData("Shoot All Motif:",motifShootAll);
+            telemetryAddData("Classifier Count",classifierBallCount);
+            telemetryAddData("Current Shot Height",currentBallPath);
             telemetryAddLine("");
             telemetryAddData("Target Flywheel Velocity",targetFlywheelVelocity);
+            telemetryAddData("Flywheel Velocity",flywheel.get("flywheelLeft").getVelocity());
             telemetryAddLine("");
             telemetryAddData("Yaw Target",turretYaw.get("turretYawFront").getTarget());
             telemetryAddData("Yaw Desired",-(turretYaw.get("turretYawFront").getTarget()-180)+Math.toDegrees(follower.getHeading()));
-            telemetryAddData("Yaw Raw Pos",turretYaw.get("turretYawFront").getDevice().getPosition()*355);
             telemetryAddLine("");
             telemetryAddData("Distance", Math.sqrt((follower.getPose().getX() - getTargetPoint()[0])*(follower.getPose().getX() - getTargetPoint()[0]) + (follower.getPose().getY() - getTargetPoint()[1])*(follower.getPose().getY() - getTargetPoint()[1])));
-            telemetryAddData("Flywheel Velocity",flywheel.get("flywheelLeft").getVelocity());
             telemetryAddData("PoseX",follower.getPose().getX());
             telemetryAddData("PoseY",follower.getPose().getY());
             telemetryAddData("PoseHeading",Math.toDegrees(follower.getHeading()));
+            telemetryAddLine("");
             telemetryAddData("Flywheel Left Power",flywheel.get("flywheelLeft").getPower());
             telemetryAddData("Flywheel Right Power",flywheel.get("flywheelRight").getPower());
-            telemetryAddData("looptime",timer.time()-lastTime);
-            telemetryAddData("leftFront",leftFront.getDevice().getPower());
-            telemetryAddData("rightFront",rightFront.getDevice().getPower());
-            telemetryAddData("leftRear",leftRear.getDevice().getPower());
-            telemetryAddData("rightRear",rightRear.getDevice().getPower());
+            telemetryAddData("Loop Time",timer.time()-lastTime);
             lastTime = timer.time();
         });
         executor.runLoop(this::opModeIsActive);
