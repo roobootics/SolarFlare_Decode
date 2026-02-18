@@ -117,6 +117,7 @@ public class Inferno implements RobotConfig{
         );
         turretYaw.call((BotServo servo) -> servo.setTargetBounds(() -> 315*TURRET_YAW_RATIO, () -> 0.0));
         turretPitch.call((BotServo servo) -> servo.setTargetBounds(() -> 173.0, () -> 150-5*TURRET_PITCH_RATIO));
+        turretPitch.call((BotServo servo)->servo.setPositionCacheThreshold(0.2));
         frontIntake.setKeyPowers(
                 new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel","frontDrive","sideSelect"},
                 new double[]{1.0,-1.0,1.0,0.9,0,-0.8,0.75,-1.0}
@@ -250,6 +251,7 @@ public class Inferno implements RobotConfig{
             )
     );
     public static final SequentialCommand stopIntake = new SequentialCommand(
+            new InstantCommand(()->{if (shotType==ShotType.MOTIF) currentBallPath = findMotifShotPlan(motifShootAll).getLeft().get(0);}),
             new ParallelCommand(
                     frontIntakeGate.instantSetTargetCommand("closed"),
                     backIntakeGate.instantSetTargetCommand("closed"),
@@ -261,8 +263,7 @@ public class Inferno implements RobotConfig{
                     frontIntake.setPowerCommand("stopped"),
                     backIntake.setPowerCommand("stopped"),
                     transferGate.instantSetTargetCommand("open")
-            ),
-            new ConditionalCommand(new IfThen(()->gamePhase==GamePhase.AUTO,new InstantCommand(Inferno::readBallStorage)))
+            )
     );
     public static final ParallelCommand expel = new ParallelCommand(
             frontIntake.setPowerCommand("expel"),
@@ -272,7 +273,6 @@ public class Inferno implements RobotConfig{
             transferGate.instantSetTargetCommand("open")
     );
     public static final ParallelCommand frontIntakeAndTransfer = new ParallelCommand(
-            new InstantCommand(() -> shotType = ShotType.NORMAL),
             transferGate.instantSetTargetCommand("open"),
             frontIntake.setPowerCommand("transfer"),
             backIntake.setPowerCommand("transfer"),
@@ -280,7 +280,6 @@ public class Inferno implements RobotConfig{
             backIntakeGate.instantSetTargetCommand("closed")
     );
     public static final ParallelCommand backIntakeAndTransfer = new ParallelCommand(
-            new InstantCommand(() -> shotType = ShotType.NORMAL),
             transferGate.instantSetTargetCommand("open"),
             frontIntake.setPowerCommand("transfer"),
             backIntake.setPowerCommand("transfer"),
@@ -288,7 +287,6 @@ public class Inferno implements RobotConfig{
             frontIntakeGate.instantSetTargetCommand("closed")
     );
     public static final Command transfer = new ParallelCommand(
-        new InstantCommand(()->ballStorage = new Color[3]),
         new ConditionalCommand(
             new IfThen(
                 () -> shotType == ShotType.NORMAL,
@@ -296,7 +294,7 @@ public class Inferno implements RobotConfig{
             ),
             new IfThen(
                 () -> shotType == ShotType.MOTIF,
-                new SemiSort()
+                MotifShoot.getFullMotifCommand()
             )
         ),
         new ContinuousCommand(()->{})
@@ -333,9 +331,9 @@ public class Inferno implements RobotConfig{
                 new IfThen(()->robotState==RobotState.INTAKE_BACK_AND_SHOOT, backIntakeAndTransfer),
                 new IfThen(()->robotState==RobotState.INTAKE_FRONT_AND_SHOOT, frontIntakeAndTransfer),
                 new IfThen(()->robotState==RobotState.SHOOTING, transfer),
-                new IfThen(()->Objects.isNull(robotState),stopAll)
+                new IfThen(()->Objects.isNull(robotState), stopAll)
             ),
-        //new InstantCommand(()->{if ((robotState!=RobotState.SHOOTING && robotState!=RobotState.STOPPED) || shotType==ShotType.NORMAL){currentBallPath=BallPath.LOW;}}),
+        new InstantCommand(()->{if ((robotState!=RobotState.SHOOTING && robotState!=RobotState.STOPPED) || shotType==ShotType.NORMAL){currentBallPath=BallPath.LOW;}}),
         setShooter
     );
     private static void colorSensorRead(int index){
@@ -693,13 +691,16 @@ public class Inferno implements RobotConfig{
         isSpinningUp = true;
         if (alliance == Alliance.RED) autoGateIntake = new ParallelCommand(setState(RobotState.STOPPED),
                 new PedroCommand(
-                        (PathBuilder b)->{RobotState intakeDirection = RobotState.INTAKE_FRONT; double targetHeading = 0; HeadingInterpolator initialInterpolation = HeadingInterpolator.tangent;
-                            if (Math.toDegrees(follower.getHeading())>90 || Math.toDegrees(follower.getHeading())<-90) {intakeDirection = RobotState.INTAKE_BACK; targetHeading = 180; initialInterpolation = HeadingInterpolator.tangent.reverse();}
+                        (PathBuilder b)->{RobotState intakeDirection = RobotState.INTAKE_FRONT; double targetHeading = 0; double tangentHeading = atan2(64-follower.getPose().getY(),128-follower.getPose().getX());
+                            if (Math.toDegrees(follower.getHeading())>90 || Math.toDegrees(follower.getHeading())<-90) {intakeDirection = RobotState.INTAKE_BACK; targetHeading = 180; tangentHeading+=180;}
                             final double finalTargetHeading = targetHeading;
                             return b.addPath(new BezierLine(follower::getPose,new Pose(128,64)))
                                 .setHeadingInterpolation(HeadingInterpolator.piecewise(
                                         new HeadingInterpolator.PiecewiseNode(
-                                                0.0,0.75,initialInterpolation
+                                                0.0,0.25,HeadingInterpolator.linear(follower.getHeading(), tangentHeading)
+                                        ),
+                                        new HeadingInterpolator.PiecewiseNode(
+                                                0.25,0.75,HeadingInterpolator.constant(tangentHeading)
                                         ),
                                         new HeadingInterpolator.PiecewiseNode(
                                                 0.75,1.0,HeadingInterpolator.linearFromPoint(follower::getHeading,()->finalTargetHeading,1.0)
@@ -714,13 +715,16 @@ public class Inferno implements RobotConfig{
         );
         else autoGateIntake = new ParallelCommand(setState(RobotState.STOPPED),
                 new PedroCommand(
-                        (PathBuilder b)->{RobotState intakeDirection = RobotState.INTAKE_FRONT; double targetHeading = 180; HeadingInterpolator initialInterpolation = HeadingInterpolator.tangent;
-                            if (Math.toDegrees(follower.getHeading())<90 && Math.toDegrees(follower.getHeading())>-90) {intakeDirection = RobotState.INTAKE_BACK; targetHeading = 0; initialInterpolation = HeadingInterpolator.tangent.reverse();}
+                        (PathBuilder b)->{RobotState intakeDirection = RobotState.INTAKE_FRONT; double targetHeading = 180; double tangentHeading = atan2(64-follower.getPose().getY(),16-follower.getPose().getX());
+                            if (Math.toDegrees(follower.getHeading())<90 && Math.toDegrees(follower.getHeading())>-90) {intakeDirection = RobotState.INTAKE_BACK; targetHeading = 0; tangentHeading += 180;}
                             final double finalTargetHeading = targetHeading;
                             return b.addPath(new BezierLine(follower::getPose,new Pose(16,64)))
                                 .setHeadingInterpolation(HeadingInterpolator.piecewise(
                                         new HeadingInterpolator.PiecewiseNode(
-                                                0.0,0.75,initialInterpolation
+                                                0.0,0.25,HeadingInterpolator.linear(follower.getHeading(), tangentHeading)
+                                        ),
+                                        new HeadingInterpolator.PiecewiseNode(
+                                                0.25,0.75,HeadingInterpolator.constant(tangentHeading)
                                         ),
                                         new HeadingInterpolator.PiecewiseNode(
                                                 0.75,1.0,HeadingInterpolator.linearFromPoint(follower::getHeading,()->finalTargetHeading,1.0)
