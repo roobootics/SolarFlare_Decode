@@ -2,7 +2,6 @@ package org.firstinspires.ftc.teamcode.programs;
 
 import static org.firstinspires.ftc.teamcode.base.Commands.executor;
 import static org.firstinspires.ftc.teamcode.base.Components.initialize;
-import static org.firstinspires.ftc.teamcode.base.Components.telemetryAddData;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.flywheel;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretPitch;
@@ -38,11 +37,11 @@ public class HoodTest extends LinearOpMode {
 
         );
         executor.setWriteToTelemetry(()->{
-            telemetryAddData("hood",turretPitch.get("turretPitchLeft").getTarget());
-            telemetryAddData("yaw pos",turretYaw.get("turretYawFront").getTarget());
-            telemetryAddData("raw yaw pos",turretYaw.get("turretYawFront").getDevice().getPosition()*355);
-            telemetryAddData("yaw angle",targetYaw);
-            telemetryAddData("pinpoint heading",follower.getHeading());
+            telemetry.addData("hood",turretPitch.get("turretPitchLeft").getTarget());
+            telemetry.addData("yaw pos",turretYaw.get("turretYawFront").getTarget());
+            telemetry.addData("raw yaw pos",turretYaw.get("turretYawFront").getDevice().getPosition()*355);
+            telemetry.addData("yaw angle",targetYaw);
+            telemetry.addData("pinpoint heading",follower.getHeading());
         });
         waitForStart();
         Components.activateActuatorControl();

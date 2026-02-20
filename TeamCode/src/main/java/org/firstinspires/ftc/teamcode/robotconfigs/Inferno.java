@@ -1,11 +1,9 @@
 package org.firstinspires.ftc.teamcode.robotconfigs;
-
+import static org.apache.commons.math3.util.FastMath.atan2;
 import static org.firstinspires.ftc.teamcode.base.Components.getHardwareMap;
-import static org.firstinspires.ftc.teamcode.base.Components.telemetryAddData;
 import static org.firstinspires.ftc.teamcode.base.Components.timer;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
 
-import static java.lang.Math.atan2;
 import static java.lang.Math.sqrt;
 
 import org.apache.commons.lang3.tuple.Triple;
@@ -13,7 +11,6 @@ import org.apache.commons.lang3.tuple.Triple;
 import com.pedropathing.geometry.BezierCurve;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
-import com.pedropathing.math.Vector;
 import com.pedropathing.paths.HeadingInterpolator;
 import com.pedropathing.paths.PathBuilder;
 import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
@@ -73,6 +70,7 @@ public class Inferno implements RobotConfig{
     public static BallPath currentBallPath = BallPath.LOW;
     public static RobotState robotState = RobotState.STOPPED;
     public static ShotType shotType = ShotType.NORMAL;
+    public static final double[] targetPoint = new double[3];
     public static boolean motifShootAll = true;
     private final static double BALL_SHOT_TIMING = 0.17;
     private final static double TRANSFER_SELECT_DELAY = 0.1;
@@ -300,16 +298,15 @@ public class Inferno implements RobotConfig{
         new ContinuousCommand(()->{})
     );
     public static final Command setShooter = new ContinuousCommand(()->{
-        double[] targetPoint = getTargetPoint();
+        setTargetPoint();
         Pose pos = follower.getPose();
         double xPos = pos.getX();
         double yPos = pos.getY();
         double dist = sqrt((targetPoint[0]-xPos)*(targetPoint[0]-xPos) + (targetPoint[1]-yPos)*(targetPoint[1]-yPos));
         targetFlywheelVelocity = VelRegression.regressFormula(dist);
-        if (targetFlywheelVelocity<1500) targetFlywheelVelocity = 1500;
-        double heading = Math.toDegrees(follower.getHeading());
         double vel = flywheel.get("flywheelLeft").getVelocity();
         double[] turret = new double[]{HoodRegression.regressFormula(dist,vel),Math.toDegrees(atan2(targetPoint[1] - yPos,targetPoint[0] - xPos))};
+        double heading = Math.toDegrees(follower.getHeading());
         if ((turret[1]-heading)<=-225) turret[1] += 360;
         else if ((turret[1]-heading)>225) turret[1] -= 360;
         turretPitch.call((BotServo servo)->servo.setTarget((turret[0]+TURRET_PITCH_OFFSET)*TURRET_PITCH_RATIO));
@@ -598,40 +595,6 @@ public class Inferno implements RobotConfig{
             }
         }
     }
-    private abstract static class Fisiks {
-        final static double GRAVITY = -386.089;
-        final static double FRICTION = 0.5;
-        final static double HEIGHT = 10.748;
-        final static double TICKS_TO_RAD = 2*Math.PI/28;
-        final static double WHEEL_RAD = 1.41732;
-        final static double BALL_RAD = 2.5;
-        public static double[] runPhysics(BallPath currentBallPath){
-            double[] targetPoint = getTargetPoint();
-            Pose pos = follower.getPose();
-            Vector vel = follower.getVelocity();
-            double xPos = pos.getX();
-            double yPos = pos.getY();
-            double xVel = vel.getXComponent();
-            double yVel = vel.getYComponent();
-            double currWheelVel = TICKS_TO_RAD*Math.max(-flywheel.get("flywheelLeft").getVelocity(),flywheel.get("flywheelRight").getVelocity());
-            double initSpeed = FRICTION*currWheelVel*WHEEL_RAD;
-            double xDist = sqrt((targetPoint[0]-xPos)*(targetPoint[0]-xPos) + (targetPoint[1]-yPos)*(targetPoint[1]-yPos));
-            double yDist = targetPoint[2] - HEIGHT;
-            double TOTAL_RAD = WHEEL_RAD+BALL_RAD;
-            double discriminant = sqrt(initSpeed*initSpeed*initSpeed*initSpeed + 2*yDist*GRAVITY*initSpeed*initSpeed + GRAVITY*GRAVITY*(TOTAL_RAD*TOTAL_RAD - (xDist - TOTAL_RAD)*(xDist - TOTAL_RAD)));
-            if (currentBallPath == BallPath.LOW) discriminant*=-1;
-            double shotTime = sqrt(2*(initSpeed*initSpeed + yDist*GRAVITY + discriminant)/(GRAVITY*GRAVITY));
-            double turretPitch = atan2(
-                    initSpeed*shotTime*(yDist - 0.5*GRAVITY*shotTime*shotTime) - TOTAL_RAD*(xDist - TOTAL_RAD),
-                    initSpeed*shotTime*(xDist - TOTAL_RAD) + TOTAL_RAD*(yDist - 0.5*GRAVITY*shotTime*shotTime)
-            );
-            double turretYaw = atan2(targetPoint[1] - shotTime*yVel - yPos,targetPoint[0] - shotTime*xVel - xPos);
-            if (Double.isNaN(turretYaw)) turretYaw =  atan2(targetPoint[1] - yPos,targetPoint[0] - xPos); if (Double.isNaN(turretPitch)) turretPitch = Math.toRadians(69.8);
-            if (turretYaw>=Math.PI) turretYaw-=2*Math.PI; if (turretPitch<=0) turretPitch+=2*Math.PI;
-            telemetryAddData("NaN",Double.isNaN(shotTime));
-            return new double[]{Math.toDegrees(turretPitch),Math.toDegrees(turretYaw)};
-        }
-    }
     public abstract static class VelRegression {
         private static final double M_1 = 7.081273246;
         private static final double B = 1132.298935;
@@ -650,13 +613,13 @@ public class Inferno implements RobotConfig{
             return F+E*dist+D*vel+C*dist*dist+B*dist*vel+A*vel*vel;
         }
     }
-    public static double[] getTargetPoint(){
+    public static void setTargetPoint(){
         if (alliance==Alliance.RED){
-            if (follower.getPose().getY()<=108) return new double[]{141.5,141.5,44};
-            else return new double[]{141.5,139.5,44};
+            if (follower.getPose().getY()<=108) {targetPoint[0] = 141.5; targetPoint[1] = 141.5; targetPoint[2] = 44;}
+            else {targetPoint[0] = 141.5; targetPoint[1] = 139.5; targetPoint[2] = 44;}
         } else {
-            if (follower.getPose().getY()<=108) return new double[]{2.5,141.5,44};
-            else return new double[]{2.5,139.5,44};
+            if (follower.getPose().getY()<=108) {targetPoint[0] = 2.5; targetPoint[1] = 141.5; targetPoint[2] = 44;}
+            else {targetPoint[0] = 2.5; targetPoint[1] = 139.5; targetPoint[2] = 44;}
         }
     }
     public static class Clamp extends ControlFunc<BotMotor>{
@@ -676,11 +639,11 @@ public class Inferno implements RobotConfig{
 
     @Override
     public void generalInit() {
-        sensors[0] = Components.getHardwareMap().get(NormalizedColorSensor.class, "sensor1");
-        sensors[1] = Components.getHardwareMap().get(NormalizedColorSensor.class, "sensor2");
-        sensors[2] = Components.getHardwareMap().get(NormalizedColorSensor.class, "sensor3");
+        sensors[0] = getHardwareMap().get(NormalizedColorSensor.class, "sensor1");
+        sensors[1] = getHardwareMap().get(NormalizedColorSensor.class, "sensor2");
+        sensors[2] = getHardwareMap().get(NormalizedColorSensor.class, "sensor3");
         voltageSensor = getHardwareMap().get(VoltageSensor.class,"Control Hub");
-        vision = new Vision(Components.getHardwareMap(),Components.getTelemetry());
+        vision = new Vision(getHardwareMap(),Components.getTelemetry());
         targetFlywheelVelocity = 0;
         shotType=ShotType.NORMAL;
         robotState=null;

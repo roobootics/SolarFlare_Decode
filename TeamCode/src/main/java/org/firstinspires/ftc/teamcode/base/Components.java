@@ -45,20 +45,14 @@ public abstract class Components {
     public static HardwareMap getHardwareMap(){
         return hardwareMap;
     }
-    private static Telemetry telemetry;
+    public static Telemetry telemetry;
     public static Telemetry getTelemetry(){
         return telemetry;
     }
     private static int telemetryUpdateCounter = 0;
     private static final int telemetryCacheThreshold = 4;
-    public static void telemetryAddData(String caption, Object data){
-        telemetry.addData(caption, data);
-    }
-    public static void telemetryAddLine(String line){
-        telemetry.addLine(line);
-    }
     static void updateTelemetry(){
-        if (telemetryUpdateCounter==0) telemetry.update();
+        if (telemetryUpdateCounter==0) telemetry.update(); else telemetry.clearAll();
         if (telemetryUpdateCounter<telemetryCacheThreshold) telemetryUpdateCounter+=1; else telemetryUpdateCounter = 0;
     }
     public static Gamepad gamepad1;
@@ -172,7 +166,7 @@ public abstract class Components {
         private final HashMap<String,Boolean> isNewGlobalReferences=new HashMap<>();
         private final HashMap<String,Double> instantReferences=new HashMap<>();
         private Consumer<Double> outputFunc;
-        private double output =0;
+        private double output = 0;
         private final List<ControlFunc<? super E>> controlFuncs;
         @SafeVarargs
         public ControlSystem(String[] referenceKeys, List<Supplier<Double>> referenceValues, Consumer<Double> outputFunc, ControlFunc<? super E>...controlFuncs) {

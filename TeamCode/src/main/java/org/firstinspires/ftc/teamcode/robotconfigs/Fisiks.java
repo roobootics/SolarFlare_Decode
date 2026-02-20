@@ -1,0 +1,260 @@
+package org.firstinspires.ftc.teamcode.robotconfigs;
+
+import static org.apache.commons.math3.util.FastMath.atan2;
+import static org.apache.commons.math3.util.FastMath.cos;
+import static org.apache.commons.math3.util.FastMath.sin;
+import static java.lang.Math.PI;
+import static java.lang.Math.min;
+import static java.lang.Math.sqrt;
+
+import com.pedropathing.geometry.Pose;
+import com.pedropathing.math.Vector;
+
+public abstract class Fisiks {
+    final static double MASS = 74.8;
+    final static double AIR_DENSITY = 0.020;
+    final static double GRAVITY = -386.089;
+    final static double HEIGHT = 10.748;
+    final static double TICKS_TO_RAD = 2* PI/28;
+    final static double WHEEL_RAD = 1.41732;
+    final static double BALL_RAD = 2.5;
+    final static double SURFACE_SPEED_RATIO = 0.7;
+
+    final static double FRICTION = 0.5;
+    final static double AUTHORITY = 0.5;
+    final static double TRANSLATIONAL_DRAG = 0;
+    final static double ANGULAR_DRAG = 0;
+    final static double MAGNUS = 0;
+
+    final static double TOTAL_RAD = WHEEL_RAD+BALL_RAD;
+    final static double K_DRAG = -1/(2*MASS)*TRANSLATIONAL_DRAG*AIR_DENSITY*PI*BALL_RAD*BALL_RAD;
+    final static double K_MAGNUS = MAGNUS/MASS;
+    final static double K_SPIN = -3/(4*MASS)*AIR_DENSITY*ANGULAR_DRAG*PI*BALL_RAD;
+
+    final static double yawBracketRange = Math.toRadians(15);
+
+    static double[] targetPoint;
+    static double botVelX;
+    static double botVelY;
+    static double initSpeed;
+    static double initSpin;
+    static double distance;
+    final static double[] targetNorm = new double[2];
+    final static double[] sidewaysNorm = new double[2];
+
+    final static double[] output = new double[2];
+    public static class Vec3 {
+        double x,y,z;
+        public Vec3(double x, double y, double z){
+            set(x,y,z);
+        }
+        Vec3 set(double X,double Y,double Z){x=X;y=Y;z=Z;return this;}
+        Vec3 set(Vec3 vec){x=vec.x;y=vec.y;z=vec.z;return this;}
+        Vec3 add(Vec3 b){x+=b.x;y+=b.y;z+=b.z;return this;}
+        Vec3 addScaled(Vec3 b,double s){x+=b.x*s;y+=b.y*s;z+=b.z*s;return this;}
+        Vec3 add(double x, double y, double z){this.x+=x;this.y+=y;this.z+=z;return this;}
+        Vec3 scale(double s){x*=s;y*=s;z*=s;return this;}
+        double magnitude(){return sqrt(x*x+y*y+z*z);}
+    }
+    public static class State{
+        public final Vec3 tVel = new Vec3(0,0,0);
+        public final Vec3 tPos = new Vec3(0,0,0);
+        public final Vec3 aVel = new Vec3(0,0,0);
+        public void set(State state){
+            tVel.set(state.tVel);
+            tPos.set(state.tPos);
+            aVel.set(state.aVel);
+        }
+    }
+    public static class RK4{
+        private final static State current = new State();
+        private final static State[] derivs = new State[]{new State(),new State(),new State(),new State()};
+        private final static State tmp = new State();
+        private final static double deltaT = 0.00001;
+        private static void deriv(State current, State change){
+            change.tPos.set(current.tVel);
+            double vmag = current.tVel.magnitude();
+            change.tVel.set(
+                    K_DRAG*vmag*current.tVel.x + K_MAGNUS*(current.aVel.y*current.tVel.z - current.aVel.z*current.tVel.y),
+                    K_DRAG*vmag*current.tVel.y + K_MAGNUS*(current.aVel.z*current.tVel.x - current.aVel.x*current.tVel.z),
+                    K_DRAG*vmag*current.tVel.z + K_MAGNUS*(current.aVel.x*current.tVel.y - current.aVel.y*current.tVel.x) + GRAVITY
+            );
+            double wmag = current.aVel.magnitude();
+            change.aVel.set(
+                    K_SPIN*wmag*current.aVel.x,
+                    K_SPIN*wmag*current.aVel.y,
+                    K_SPIN*wmag*current.aVel.z
+            );
+        }
+        public static State integrate(double pitch, double yaw, double time){
+            current.tPos.set((cos(PI/2 + pitch)+1)*cos(yaw), (cos(PI/2 + pitch)+1)*sin(yaw), sin(PI/2 + pitch)).scale(TOTAL_RAD);
+            current.tVel.set(cos(yaw)*cos(pitch), sin(yaw)*cos(pitch), sin(yaw)).scale(initSpeed).add(botVelX,botVelY,0);
+            current.aVel.set(cos(yaw + PI/2), sin(yaw + PI/2), 0).scale(initSpin);
+            double t = 0;
+            double h;
+            while (t < time){
+                h = min(deltaT, time-t);
+
+                deriv(current, derivs[0]);
+                tmp.tPos.set(current.tPos).addScaled(derivs[0].tPos,h*0.5);
+                tmp.tVel.set(current.tVel).addScaled(derivs[0].tVel,h*0.5);
+                tmp.aVel.set(current.aVel).addScaled(derivs[0].aVel,h*0.5);
+                deriv(tmp, derivs[1]);
+                tmp.tPos.set(current.tPos).addScaled(derivs[1].tPos,h*0.5);
+                tmp.tVel.set(current.tVel).addScaled(derivs[1].tVel,h*0.5);
+                tmp.aVel.set(current.aVel).addScaled(derivs[1].aVel,h*0.5);
+                deriv(tmp, derivs[2]);
+                tmp.tPos.set(current.tPos).addScaled(derivs[2].tPos,h*0.5);
+                tmp.tVel.set(current.tVel).addScaled(derivs[2].tVel,h*0.5);
+                tmp.aVel.set(current.aVel).addScaled(derivs[2].aVel,h*0.5);
+                deriv(tmp, derivs[3]);
+
+                double c = h/6.0;
+                current.tPos.addScaled(derivs[0].tPos, c).addScaled(derivs[1].tPos,2*c).addScaled(derivs[2].tPos,2*c).addScaled(derivs[3].tPos,c);
+                current.tVel.addScaled(derivs[0].tVel, c).addScaled(derivs[1].tVel,2*c).addScaled(derivs[2].tVel,2*c).addScaled(derivs[3].tVel,c);
+                current.aVel.addScaled(derivs[0].aVel, c).addScaled(derivs[1].aVel,2*c).addScaled(derivs[2].aVel,2*c).addScaled(derivs[3].aVel,c);
+
+                t+=h;
+            }
+            return current;
+        }
+
+    }
+    public static class Error{
+        public static double distError;
+        public static double sideError;
+        public static double heightError;
+        public static void findError(double pitch, double yaw, double time){
+            State s = RK4.integrate(pitch,yaw,time);
+            distError = s.tPos.x*targetNorm[0] + s.tPos.y*targetNorm[1] - distance;
+            heightError = s.tPos.z - targetPoint[3];
+            sideError = sidewaysNorm[0]*(targetPoint[0]-s.tPos.x) + sidewaysNorm[1]*(targetPoint[1]-s.tPos.y);
+        }
+    }
+    public static class Solver{
+        final public static double[] out = new double[3]; //pitch, yaw, time
+        private static final double STAGE1MAXITR = 6;
+        private static final double STAGE2MAXITR = 8;
+        private static final double DISTERR = 1e-3;
+        private static final double HEIGHTERR = 1e-3;
+        private static final double YAWERR = 1e-9;
+        public static boolean stage1Solve(double initialPitchGuess, double initialTimeGuess, double yaw){
+
+            // inverse Jacobian approx (2x2)
+            double a=1,b=0,c=0,dj=1;
+
+            Error.findError(initialPitchGuess,yaw,initialTimeGuess);
+            out[0] = initialPitchGuess; out[2] = initialTimeGuess;
+            double startDistError = Error.distError;
+            double startHeightError = Error.heightError;
+            double newDistError;
+            double newHeightError;
+
+            for(int it=0; it<STAGE1MAXITR; it++)
+            {
+                double dx0 = -(a*startDistError + b*startHeightError);
+                double dx1 = -(c*startDistError + dj*startHeightError);
+
+                double x0 = out[0] + dx0;
+                double x1 = out[2] + dx1;
+
+                Error.findError(x0,yaw,x1);
+                newDistError = Error.distError;
+                newHeightError = Error.heightError;
+
+                double y0 = newDistError - startDistError;
+                double y1 = newHeightError - startHeightError;
+
+                double s0 = dx0, s1 = dx1;
+                double denom = s0*y0 + s1*y1;
+
+                if (Math.abs(denom) > 1e-9) {
+                    double r0 = s0 - (a*y0 + b*y1);
+                    double r1 = s1 - (c*y0 + dj*y1);
+
+                    double k0 = r0/denom;
+                    double k1v = r1/denom;
+
+                    a += k0*s0;  b += k0*s1;
+                    c += k1v*s0; dj+= k1v*s1;
+                }
+
+                out[0] = x0; out[2] =x1;
+                startDistError=newDistError; startHeightError=newHeightError;
+
+                if (Math.abs(startDistError)<DISTERR && Math.abs(startHeightError)<HEIGHTERR)
+                    return true;
+            }
+            out[0] = Double.NaN;
+            out[2] = Double.NaN;
+            return false;
+        }
+        public static double[] solve(double initialPitchGuess, double initialYawGuess, double initialTimeGuess, double yawTopBracket, double yawBottomBracket){
+            double fLo, fHi;
+            boolean lowConverged, highConverged;
+            lowConverged = stage1Solve(initialPitchGuess,yawBottomBracket,initialTimeGuess); fLo = Error.sideError;
+            highConverged = stage1Solve(initialPitchGuess,yawTopBracket,initialTimeGuess); fHi = Error.sideError;
+            if (!lowConverged || !highConverged || fLo*fHi>0){
+                out[0] = Double.NaN;
+                out[1] = Double.NaN;
+                out[2] = Double.NaN;
+                return out;
+            }
+            double a=yawBottomBracket, b=yawTopBracket, fa=fLo, fb=fHi;
+            double initPitchGuess = initialPitchGuess, initTimeGuess = initialTimeGuess;
+            double prevC = initialYawGuess;
+            double c = (a*fb - b*fa)/(fb - fa);
+            for(int it=0; it<STAGE2MAXITR; it++) {
+                boolean success = stage1Solve(initPitchGuess,initTimeGuess,c);
+                if (!success){
+                    c = prevC + 0.5 * (c - prevC);
+                } else{
+                    prevC = c;
+                    initPitchGuess = out[0];
+                    initTimeGuess = out[2];
+                    double fc = Error.sideError;
+                    if (Math.abs(fc) < YAWERR) {
+                        out[1] = c;
+                        return out;
+                    }
+                    if (fa*fc < 0) {
+                        b=c; fb=fc;
+                        fa*=0.5; // Illinois
+                    } else {
+                        a=c; fa=fc;
+                        fb*=0.5;
+                    }
+                    c = (a*fb - b*fa)/(fb - fa);
+                }
+            }
+            out[0] = Double.NaN;
+            out[1] = Double.NaN;
+            out[2] = Double.NaN;
+            return out;
+        }
+    }
+
+    public static double[] runPhysics(Inferno.BallPath currentBallPath, double[] targetPoint, Pose pos, Vector botVel, double flywheelVel){
+        double xPos = pos.getX();
+        double yPos = pos.getY();
+        targetPoint[0] -= xPos; targetPoint[1] -= yPos; targetPoint[2] -= HEIGHT;
+        Fisiks.targetPoint = targetPoint;
+        Fisiks.distance = sqrt(targetPoint[0]*targetPoint[0]+targetPoint[1]*targetPoint[1]);
+        Fisiks.targetNorm[0] = 1/distance * targetPoint[0];
+        Fisiks.targetNorm[1] = 1/distance * targetPoint[1];
+        Fisiks.sidewaysNorm[0] = 1/distance * -targetPoint[1];
+        Fisiks.sidewaysNorm[1] = 1/distance * targetPoint[0];
+        Fisiks.botVelX = botVel.getXComponent();
+        Fisiks.botVelY = botVel.getYComponent();
+        double flyVel = TICKS_TO_RAD*flywheelVel*WHEEL_RAD;
+        double backVel = flyVel*SURFACE_SPEED_RATIO;
+        Fisiks.initSpeed = FRICTION*(AUTHORITY *backVel+(1- AUTHORITY)*flyVel);
+        Fisiks.initSpin = FRICTION*((min(2*AUTHORITY,1)*backVel + (1-min(2*AUTHORITY,1))*flyVel) - ((1 - min(2-2*AUTHORITY,1))*backVel + min(2-2*AUTHORITY,1)*flyVel))/BALL_RAD;
+        double initialYawGuess = atan2(targetPoint[1],targetPoint[0]);
+        double initialPitchGuess;
+        double initialTimeGuess;
+        if (currentBallPath == Inferno.BallPath.HIGH) {initialPitchGuess = Math.toRadians(60); initialTimeGuess = 2;} else {initialPitchGuess = Math.toRadians(43); initialTimeGuess = 0.7;}
+
+        return Solver.solve(initialPitchGuess,initialYawGuess,initialTimeGuess,initialYawGuess+yawBracketRange,initialYawGuess-yawBracketRange);
+    }
+}

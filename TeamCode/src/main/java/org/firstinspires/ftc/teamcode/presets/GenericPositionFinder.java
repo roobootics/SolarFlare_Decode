@@ -17,8 +17,8 @@ public abstract class GenericPositionFinder extends LinearOpMode { //Used to fin
     protected double dynamicChangeAmount=0.1;
     private final ArrayList<String> actuatorNames = new ArrayList<>();
     public void updateTelemetry(){
-        Components.telemetryAddLine(actuatorNames.get(selectedActuatorIndex));
-        Components.telemetryAddData("position", Objects.requireNonNull(actuators.get(actuatorNames.get(selectedActuatorIndex))).getCurrentPosition());
+        Components.telemetry.addLine(actuatorNames.get(selectedActuatorIndex));
+        Components.telemetry.addData("position", Objects.requireNonNull(actuators.get(actuatorNames.get(selectedActuatorIndex))).getCurrentPosition());
     }
     public void shiftSelectionRight(){
         if (selectedActuatorIndex<actuatorNames.size()-1){

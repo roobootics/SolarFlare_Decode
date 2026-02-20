@@ -4,8 +4,7 @@ import static org.firstinspires.ftc.teamcode.base.Commands.executor;
 import static org.firstinspires.ftc.teamcode.base.Components.gamepad1;
 import static org.firstinspires.ftc.teamcode.base.Components.gamepad2;
 import static org.firstinspires.ftc.teamcode.base.Components.initialize;
-import static org.firstinspires.ftc.teamcode.base.Components.telemetryAddData;
-import static org.firstinspires.ftc.teamcode.base.Components.telemetryAddLine;
+import static org.firstinspires.ftc.teamcode.base.Components.telemetry;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.alliance;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.ballStorage;
@@ -205,18 +204,18 @@ public class PrimeSigmaConstants {
         Pedro.createFollower(getPose("start"));
         turretYaw.call((Components.BotServo servo)->servo.switchControl("setPos"));
         executor.setWriteToTelemetry(()->{
-                telemetryAddData("offset",turretYaw.get("turretYawFront").getOffset());
-                telemetryAddLine("");
+                telemetry.addData("offset",turretYaw.get("turretYawFront").getOffset());
+                telemetry.addLine("");
                 for (int i=0;i<pathListDisplay.size();i++){
                     if (i==selectionIndex && isInserting){
-                        telemetryAddLine("> [    ]");
-                        telemetryAddLine(pathListDisplay.get(i));
+                        telemetry.addLine("> [    ]");
+                        telemetry.addLine(pathListDisplay.get(i));
                     } else if (i==selectionIndex){
-                        telemetryAddLine("> ["+pathListDisplay.get(i)+"]");
-                    } else telemetryAddLine(pathListDisplay.get(i));
+                        telemetry.addLine("> ["+pathListDisplay.get(i)+"]");
+                    } else telemetry.addLine(pathListDisplay.get(i));
                 }
-                telemetryAddLine("");
-                telemetryAddLine("Please, Speed, we need this.");
+                telemetry.addLine("");
+                telemetry.addLine("Please, Speed, we need this.");
         });
         executor.setCommands(
                 new InstantCommand(setShooter::run),
@@ -255,30 +254,30 @@ public class PrimeSigmaConstants {
         turretOffsetFromAuto = turretYaw.get("turretYawFront").getOffset();
         Components.activateActuatorControl();
         executor.setWriteToTelemetry(()->{
-            telemetryAddData("is busy",follower.isBusy());
-            telemetryAddLine("");
-            telemetryAddData("Ball Storage", Arrays.asList(ballStorage));
-            telemetryAddLine("");
-            telemetryAddData("Robot State",robotState);
-            telemetryAddLine("");
-            telemetryAddData("Shot Type",shotType);
-            telemetryAddLine("");
-            telemetryAddData("Classifier Count",classifierBallCount);
-            telemetryAddData("Current Shot Height",currentBallPath);
-            telemetryAddLine("");
-            telemetryAddData("Target Flywheel Velocity",targetFlywheelVelocity);
-            telemetryAddData("Flywheel Velocity",flywheel.get("flywheelLeft").getVelocity());
-            telemetryAddLine("");
-            telemetryAddData("Yaw Target",turretYaw.get("turretYawFront").getTarget());
-            telemetryAddData("Yaw Desired",-(turretYaw.get("turretYawFront").getTarget()-180)+Math.toDegrees(follower.getHeading()));
-            telemetryAddLine("");
-            telemetryAddData("Distance", Math.sqrt((follower.getPose().getX() - getTargetPoint()[0])*(follower.getPose().getX() - getTargetPoint()[0]) + (follower.getPose().getY() - getTargetPoint()[1])*(follower.getPose().getY() - getTargetPoint()[1])));
-            telemetryAddData("PoseX",follower.getPose().getX());
-            telemetryAddData("PoseY",follower.getPose().getY());
-            telemetryAddData("PoseHeading",Math.toDegrees(follower.getHeading()));
-            telemetryAddLine("");
-            telemetryAddData("Flywheel Left Power",flywheel.get("flywheelLeft").getPower());
-            telemetryAddData("Flywheel Right Power",flywheel.get("flywheelRight").getPower());
+            telemetry.addData("is busy",follower.isBusy());
+            telemetry.addLine("");
+            telemetry.addData("Ball Storage", Arrays.asList(ballStorage));
+            telemetry.addLine("");
+            telemetry.addData("Robot State",robotState);
+            telemetry.addLine("");
+            telemetry.addData("Shot Type",shotType);
+            telemetry.addLine("");
+            telemetry.addData("Classifier Count",classifierBallCount);
+            telemetry.addData("Current Shot Height",currentBallPath);
+            telemetry.addLine("");
+            telemetry.addData("Target Flywheel Velocity",targetFlywheelVelocity);
+            telemetry.addData("Flywheel Velocity",flywheel.get("flywheelLeft").getVelocity());
+            telemetry.addLine("");
+            telemetry.addData("Yaw Target",turretYaw.get("turretYawFront").getTarget());
+            telemetry.addData("Yaw Desired",-(turretYaw.get("turretYawFront").getTarget()-180)+Math.toDegrees(follower.getHeading()));
+            telemetry.addLine("");
+            telemetry.addData("Distance", Math.sqrt((follower.getPose().getX() - getTargetPoint()[0])*(follower.getPose().getX() - getTargetPoint()[0]) + (follower.getPose().getY() - getTargetPoint()[1])*(follower.getPose().getY() - getTargetPoint()[1])));
+            telemetry.addData("PoseX",follower.getPose().getX());
+            telemetry.addData("PoseY",follower.getPose().getY());
+            telemetry.addData("PoseHeading",Math.toDegrees(follower.getHeading()));
+            telemetry.addLine("");
+            telemetry.addData("Flywheel Left Power",flywheel.get("flywheelLeft").getPower());
+            telemetry.addData("Flywheel Right Power",flywheel.get("flywheelRight").getPower());
         });
         executor.setCommands(
                 new SequentialCommand(pathList.toArray(new Command[0])),
