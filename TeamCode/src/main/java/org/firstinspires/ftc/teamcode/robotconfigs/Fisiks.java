@@ -69,7 +69,7 @@ public abstract class Fisiks {
         private final static State current = new State();
         private final static State[] derivs = new State[]{new State(),new State(),new State(),new State()};
         private final static State tmp = new State();
-        private final static double deltaT = 0.003;
+        private final static double deltaT = 0.005;
         private static void deriv(State current, State change){
             change.tPos.set(current.tVel);
             double vmag = current.tVel.magnitude();

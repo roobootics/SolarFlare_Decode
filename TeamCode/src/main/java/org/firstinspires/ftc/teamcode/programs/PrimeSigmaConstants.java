@@ -201,7 +201,7 @@ public class PrimeSigmaConstants {
         turretOffsetFromAuto = 0;
         gamePhase = Inferno.GamePhase.AUTO;
         Pedro.createFollower(getPose("start"));
-        turretYaw.call((Components.BotServo servo)->servo.switchControl("setPos"));
+        turretYaw.call((Components.CRBotServo servo)->servo.switchControl("PID"));
         executor.setWriteToTelemetry(()->{
                 telemetry.addData("offset",turretYaw.get("turretYawFront").getOffset());
                 telemetry.addLine("");
@@ -218,7 +218,7 @@ public class PrimeSigmaConstants {
         });
         executor.setCommands(
                 new InstantCommand(setShooter::run),
-                turretYaw.command((Components.BotServo servo)->servo.triggeredDynamicOffsetCommand(()->gamepad1.right_trigger>0.4,()->gamepad2.left_trigger>0.4,0.05)),
+                turretYaw.command((Components.CRBotServo servo)->servo.triggeredDynamicOffsetCommand(()->gamepad1.right_trigger>0.4,()->gamepad2.left_trigger>0.4,0.05)),
                 new RunResettingLoop(new PressCommand(
                         new IfThen(()->gamepad1.dpad_up,new InstantCommand(()->{
                                 if (!isInserting){

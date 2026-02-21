@@ -21,7 +21,7 @@ public class HoodTest extends LinearOpMode {
     public double targetYaw = 180;
 
     @Override
-    public void runOpMode() throws InterruptedException {
+    public void runOpMode(){
         initialize(this,new Inferno(),true,true);
         Pedro.createFollower(new Pose(0,0,0));
         executor.setCommands(
@@ -31,15 +31,13 @@ public class HoodTest extends LinearOpMode {
                         new Commands.InstantCommand(()->{
                             if (targetYaw>180) targetYaw=180;
                             else if (targetYaw<-135) targetYaw = -135;
-                        }),
-                        turretYaw.command((Components.BotServo servo)-> servo.instantSetTargetCommand(()->180-(targetYaw - follower.getHeading())))
+                        })
                 )
 
         );
         executor.setWriteToTelemetry(()->{
             telemetry.addData("hood",turretPitch.get("turretPitchLeft").getTarget());
             telemetry.addData("yaw pos",turretYaw.get("turretYawFront").getTarget());
-            telemetry.addData("raw yaw pos",turretYaw.get("turretYawFront").getDevice().getPosition()*355);
             telemetry.addData("yaw angle",targetYaw);
             telemetry.addData("pinpoint heading",follower.getHeading());
         });

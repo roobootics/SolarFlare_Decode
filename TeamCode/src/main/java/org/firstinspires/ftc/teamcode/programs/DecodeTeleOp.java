@@ -72,7 +72,7 @@ public class DecodeTeleOp extends LinearOpMode {
                 new RunResettingLoop(new InstantCommand(()->{if (gamepad1.dpad_right) {Inferno.alliance = Alliance.RED;}}))
         );
         executor.runLoop(this::opModeInInit);
-        turretYaw.call((BotServo servo)->servo.setOffset(turretOffsetFromAuto));
+        turretYaw.call((CRBotServo servo)->servo.setOffset(turretOffsetFromAuto));
         Components.activateActuatorControl();
         breakFollowing();
         executor.setCommands(
@@ -94,7 +94,7 @@ public class DecodeTeleOp extends LinearOpMode {
                                 new IfThen(()->gamepad2.back,setState(RobotState.EXPEL)),
                                 new IfThen(()->gamepad2.left_bumper,new ParallelCommand(aprilTagRelocalize,new SequentialCommand(new SleepCommand(0.5),new InstantCommand(aprilTagRelocalize::stop))))
                         ),
-                        turretYaw.command((BotServo servo)->servo.triggeredDynamicOffsetCommand(()->gamepad2.right_trigger>0.4,()->gamepad2.left_trigger>0.4,0.5)),
+                        turretYaw.command((CRBotServo servo)->servo.triggeredDynamicOffsetCommand(()->gamepad2.right_trigger>0.4,()->gamepad2.left_trigger>0.4,0.5)),
                         new PressCommand(
                                 new IfThen(()->robotState==RobotState.SHOOTING && !(Math.sqrt(gamepad1.left_stick_x*gamepad1.left_stick_x + gamepad1.left_stick_y*gamepad1.left_stick_y)>0.35 || Math.abs(gamepad1.right_stick_x)>0.35),
                                         new SequentialCommand(

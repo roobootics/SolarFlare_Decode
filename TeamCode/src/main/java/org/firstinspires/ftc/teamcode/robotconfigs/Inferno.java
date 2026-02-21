@@ -13,6 +13,7 @@ import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.HeadingInterpolator;
 import com.pedropathing.paths.PathBuilder;
+import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.NormalizedRGBA;
@@ -40,15 +41,17 @@ public class Inferno implements RobotConfig{
     public static BotMotor rightRear = new BotMotor("rightRear", DcMotorSimple.Direction.FORWARD);
     public static SyncedActuators<BotMotor> flywheel;
     public static double targetFlywheelVelocity;
-    public static SyncedActuators<BotServo> turretYaw  = new SyncedActuators<>(
-            new BotServo("turretYawFront", Servo.Direction.FORWARD, 422, 5, 355,0),
-            new BotServo("turretYawBack", Servo.Direction.FORWARD, 422, 5, 355,0)
+    private static final double ENCODER_RATIO = 1;
+    private static final double ENCODER_OFFSET = 0;
+    public static SyncedActuators<CRBotServo> turretYaw  = new SyncedActuators<>(
+            new CRBotServo("turretYawFront", DcMotorSimple.Direction.FORWARD, (CRServo servo)->leftFront.getCurrentPosition()*ENCODER_RATIO+ENCODER_OFFSET,1,5, 5, new String[]{"PID"},new ControlSystem<>(new PositionPID(0.015,0,0))),
+            new CRBotServo("turretYawBack", DcMotorSimple.Direction.FORWARD, (CRServo servo)->leftFront.getCurrentPosition()*ENCODER_RATIO+ENCODER_OFFSET, 1, 5,5, new String[]{"PID"},new ControlSystem<>(new PositionPID(0.015,0,0)))
     );
     private static final double TURRET_YAW_RATIO = 1.0;
     private static final double TURRET_YAW_OFFSET = 0;
     public static SyncedActuators<BotServo> turretPitch = new SyncedActuators<>(
-            new BotServo("turretPitchLeft", Servo.Direction.REVERSE, 422, 5, 180, 180),
-            new BotServo("turretPitchRight", Servo.Direction.FORWARD, 422, 5, 180, 180)
+            new BotServo("turretPitchLeft", Servo.Direction.REVERSE, 422,5,355,0),
+            new BotServo("turretPitchRight", Servo.Direction.FORWARD, 422,5,355,0)
     );
     private static final double TURRET_PITCH_RATIO = (double) 48/40;
     private static final double TURRET_PITCH_OFFSET = 80.2;
@@ -113,7 +116,7 @@ public class Inferno implements RobotConfig{
                                     else {return 0.0;}})
                         ))
         );
-        turretYaw.call((BotServo servo) -> servo.setTargetBounds(() -> 315*TURRET_YAW_RATIO, () -> 0.0));
+        turretYaw.call((CRBotServo servo) -> servo.setTargetBounds(() -> 315*TURRET_YAW_RATIO, () -> 0.0));
         turretPitch.call((BotServo servo) -> servo.setTargetBounds(() -> 173.0, () -> 150-5*TURRET_PITCH_RATIO));
         turretPitch.call((BotServo servo)->servo.setPositionCacheThreshold(0.2));
         frontIntake.setKeyPowers(
@@ -310,7 +313,7 @@ public class Inferno implements RobotConfig{
         if ((turret[1]-heading)<=-225) turret[1] += 360;
         else if ((turret[1]-heading)>225) turret[1] -= 360;
         turretPitch.call((BotServo servo)->servo.setTarget((turret[0]+TURRET_PITCH_OFFSET)*TURRET_PITCH_RATIO));
-        turretYaw.call((BotServo servo)->servo.setTarget((180-(turret[1]-heading)+TURRET_YAW_OFFSET)*TURRET_YAW_RATIO));
+        turretYaw.call((CRBotServo servo)->servo.setTarget((180-(turret[1]-heading)+TURRET_YAW_OFFSET)*TURRET_YAW_RATIO));
     });
     public static final Command stopAll = new ParallelCommand(
             frontIntake.setPowerCommand("stopped"),
