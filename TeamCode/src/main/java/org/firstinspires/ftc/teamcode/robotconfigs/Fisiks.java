@@ -142,17 +142,34 @@ public abstract class Fisiks {
         public static double clampHood(double in){return Math.max(Math.toRadians(22),Math.min(in,Math.toRadians(75)));}
         public static double clampTime(double in){return Math.max(0.2,Math.min(in,2));}
         final public static double[] out = new double[3]; //pitch, yaw, time
-        private static final double STAGE1MAXITR = 8;
+        private static final double STAGE1MAXITR = 12;
         private static final double STAGE2MAXITR = 8;
         private static final double DISTERR = 5e-2;
         private static final double HEIGHTERR = 5e-2;
         private static final double YAWERR = 5e-2;
         public static boolean stage1Solve(double initialPitchGuess, double initialTimeGuess, double yaw){
+            double a,b,c,dj;
+            double timeOffset = 0.01;
+            double angleOffset = Math.toRadians(1);
 
-            // inverse Jacobian approx (2x2)
-            double a=1,b=0,c=0,dj=1;
-
+            Error.findError(initialPitchGuess + angleOffset,yaw,initialTimeGuess);
+            double distErr2 = Error.distError; double heightErr2 = Error.heightError;
+            Error.findError(initialPitchGuess,yaw,initialTimeGuess + timeOffset);
+            double distErr3 = Error.distError; double heightErr3 = Error.heightError;
             Error.findError(initialPitchGuess,yaw,initialTimeGuess);
+            double distErr1 = Error.distError; double heightErr1 = Error.heightError;
+
+            double topLeft = (distErr2-distErr1)/angleOffset;
+            double bottomRight = (heightErr3 - heightErr1)/timeOffset;
+            double topRight = (distErr3 - distErr1)/timeOffset;
+            double bottomLeft = (heightErr2 - heightErr1)/angleOffset;
+
+            double determinant = topLeft*bottomRight - topRight/bottomLeft;
+            a = bottomRight/determinant;
+            b = -topRight/determinant;
+            c = -bottomLeft/determinant;
+            dj = topLeft/determinant;
+
             out[0] = initialPitchGuess; out[2] = initialTimeGuess;
             double startDistError;
             double startHeightError;
@@ -186,7 +203,7 @@ public abstract class Fisiks {
 
                 double sty = dx0*y0 + dx1*y1;
 
-                if (Math.abs(sty) > 1e-12) {
+                if (Math.abs(sty) > 1e-12 && update) {
                     double r0 = dx0 - (a*y0 + b*y1);
                     double r1 = dx1 - (c*y0 + dj*y1);
 
