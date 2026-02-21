@@ -18,7 +18,7 @@ public abstract class Fisiks {
     final static double TICKS_TO_RAD = 2*PI/28;
     final static double WHEEL_RAD = 1.41732;
     final static double BALL_RAD = 2.5;
-    final static double SURFACE_SPEED_RATIO = 0.7;
+    final static double SURFACE_SPEED_RATIO = 0.75;
 
     final static double FRICTION = 0.5;
     final static double AUTHORITY = 0.25;
@@ -31,7 +31,8 @@ public abstract class Fisiks {
     final static double K_MAGNUS = MAGNUS/MASS;
     final static double K_SPIN = -3/(4*MASS)*AIR_DENSITY*ANGULAR_DRAG*PI*BALL_RAD;
 
-    final static double yawBracketRange = Math.toRadians(20);
+    final static double yawBracketRange = Math.toRadians(25);
+    final static double yawBracketIncrement = Math.toRadians(10);
     final static double VEL_THRESHOLD = 0.2;
 
     static double[] targetPoint;
@@ -68,7 +69,7 @@ public abstract class Fisiks {
         private final static State current = new State();
         private final static State[] derivs = new State[]{new State(),new State(),new State(),new State()};
         private final static State tmp = new State();
-        private final static double deltaT = 0.015;
+        private final static double deltaT = 0.003;
         private static void deriv(State current, State change){
             change.tPos.set(current.tVel);
             double vmag = current.tVel.magnitude();
@@ -136,7 +137,7 @@ public abstract class Fisiks {
         }
     }
     public static class Solver{
-        public static double clampHood(double in){return Math.max(Math.toRadians(22),Math.min(in,Math.toRadians(78)));}
+        public static double clampHood(double in){return Math.max(Math.toRadians(22),Math.min(in,Math.toRadians(87)));}
         public static double clampTime(double in){return Math.max(0.2,Math.min(in,2));}
         final public static double[] out = new double[3]; //pitch, yaw, time
         private static final double STAGE1MAXITR = 12;
@@ -231,11 +232,17 @@ public abstract class Fisiks {
                 return stage1Solve(initialPitchGuess,initialTimeGuess,out[1]);
             }
             double fLo, fHi;
-            boolean lowConverged, highConverged;
-            lowConverged = stage1Solve(initialPitchGuess,initialTimeGuess,yawBottomBracket); fLo = Error.sideError;
-            highConverged = stage1Solve(initialPitchGuess,initialTimeGuess,yawTopBracket); fHi = Error.sideError;
-            if (!lowConverged || !highConverged || fLo*fHi>0){
-                return false;
+            stage1Solve(initialPitchGuess,initialTimeGuess,yawBottomBracket); fLo = Error.sideError;
+            stage1Solve(initialPitchGuess,initialTimeGuess,yawTopBracket); fHi = Error.sideError;
+            while (fLo*fHi>0){
+                System.out.println("faliure");
+                if (sidewaysNorm[0]*botVelX+sidewaysNorm[1]*botVelY>0){
+                    yawBottomBracket -= yawBracketIncrement;
+                    stage1Solve(initialPitchGuess,initialTimeGuess,yawBottomBracket); fLo = Error.sideError;
+                } else {
+                    yawTopBracket += yawBracketIncrement;
+                    stage1Solve(initialPitchGuess,initialTimeGuess,yawTopBracket); fHi = Error.sideError;
+                }
             }
             double a=yawBottomBracket, b=yawTopBracket, fa=fLo, fb=fHi;
             double initPitchGuess = initialPitchGuess, initTimeGuess = initialTimeGuess;
