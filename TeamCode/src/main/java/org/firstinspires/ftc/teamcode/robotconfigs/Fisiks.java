@@ -42,8 +42,6 @@ public abstract class Fisiks {
     static double distance;
     final static double[] targetNorm = new double[2];
     final static double[] sidewaysNorm = new double[2];
-
-    final static double[] output = new double[2];
     public static class Vec3 {
         public double x,y,z;
         public Vec3(double x, double y, double z){
@@ -51,7 +49,6 @@ public abstract class Fisiks {
         }
         Vec3 set(double X,double Y,double Z){x=X;y=Y;z=Z;return this;}
         Vec3 set(Vec3 vec){x=vec.x;y=vec.y;z=vec.z;return this;}
-        Vec3 add(Vec3 b){x+=b.x;y+=b.y;z+=b.z;return this;}
         Vec3 addScaled(Vec3 b,double s){x+=b.x*s;y+=b.y*s;z+=b.z*s;return this;}
         Vec3 add(double x, double y, double z){this.x+=x;this.y+=y;this.z+=z;return this;}
         Vec3 scale(double s){x*=s;y*=s;z*=s;return this;}
@@ -137,16 +134,14 @@ public abstract class Fisiks {
         }
     }
     public static class Solver{
-        public static double clampHoodStep(double in){return Math.min(Math.toRadians(2),Math.max(in,Math.toRadians(-2)));}
-        public static double clampTimeStep(double in){return Math.min(0.04,Math.max(in,-0.04));}
-        public static double clampHood(double in){return Math.max(Math.toRadians(22),Math.min(in,Math.toRadians(75)));}
+        public static double clampHood(double in){return Math.max(Math.toRadians(22),Math.min(in,Math.toRadians(76)));}
         public static double clampTime(double in){return Math.max(0.2,Math.min(in,2));}
         final public static double[] out = new double[3]; //pitch, yaw, time
         private static final double STAGE1MAXITR = 12;
         private static final double STAGE2MAXITR = 8;
-        private static final double DISTERR = 5e-2;
-        private static final double HEIGHTERR = 5e-2;
-        private static final double YAWERR = 5e-2;
+        private static final double DISTERR = 1e-1;
+        private static final double HEIGHTERR = 1e-1;
+        private static final double YAWERR = 1e-1;
         public static boolean stage1Solve(double initialPitchGuess, double initialTimeGuess, double yaw){
             double a,b,c,dj;
             double timeOffset = 0.01;
@@ -184,15 +179,16 @@ public abstract class Fisiks {
                     return true;
 
                 boolean update = true;
-                double dx0 = clampHoodStep(-(a*startDistError + b*startHeightError));
-                double dx1 = clampTimeStep(-(c*startDistError + dj*startHeightError));
-                if (dx0!=-(a*startDistError + b*startHeightError) || dx1!=-(c*startDistError + dj*startHeightError)) update = false;
+                double dx0 = -(a*startDistError + b*startHeightError);
+                double dx1 = -(c*startDistError + dj*startHeightError);
 
                 double x0 = clampHood(out[0] + dx0);
                 double x1 = clampTime(out[2] + dx1);
 
                 dx0 = x0-out[0];
                 dx1 = x1-out[2];
+
+                if (dx0!=-(a*startDistError + b*startHeightError) || dx1!=-(c*startDistError + dj*startHeightError)) update = false;
 
                 Error.findError(x0,yaw,x1);
                 newDistError = Error.distError;
@@ -215,30 +211,19 @@ public abstract class Fisiks {
                 }
                 out[0] = x0; out[2] = x1;
             }
-            out[0] = Double.NaN;
-            out[2] = Double.NaN;
             return false;
         }
-        public static double[] solve(double initialPitchGuess, double initialYawGuess, double initialTimeGuess, double yawTopBracket, double yawBottomBracket){
+        public static boolean solve(double initialPitchGuess, double initialYawGuess, double initialTimeGuess, double yawTopBracket, double yawBottomBracket){
             if (sidewaysNorm[0]*botVelX+sidewaysNorm[1]*botVelY<VEL_THRESHOLD){
                 out[1] = atan2(targetPoint[1], targetPoint[0]);
-                boolean success = stage1Solve(initialPitchGuess,initialTimeGuess,out[1]);
-                if (!success){
-                    out[0] = Double.NaN;
-                    out[1] = Double.NaN;
-                    out[2] = Double.NaN;
-                }
-                return out;
+                return stage1Solve(initialPitchGuess,initialTimeGuess,out[1]);
             }
             double fLo, fHi;
             boolean lowConverged, highConverged;
             lowConverged = stage1Solve(initialPitchGuess,initialTimeGuess,yawBottomBracket); fLo = Error.sideError;
             highConverged = stage1Solve(initialPitchGuess,initialTimeGuess,yawTopBracket); fHi = Error.sideError;
             if (!lowConverged || !highConverged || fLo*fHi>0){
-                out[0] = Double.NaN;
-                out[1] = Double.NaN;
-                out[2] = Double.NaN;
-                return out;
+                return false;
             }
             double a=yawBottomBracket, b=yawTopBracket, fa=fLo, fb=fHi;
             double initPitchGuess = initialPitchGuess, initTimeGuess = initialTimeGuess;
@@ -255,7 +240,7 @@ public abstract class Fisiks {
                     double fc = Error.sideError;
                     if (Math.abs(fc) < YAWERR) {
                         out[1] = c;
-                        return out;
+                        return true;
                     }
                     if (fa*fc < 0) {
                         b=c; fb=fc;
@@ -267,10 +252,7 @@ public abstract class Fisiks {
                     c = (a*fb - b*fa)/(fb - fa);
                 }
             }
-            out[0] = Double.NaN;
-            out[1] = Double.NaN;
-            out[2] = Double.NaN;
-            return out;
+            return false;
         }
     }
     public static void buildPhysics(double[] targetPoint, Pose pos, Vector botVel, double flywheelVel){
@@ -296,7 +278,9 @@ public abstract class Fisiks {
         double initialYawGuess = atan2(targetPoint[1],targetPoint[0]);
         double initialPitchGuess;
         double initialTimeGuess;
-        if (currentBallPath == Inferno.BallPath.HIGH) {initialPitchGuess = Math.toRadians(67); initialTimeGuess = 1;} else {initialPitchGuess = Math.toRadians(41); initialTimeGuess = 0.5;}
-        return Solver.solve(initialPitchGuess,initialYawGuess,initialTimeGuess,initialYawGuess+yawBracketRange,initialYawGuess-yawBracketRange);
+        if (currentBallPath == Inferno.BallPath.HIGH) {initialPitchGuess = Math.toRadians(70); initialTimeGuess = 1.1;} else {initialPitchGuess = Math.toRadians(41); initialTimeGuess = 0.5;}
+        boolean success = Solver.solve(initialPitchGuess,initialYawGuess,initialTimeGuess,initialYawGuess+yawBracketRange,initialYawGuess-yawBracketRange);
+        System.out.println(success);
+        return Solver.out;
     }
 }
