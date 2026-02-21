@@ -57,37 +57,39 @@ public abstract class Fisiks {
     public static class State{
         public final Vec3 tVel = new Vec3(0,0,0);
         public final Vec3 tPos = new Vec3(0,0,0);
-        public final Vec3 aVel = new Vec3(0,0,0);
+        //public final Vec3 aVel = new Vec3(0,0,0);
         public void set(State state){
             tVel.set(state.tVel);
             tPos.set(state.tPos);
-            aVel.set(state.aVel);
+            //aVel.set(state.aVel);
         }
     }
     public static class RK4{
         private final static State current = new State();
         private final static State[] derivs = new State[]{new State(),new State(),new State(),new State()};
         private final static State tmp = new State();
-        private final static double deltaT = 0.004;
+        private final static double deltaT = 0.015;
         private static void deriv(State current, State change){
             change.tPos.set(current.tVel);
             double vmag = current.tVel.magnitude();
             change.tVel.set(
-                    K_DRAG*vmag*current.tVel.x + K_MAGNUS*(current.aVel.y*current.tVel.z - current.aVel.z*current.tVel.y),
-                    K_DRAG*vmag*current.tVel.y + K_MAGNUS*(current.aVel.z*current.tVel.x - current.aVel.x*current.tVel.z),
-                    K_DRAG*vmag*current.tVel.z + K_MAGNUS*(current.aVel.x*current.tVel.y - current.aVel.y*current.tVel.x) + GRAVITY
+                    K_DRAG*vmag*current.tVel.x /*+ K_MAGNUS*(current.aVel.y*current.tVel.z - current.aVel.z*current.tVel.y*)*/,
+                    K_DRAG*vmag*current.tVel.y /*+ K_MAGNUS*(current.aVel.z*current.tVel.x - current.aVel.x*current.tVel.z)*/,
+                    K_DRAG*vmag*current.tVel.z /*+ K_MAGNUS*(current.aVel.x*current.tVel.y - current.aVel.y*current.tVel.x)*/ + GRAVITY
             );
+            /*
             double wmag = current.aVel.magnitude();
             change.aVel.set(
                     K_SPIN*wmag*current.aVel.x,
                     K_SPIN*wmag*current.aVel.y,
                     K_SPIN*wmag*current.aVel.z
             );
+            */
         }
         public static State integrate(double pitch, double yaw, double time){
             current.tPos.set((cos(PI/2 + pitch)+1)*cos(yaw), (cos(PI/2 + pitch)+1)*sin(yaw), sin(PI/2 + pitch)).scale(TOTAL_RAD);
             current.tVel.set(cos(yaw)*cos(pitch), sin(yaw)*cos(pitch), sin(pitch)).scale(initSpeed).add(botVelX,botVelY,0);
-            current.aVel.set(cos(yaw + PI/2), sin(yaw + PI/2), 0).scale(initSpin);
+            //current.aVel.set(cos(yaw + PI/2), sin(yaw + PI/2), 0).scale(initSpin);
             double t = 0;
             double h;
             while (t < time){
@@ -96,21 +98,21 @@ public abstract class Fisiks {
                 deriv(current, derivs[0]);
                 tmp.tPos.set(current.tPos).addScaled(derivs[0].tPos,h*0.5);
                 tmp.tVel.set(current.tVel).addScaled(derivs[0].tVel,h*0.5);
-                tmp.aVel.set(current.aVel).addScaled(derivs[0].aVel,h*0.5);
+                //tmp.aVel.set(current.aVel).addScaled(derivs[0].aVel,h*0.5);
                 deriv(tmp, derivs[1]);
                 tmp.tPos.set(current.tPos).addScaled(derivs[1].tPos,h*0.5);
                 tmp.tVel.set(current.tVel).addScaled(derivs[1].tVel,h*0.5);
-                tmp.aVel.set(current.aVel).addScaled(derivs[1].aVel,h*0.5);
+                //tmp.aVel.set(current.aVel).addScaled(derivs[1].aVel,h*0.5);
                 deriv(tmp, derivs[2]);
                 tmp.tPos.set(current.tPos).addScaled(derivs[2].tPos,h);
                 tmp.tVel.set(current.tVel).addScaled(derivs[2].tVel,h);
-                tmp.aVel.set(current.aVel).addScaled(derivs[2].aVel,h);
+                //tmp.aVel.set(current.aVel).addScaled(derivs[2].aVel,h);
                 deriv(tmp, derivs[3]);
 
                 double c = h/6.0;
                 current.tPos.addScaled(derivs[0].tPos, c).addScaled(derivs[1].tPos,2*c).addScaled(derivs[2].tPos,2*c).addScaled(derivs[3].tPos,c);
                 current.tVel.addScaled(derivs[0].tVel, c).addScaled(derivs[1].tVel,2*c).addScaled(derivs[2].tVel,2*c).addScaled(derivs[3].tVel,c);
-                current.aVel.addScaled(derivs[0].aVel, c).addScaled(derivs[1].aVel,2*c).addScaled(derivs[2].aVel,2*c).addScaled(derivs[3].aVel,c);
+                //current.aVel.addScaled(derivs[0].aVel, c).addScaled(derivs[1].aVel,2*c).addScaled(derivs[2].aVel,2*c).addScaled(derivs[3].aVel,c);
 
                 t+=h;
             }
@@ -142,28 +144,38 @@ public abstract class Fisiks {
         private static final double DISTERR = 1e-1;
         private static final double HEIGHTERR = 1e-1;
         private static final double YAWERR = 1e-1;
+        private static double a,b,c,dj;
+        public static boolean resetJacobian = true;
         public static boolean stage1Solve(double initialPitchGuess, double initialTimeGuess, double yaw){
-            double a,b,c,dj;
-            double timeOffset = 0.01;
-            double angleOffset = Math.toRadians(1);
+            if (resetJacobian) {
+                resetJacobian = false;
+                double timeOffset = 0.01;
+                double angleOffset = Math.toRadians(1);
 
-            Error.findError(initialPitchGuess + angleOffset,yaw,initialTimeGuess);
-            double distErr2 = Error.distError; double heightErr2 = Error.heightError;
-            Error.findError(initialPitchGuess,yaw,initialTimeGuess + timeOffset);
-            double distErr3 = Error.distError; double heightErr3 = Error.heightError;
-            Error.findError(initialPitchGuess,yaw,initialTimeGuess);
-            double distErr1 = Error.distError; double heightErr1 = Error.heightError;
+                Error.findError(initialPitchGuess + angleOffset, yaw, initialTimeGuess);
+                double distErr2 = Error.distError;
+                double heightErr2 = Error.heightError;
+                Error.findError(initialPitchGuess, yaw, initialTimeGuess + timeOffset);
+                double distErr3 = Error.distError;
+                double heightErr3 = Error.heightError;
+                Error.findError(initialPitchGuess, yaw, initialTimeGuess);
+                double distErr1 = Error.distError;
+                double heightErr1 = Error.heightError;
 
-            double topLeft = (distErr2-distErr1)/angleOffset;
-            double bottomRight = (heightErr3 - heightErr1)/timeOffset;
-            double topRight = (distErr3 - distErr1)/timeOffset;
-            double bottomLeft = (heightErr2 - heightErr1)/angleOffset;
+                double topLeft = (distErr2 - distErr1) / angleOffset;
+                double bottomRight = (heightErr3 - heightErr1) / timeOffset;
+                double topRight = (distErr3 - distErr1) / timeOffset;
+                double bottomLeft = (heightErr2 - heightErr1) / angleOffset;
 
-            double determinant = topLeft*bottomRight - topRight*bottomLeft;
-            a = bottomRight/determinant;
-            b = -topRight/determinant;
-            c = -bottomLeft/determinant;
-            dj = topLeft/determinant;
+                double determinant = topLeft * bottomRight - topRight * bottomLeft;
+                a = bottomRight / determinant;
+                b = -topRight / determinant;
+                c = -bottomLeft / determinant;
+                dj = topLeft / determinant;
+            }
+            else{
+                Error.findError(initialPitchGuess, yaw, initialTimeGuess);
+            }
 
             out[0] = initialPitchGuess; out[2] = initialTimeGuess;
             double startDistError;
@@ -275,17 +287,16 @@ public abstract class Fisiks {
     }
 
     public static double[] runPhysics(Inferno.BallPath currentBallPath, double[] targetPoint, Pose pos, Vector botVel, double flywheelVel){
+        Solver.resetJacobian = true;
         buildPhysics(targetPoint,pos,botVel,flywheelVel);
         double initialYawGuess = atan2(targetPoint[1],targetPoint[0]);
         double initialPitchGuess;
         double initialTimeGuess;
         double yawTopBracket, yawBottomBracket;
         if (sidewaysNorm[0]*botVelX+sidewaysNorm[1]*botVelY>0){
-            System.out.println("e");
             yawTopBracket = initialYawGuess;
             yawBottomBracket = initialYawGuess - yawBracketRange;
         } else {
-            System.out.println("f");
             yawTopBracket = initialYawGuess + yawBracketRange;
             yawBottomBracket = initialYawGuess;
         }
