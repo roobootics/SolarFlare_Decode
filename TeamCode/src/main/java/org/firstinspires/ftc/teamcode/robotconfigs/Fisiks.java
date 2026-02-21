@@ -3,6 +3,8 @@ package org.firstinspires.ftc.teamcode.robotconfigs;
 import static org.apache.commons.math3.util.FastMath.atan2;
 import static org.apache.commons.math3.util.FastMath.cos;
 import static org.apache.commons.math3.util.FastMath.sin;
+import static org.apache.commons.math3.util.FastMath.atan;
+import static org.apache.commons.math3.util.FastMath.asin;
 import static java.lang.Math.PI;
 import static java.lang.Math.min;
 import static java.lang.Math.sqrt;
@@ -293,25 +295,53 @@ public abstract class Fisiks {
         Fisiks.initSpin = FRICTION*((min(2*AUTHORITY,1)*backVel + (1-min(2*AUTHORITY,1))*flyVel) - ((1 - min(2-2*AUTHORITY,1))*backVel + min(2-2*AUTHORITY,1)*flyVel))/BALL_RAD;
     }
     public static final double[] yawBrackets = new double[2];
+    public static final double[] pitchTimeGuesses = new double[4];
     public static void yawBrackets(double pitchGuess){
         double baseYaw = atan2(targetPoint[1], targetPoint[0]);
         double vPerp = sidewaysNorm[0] * botVelX + sidewaysNorm[1] * botVelY;
         double arg = -vPerp / (initSpeed * cos(pitchGuess));
         // clamp to valid asin range
         arg = Math.max(-1, Math.min(1, arg));
-        double correction = Math.asin(arg);
+        double correction = asin(arg);
         double margin = Math.toRadians(5);
         yawBrackets[0] = baseYaw + correction - margin; // bottom
         yawBrackets[1] = baseYaw + correction + margin; // top
+    }
+    public static void estimateInitialGuesses() {
+        double vPar = targetNorm[0] * botVelX + targetNorm[1] * botVelY;
+        // Drag-free quadratic (no velocity): A·u² + d·u + (A - Δz) = 0
+        double A = GRAVITY * distance * distance / (2.0 * initSpeed * initSpeed);
+        double disc = distance * distance - 4.0 * A * (A - targetPoint[2]);
+        if (disc < 0) return;
+
+        double sqrtDisc = sqrt(disc);
+        double uLow  = (-distance + sqrtDisc) / (2.0 * A);
+        double uHigh = (-distance - sqrtDisc) / (2.0 * A);
+        double pitchLow  = atan(uLow);
+        double pitchHigh = atan(uHigh);
+
+        // Correct flight times for parallel robot velocity
+        double vhLow  = initSpeed * cos(pitchLow) + vPar;
+        double vhHigh = initSpeed * cos(pitchHigh) + vPar;
+        if (vhLow <= 0 || vhHigh <= 0) return;
+
+        double timeLow  = distance / vhLow;
+        double timeHigh = distance / vhHigh;
+
+        pitchTimeGuesses[0] = pitchLow;
+        pitchTimeGuesses[1] = timeLow;
+        pitchTimeGuesses[2] = pitchHigh;
+        pitchTimeGuesses[3] = timeHigh;
+
     }
 
     public static double[] runPhysics(Inferno.BallPath currentBallPath, double[] targetPoint, Pose pos, Vector botVel, double flywheelVel){
         Solver.resetJacobian = true;
         buildPhysics(targetPoint,pos,botVel,flywheelVel);
-        double initialYawGuess = atan2(targetPoint[1],targetPoint[0]);
+        estimateInitialGuesses();
         double initialPitchGuess;
         double initialTimeGuess;
-        if (currentBallPath == Inferno.BallPath.HIGH) {initialPitchGuess = Math.toRadians(70); initialTimeGuess = 1.1;} else {initialPitchGuess = Math.toRadians(40); initialTimeGuess = 0.5;}
+        if (currentBallPath == Inferno.BallPath.HIGH) {initialPitchGuess = pitchTimeGuesses[2]; initialTimeGuess = pitchTimeGuesses[3];} else {initialPitchGuess = pitchTimeGuesses[0]; initialTimeGuess = pitchTimeGuesses[1];}
         yawBrackets(initialPitchGuess);
         boolean success = Solver.solve(initialPitchGuess,initialTimeGuess,yawBrackets[1],yawBrackets[0]);
         System.out.println(success);
