@@ -164,7 +164,7 @@ public abstract class Fisiks {
             double topRight = (distErr3 - distErr1)/timeOffset;
             double bottomLeft = (heightErr2 - heightErr1)/angleOffset;
 
-            double determinant = topLeft*bottomRight - topRight/bottomLeft;
+            double determinant = topLeft*bottomRight - topRight*bottomLeft;
             a = bottomRight/determinant;
             b = -topRight/determinant;
             c = -bottomLeft/determinant;

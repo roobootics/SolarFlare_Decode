@@ -1,7 +1,5 @@
 package org.firstinspires.ftc.teamcode.programs;
 
-import static java.lang.Math.atan2;
-
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.math.Vector;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -15,7 +13,7 @@ public class FisiksTets {
         /*
         Fisiks.buildPhysics(new double[]{141.5,141.5,48},new Pose(72,72,0), new Vector(0,0), 1700);
         ElapsedTime timer = new ElapsedTime();
-        Fisiks.State s = Fisiks.RK4.integrate(Math.toRadians(45),atan2(141.5-72,141.5-72),0.6);
+        Fisiks.State s = Fisiks.RK4.integrate(Math.toRadians(45),Math.toRadians(45),0.6);
         System.out.println("time "+timer.time());
         System.out.println(Fisiks.initSpeed);
         System.out.println(Fisiks.initSpin);
