@@ -292,6 +292,18 @@ public abstract class Fisiks {
         Fisiks.initSpeed = FRICTION*(AUTHORITY * backVel+(1- AUTHORITY)*flyVel);
         Fisiks.initSpin = FRICTION*((min(2*AUTHORITY,1)*backVel + (1-min(2*AUTHORITY,1))*flyVel) - ((1 - min(2-2*AUTHORITY,1))*backVel + min(2-2*AUTHORITY,1)*flyVel))/BALL_RAD;
     }
+    public static final double[] yawBrackets = new double[2];
+    public static void yawBrackets(double pitchGuess){
+        double baseYaw = atan2(targetPoint[1], targetPoint[0]);
+        double vPerp = sidewaysNorm[0] * botVelX + sidewaysNorm[1] * botVelY;
+        double arg = -vPerp / (initSpeed * cos(pitchGuess));
+        // clamp to valid asin range
+        arg = Math.max(-1, Math.min(1, arg));
+        double correction = Math.asin(arg);
+        double margin = Math.toRadians(5);
+        yawBrackets[0] = baseYaw + correction - margin; // bottom
+        yawBrackets[1] = baseYaw + correction + margin; // top
+    }
 
     public static double[] runPhysics(Inferno.BallPath currentBallPath, double[] targetPoint, Pose pos, Vector botVel, double flywheelVel){
         Solver.resetJacobian = true;
@@ -299,16 +311,9 @@ public abstract class Fisiks {
         double initialYawGuess = atan2(targetPoint[1],targetPoint[0]);
         double initialPitchGuess;
         double initialTimeGuess;
-        double yawTopBracket, yawBottomBracket;
-        if (sidewaysNorm[0]*botVelX+sidewaysNorm[1]*botVelY>0){
-            yawTopBracket = initialYawGuess;
-            yawBottomBracket = initialYawGuess - yawBracketRange;
-        } else {
-            yawTopBracket = initialYawGuess + yawBracketRange;
-            yawBottomBracket = initialYawGuess;
-        }
         if (currentBallPath == Inferno.BallPath.HIGH) {initialPitchGuess = Math.toRadians(70); initialTimeGuess = 1.1;} else {initialPitchGuess = Math.toRadians(40); initialTimeGuess = 0.5;}
-        boolean success = Solver.solve(initialPitchGuess,initialTimeGuess,yawTopBracket,yawBottomBracket);
+        yawBrackets(initialPitchGuess);
+        boolean success = Solver.solve(initialPitchGuess,initialTimeGuess,yawBrackets[1],yawBrackets[0]);
         System.out.println(success);
         return Solver.out;
     }

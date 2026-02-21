@@ -12,9 +12,8 @@ public class FisiksTets {
     public static void main(String[] args) throws InterruptedException {
         ElapsedTime timer = new ElapsedTime();
         Fisiks.runPhysics(Inferno.BallPath.LOW,new double[]{141.5,141.5,48},new Pose(72,72,0), new Vector(new Pose(0,0)), 1800);
-        Thread.sleep(1000);
         timer.reset();
-        double[] out = Fisiks.runPhysics(Inferno.BallPath.LOW,new double[]{141.5,141.5,48},new Pose(72,72,0), new Vector(new Pose(48,-48)), 1800);
+        double[] out = Fisiks.runPhysics(Inferno.BallPath.LOW,new double[]{141.5,141.5,48},new Pose(72,72,0), new Vector(new Pose(12,-12)), 1800);
         System.out.println("time "+timer.time());
         System.out.println("pitch "+out[0]);
         System.out.println("yaw "+out[1]);
