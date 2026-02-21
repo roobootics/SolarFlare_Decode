@@ -31,7 +31,7 @@ public abstract class Fisiks {
     final static double K_MAGNUS = MAGNUS/MASS;
     final static double K_SPIN = -3/(4*MASS)*AIR_DENSITY*ANGULAR_DRAG*PI*BALL_RAD;
 
-    final static double yawBracketRange = Math.toRadians(15);
+    final static double yawBracketRange = Math.toRadians(20);
     final static double VEL_THRESHOLD = 0.2;
 
     static double[] targetPoint;
@@ -128,13 +128,13 @@ public abstract class Fisiks {
             heightError = s.tPos.z - targetPoint[2];
             sideError = sidewaysNorm[0]*(s.tPos.x-targetPoint[0]) + sidewaysNorm[1]*(s.tPos.y-targetPoint[1]);
             System.out.printf(
-                    "phi=%.3f  t=%.3f  downerr=%.2f  heighterr=%.2f\n",
-                    pitch, time, distError, heightError
+                    "pitch=%.3f  time=%.3f  yaw=%.3f  distErr=%.2f  heightErr=%.2f  sideErr=%.2f\n",
+                    pitch, time, yaw, distError, heightError, sideError
             );
         }
     }
     public static class Solver{
-        public static double clampHood(double in){return Math.max(Math.toRadians(22),Math.min(in,Math.toRadians(76)));}
+        public static double clampHood(double in){return Math.max(Math.toRadians(22),Math.min(in,Math.toRadians(78)));}
         public static double clampTime(double in){return Math.max(0.2,Math.min(in,2));}
         final public static double[] out = new double[3]; //pitch, yaw, time
         private static final double STAGE1MAXITR = 12;
@@ -213,8 +213,8 @@ public abstract class Fisiks {
             }
             return false;
         }
-        public static boolean solve(double initialPitchGuess, double initialYawGuess, double initialTimeGuess, double yawTopBracket, double yawBottomBracket){
-            if (sidewaysNorm[0]*botVelX+sidewaysNorm[1]*botVelY<VEL_THRESHOLD){
+        public static boolean solve(double initialPitchGuess, double initialTimeGuess, double yawTopBracket, double yawBottomBracket){
+            if (Math.abs(sidewaysNorm[0]*botVelX+sidewaysNorm[1]*botVelY)<VEL_THRESHOLD){
                 out[1] = atan2(targetPoint[1], targetPoint[0]);
                 return stage1Solve(initialPitchGuess,initialTimeGuess,out[1]);
             }
@@ -227,9 +227,10 @@ public abstract class Fisiks {
             }
             double a=yawBottomBracket, b=yawTopBracket, fa=fLo, fb=fHi;
             double initPitchGuess = initialPitchGuess, initTimeGuess = initialTimeGuess;
-            double prevC = initialYawGuess;
+            double prevC = (yawTopBracket+yawBottomBracket)/2;
             double c = (a*fb - b*fa)/(fb - fa);
             for(int it=0; it<STAGE2MAXITR; it++) {
+                System.out.println("Stage 2");
                 boolean success = stage1Solve(initPitchGuess,initTimeGuess,c);
                 if (!success){
                     c = prevC + 0.5 * (c - prevC);
@@ -278,8 +279,18 @@ public abstract class Fisiks {
         double initialYawGuess = atan2(targetPoint[1],targetPoint[0]);
         double initialPitchGuess;
         double initialTimeGuess;
-        if (currentBallPath == Inferno.BallPath.HIGH) {initialPitchGuess = Math.toRadians(70); initialTimeGuess = 1.1;} else {initialPitchGuess = Math.toRadians(41); initialTimeGuess = 0.5;}
-        boolean success = Solver.solve(initialPitchGuess,initialYawGuess,initialTimeGuess,initialYawGuess+yawBracketRange,initialYawGuess-yawBracketRange);
+        double yawTopBracket, yawBottomBracket;
+        if (sidewaysNorm[0]*botVelX+sidewaysNorm[1]*botVelY>0){
+            System.out.println("e");
+            yawTopBracket = initialYawGuess;
+            yawBottomBracket = initialYawGuess - yawBracketRange;
+        } else {
+            System.out.println("f");
+            yawTopBracket = initialYawGuess + yawBracketRange;
+            yawBottomBracket = initialYawGuess;
+        }
+        if (currentBallPath == Inferno.BallPath.HIGH) {initialPitchGuess = Math.toRadians(70); initialTimeGuess = 1.1;} else {initialPitchGuess = Math.toRadians(40); initialTimeGuess = 0.5;}
+        boolean success = Solver.solve(initialPitchGuess,initialTimeGuess,yawTopBracket,yawBottomBracket);
         System.out.println(success);
         return Solver.out;
     }
