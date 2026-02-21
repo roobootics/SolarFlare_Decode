@@ -89,7 +89,7 @@ public abstract class Fisiks {
         }
         public static State integrate(double pitch, double yaw, double time){
             current.tPos.set((cos(PI/2 + pitch)+1)*cos(yaw), (cos(PI/2 + pitch)+1)*sin(yaw), sin(PI/2 + pitch)).scale(TOTAL_RAD);
-            current.tVel.set(cos(yaw)*cos(pitch), sin(yaw)*cos(pitch), sin(yaw)).scale(initSpeed).add(botVelX,botVelY,0);
+            current.tVel.set(cos(yaw)*cos(pitch), sin(yaw)*cos(pitch), sin(pitch)).scale(initSpeed).add(botVelX,botVelY,0);
             current.aVel.set(cos(yaw + PI/2), sin(yaw + PI/2), 0).scale(initSpin);
             double t = 0;
             double h;
@@ -105,9 +105,9 @@ public abstract class Fisiks {
                 tmp.tVel.set(current.tVel).addScaled(derivs[1].tVel,h*0.5);
                 tmp.aVel.set(current.aVel).addScaled(derivs[1].aVel,h*0.5);
                 deriv(tmp, derivs[2]);
-                tmp.tPos.set(current.tPos).addScaled(derivs[2].tPos,h*0.5);
-                tmp.tVel.set(current.tVel).addScaled(derivs[2].tVel,h*0.5);
-                tmp.aVel.set(current.aVel).addScaled(derivs[2].aVel,h*0.5);
+                tmp.tPos.set(current.tPos).addScaled(derivs[2].tPos,h);
+                tmp.tVel.set(current.tVel).addScaled(derivs[2].tVel,h);
+                tmp.aVel.set(current.aVel).addScaled(derivs[2].aVel,h);
                 deriv(tmp, derivs[3]);
 
                 double c = h/6.0;
@@ -161,7 +161,7 @@ public abstract class Fisiks {
 
             for(int it=0; it<STAGE1MAXITR; it++)
             {
-                startDistError = Error.distError; startHeightError = Error.sideError;
+                startDistError = Error.distError; startHeightError = Error.heightError;
 
                 if (Math.abs(startDistError)<DISTERR && Math.abs(startHeightError)<HEIGHTERR)
                     return true;
