@@ -24,7 +24,7 @@ public abstract class Fisiks {
 
     final static double FRICTION = 0.5;
     final static double AUTHORITY = 0.25;
-    final static double TRANSLATIONAL_DRAG = 0.0002;
+    final static double TRANSLATIONAL_DRAG = 0.50;
     final static double ANGULAR_DRAG = 0;
     final static double MAGNUS = 0;
 
@@ -34,7 +34,7 @@ public abstract class Fisiks {
     final static double K_SPIN = -3/(4*MASS)*AIR_DENSITY*ANGULAR_DRAG*PI*BALL_RAD;
 
     final static double yawBracketRange = Math.toRadians(25);
-    final static double yawBracketIncrement = Math.toRadians(10);
+    final static double yawBracketIncrement = Math.toRadians(3);
     final static double VEL_THRESHOLD = 0.2;
 
     static double[] targetPoint;
@@ -142,11 +142,11 @@ public abstract class Fisiks {
         public static double clampHood(double in){return Math.max(Math.toRadians(22),Math.min(in,Math.toRadians(87)));}
         public static double clampTime(double in){return Math.max(0.2,Math.min(in,2));}
         final public static double[] out = new double[3]; //pitch, yaw, time
-        private static final double STAGE1MAXITR = 12;
-        private static final double STAGE2MAXITR = 8;
-        private static final double DISTERR = 1e-1;
-        private static final double HEIGHTERR = 1e-1;
-        private static final double YAWERR = 1e-1;
+        private static final double STAGE1MAXITR = 8;
+        private static final double STAGE2MAXITR = 5;
+        private static final double DISTERR = 0.15;
+        private static final double HEIGHTERR = 0.15;
+        private static final double YAWERR = 0.15;
         private static double a,b,c,dj;
         public static boolean resetJacobian = true;
         public static boolean stage1Solve(double initialPitchGuess, double initialTimeGuess, double yaw){
@@ -181,17 +181,23 @@ public abstract class Fisiks {
             }
 
             out[0] = initialPitchGuess; out[2] = initialTimeGuess;
+            if (Math.abs(Error.distError)<DISTERR && Math.abs(Error.heightError)<HEIGHTERR)
+                return true;
+
             double startDistError;
             double startHeightError;
             double newDistError;
             double newHeightError;
+            double bestDistError = Error.distError;
+            double bestHeightError = Error.heightError;
+            double bestSideError = Error.sideError;
+            double bestPitch = initialPitchGuess;
+            double bestTime = initialTimeGuess;
+            double divergeCounter = 0;
 
             for(int it=0; it<STAGE1MAXITR; it++)
             {
                 startDistError = Error.distError; startHeightError = Error.heightError;
-
-                if (Math.abs(startDistError)<DISTERR && Math.abs(startHeightError)<HEIGHTERR)
-                    return true;
 
                 boolean update = true;
                 double dx0 = -(a*startDistError + b*startHeightError);
@@ -203,9 +209,28 @@ public abstract class Fisiks {
                 dx0 = x0-out[0];
                 dx1 = x1-out[2];
 
-                if (dx0!=-(a*startDistError + b*startHeightError) || dx1!=-(c*startDistError + dj*startHeightError)) update = false;
-
                 Error.findError(x0,yaw,x1);
+
+                if (Math.abs(Error.distError)<DISTERR && Math.abs(Error.heightError)<HEIGHTERR)
+                    return true;
+                if (Math.abs(Error.distError)<Math.abs(bestDistError) && Math.abs(Error.heightError)<Math.abs(bestHeightError)){
+                    bestDistError = Error.distError;
+                    bestHeightError = Error.heightError;
+                    bestSideError = Error.sideError;
+                    bestPitch = x0;
+                    bestTime = x1;
+                } else {
+                    divergeCounter+=1;
+                }
+                if (divergeCounter>=2){
+                    out[0] = bestPitch;
+                    out[2] = bestTime;
+                    Error.distError = bestDistError;
+                    Error.heightError = bestHeightError;
+                    Error.sideError = bestSideError;
+                    return false;
+                }
+
                 newDistError = Error.distError;
                 newHeightError = Error.heightError;
 
@@ -214,7 +239,7 @@ public abstract class Fisiks {
 
                 double sty = dx0*y0 + dx1*y1;
 
-                if (Math.abs(sty) > 1e-12 && update) {
+                if (Math.abs(sty) > 1e-12) {
                     double r0 = dx0 - (a*y0 + b*y1);
                     double r1 = dx1 - (c*y0 + dj*y1);
 
@@ -226,6 +251,11 @@ public abstract class Fisiks {
                 }
                 out[0] = x0; out[2] = x1;
             }
+            out[0] = bestPitch;
+            out[2] = bestTime;
+            Error.distError = bestDistError;
+            Error.heightError = bestHeightError;
+            Error.sideError = bestSideError;
             return false;
         }
         public static boolean solve(double initialPitchGuess, double initialTimeGuess, double yawTopBracket, double yawBottomBracket){
@@ -238,17 +268,17 @@ public abstract class Fisiks {
             stage1Solve(initialPitchGuess,initialTimeGuess,yawTopBracket); fHi = Error.sideError;
             while (fLo*fHi>0){
                 System.out.println("faliure");
-                if (sidewaysNorm[0]*botVelX+sidewaysNorm[1]*botVelY>0){
-                    yawBottomBracket -= yawBracketIncrement;
-                    stage1Solve(initialPitchGuess,initialTimeGuess,yawBottomBracket); fLo = Error.sideError;
-                } else {
+                if (fHi<0){
                     yawTopBracket += yawBracketIncrement;
                     stage1Solve(initialPitchGuess,initialTimeGuess,yawTopBracket); fHi = Error.sideError;
+                } else if (fLo>0){
+                    yawBottomBracket -= yawBracketIncrement;
+                    stage1Solve(initialPitchGuess,initialTimeGuess,yawBottomBracket); fLo = Error.sideError;
                 }
             }
             double a=yawBottomBracket, b=yawTopBracket, fa=fLo, fb=fHi;
             double initPitchGuess = initialPitchGuess, initTimeGuess = initialTimeGuess;
-            double prevC = (yawTopBracket+yawBottomBracket)/2;
+            double prevC = (a*fb - b*fa)/(fb - fa);
             double c = (a*fb - b*fa)/(fb - fa);
             for(int it=0; it<STAGE2MAXITR; it++) {
                 System.out.println("Stage 2");
@@ -303,7 +333,7 @@ public abstract class Fisiks {
         // clamp to valid asin range
         arg = Math.max(-1, Math.min(1, arg));
         double correction = asin(arg);
-        double margin = Math.toRadians(5);
+        double margin = Math.toRadians(6.7);
         yawBrackets[0] = baseYaw + correction - margin; // bottom
         yawBrackets[1] = baseYaw + correction + margin; // top
     }
