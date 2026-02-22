@@ -213,7 +213,7 @@ public abstract class Fisiks {
 
                 if (Math.abs(Error.distError)<DISTERR && Math.abs(Error.heightError)<HEIGHTERR)
                     return true;
-                if (Math.abs(Error.distError)<Math.abs(bestDistError) && Math.abs(Error.heightError)<Math.abs(bestHeightError)){
+                if ((Error.distError*Error.distError+Error.heightError+Error.heightError)<(bestDistError*bestDistError+bestHeightError+bestHeightError)){
                     bestDistError = Error.distError;
                     bestHeightError = Error.heightError;
                     bestSideError = Error.sideError;
