@@ -18,13 +18,9 @@ import org.firstinspires.ftc.teamcode.vision.descriptors.ArtifactDescriptor;
 import java.util.ArrayList;
 import java.util.List;
 
-// TODO: calculate bounding box offset for artifacts
 public class Vision {
-
     // Config ---------------------
     CAMERA_ORIENTATION orientation = CAMERA_ORIENTATION.NORMAL;
-    public final double CAMERA_WIDTH_PIXELS = 1280;
-    public final double CAMERA_HEIGHT_PIXELS = 960;
     public double fx = 1218.145;
     public double fy = 1219.418;
     public double cx = 621.829;
@@ -39,7 +35,6 @@ public class Vision {
     // ----------------------------
 
     Limelight3A limelight;
-    List<String> queryClasses = new ArrayList<>();
     Telemetry telemetry;
 
     public enum CAMERA_ORIENTATION{
@@ -53,21 +48,17 @@ public class Vision {
         limelight = hardwareMap.get(Limelight3A.class, "limelight");
         this.telemetry = telemetry;
         limelight.setPollRateHz(11);
-        queryClasses.add("purple");
-        queryClasses.add("green");
     }
 
     public Vision(HardwareMap hardwareMap, Telemetry telemetry, Pose3D cameraPoseOnRobot, CAMERA_ORIENTATION orientation){
         limelight = hardwareMap.get(Limelight3A.class, "limelight");
         this.telemetry = telemetry;
         limelight.setPollRateHz(11);
-        queryClasses.add("purple");
-        queryClasses.add("green");
         this.cameraPoseOnRobot = cameraPoseOnRobot;
         this.orientation = orientation;
     }
 
-    public List<ArtifactDescriptor> getRelativeArtifactDescriptors(){
+    public List<ArtifactDescriptor> getRelativeArtifactDescriptors(List<String> acceptedClasses){
         if (!limelight.isRunning()){
             limelight.start();
         }
@@ -83,37 +74,15 @@ public class Vision {
         for (LLResultTypes.DetectorResult detectorResult : result.getDetectorResults()) {
             String className = detectorResult.getClassName();
             List<List<Double>> corners = detectorResult.getTargetCorners();
-            List<Double> corner0 = corners.get(0);
-            List<Double> corner1 = corners.get(1);
-            List<Double> corner2 = corners.get(2);
-            List<Double> corner3 = corners.get(3);
 
-            telemetry.addData("corner 0", corner0);
-            telemetry.addData("corner 1", corner1);
-            telemetry.addData("corner 2", corner2);
-            telemetry.addData("corner 3", corner3);
+            telemetry.addData("corner 0", corners.get(0));
+            telemetry.addData("corner 1", corners.get(1));
+            telemetry.addData("corner 2", corners.get(2));
+            telemetry.addData("corner 3", corners.get(3));
 
-
-            if (queryClasses.contains(className)) {
-                double targetX = 0;
-                double targetY = 0;
-
-                if (orientation == CAMERA_ORIENTATION.NORMAL){
-                    targetX = (corner2.get(0) + corner3.get(0)) / 2;
-                    targetY = corner3.get(1);
-                }
-                else if (orientation == CAMERA_ORIENTATION.UPSIDE_DOWN){
-                    targetX = (corner0.get(0) + corner1.get(0)) / 2;
-                    targetY = corner1.get(1);
-                }
-                else if (orientation == CAMERA_ORIENTATION.CLOCKWISE_90){
-                    targetX = (corner1.get(0) + corner2.get(0)) / 2;
-                    targetY = corner2.get(1);
-                }
-                else if (orientation == CAMERA_ORIENTATION.COUNTER_CLOCKWISE_90){
-                    targetX = (corner3.get(0) + corner0.get(0)) / 2;
-                    targetY = corner0.get(1);
-                }
+            if (acceptedClasses.contains(className)) {
+                double targetX = getTargetXPixels(CAMERA_ORIENTATION.NORMAL, corners);
+                double targetY = getTargetYPixels(CAMERA_ORIENTATION.NORMAL, corners);
 
                 double xOffset = targetX - cxNN;
                 double yOffset = cyNN - targetY;
@@ -136,18 +105,25 @@ public class Vision {
 
                 telemetry.addData("vertical angle", verticalAngleDeg);
 
-                double depth = cameraPoseOnRobot.getPosition().toUnit(DistanceUnit.INCH).z * Math.tan(Math.toRadians(verticalAngleDeg))
-                        + cameraPoseOnRobot.getPosition().toUnit(DistanceUnit.INCH).x;
-                // artifact center offset TODO: Tune this
+                double depth = cameraPoseOnRobot.getPosition().toUnit(DistanceUnit.INCH).z * Math.tan(Math.toRadians(verticalAngleDeg));
 
-                double horizontal = depth * Math.tan(Math.toRadians(tx + cameraPoseOnRobot.getOrientation().getYaw(AngleUnit.DEGREES))) + cameraPoseOnRobot.getPosition().toUnit(DistanceUnit.INCH).y;
-                artifactDescriptors.add(new ArtifactDescriptor(horizontal, depth, className));
+                double horizontal = depth * Math.tan(Math.toRadians(tx + cameraPoseOnRobot.getOrientation().getYaw(AngleUnit.DEGREES)));
+
+                depth += cameraPoseOnRobot.getPosition().toUnit(DistanceUnit.INCH).x;
+                horizontal += cameraPoseOnRobot.getPosition().toUnit(DistanceUnit.INCH).y;
+
+                ArtifactDescriptor artifact = new ArtifactDescriptor(horizontal, depth, className);
+
+                artifact.setTargetXPixels(targetX);
+                artifact.setTargetYPixels(targetY);
+
+                artifactDescriptors.add(artifact);
             }
         }
         return artifactDescriptors;
     }
 
-    public List<ArtifactDescriptor> getArtifactDescriptors(Pose botPosePedro){
+    public List<ArtifactDescriptor> getArtifactDescriptors(Pose botPosePedro, List<String> acceptedClasses){
         if (!limelight.isRunning()){
             limelight.start();
         }
@@ -163,37 +139,16 @@ public class Vision {
         for (LLResultTypes.DetectorResult detectorResult : result.getDetectorResults()) {
             String className = detectorResult.getClassName();
             List<List<Double>> corners = detectorResult.getTargetCorners();
-            List<Double> corner0 = corners.get(0);
-            List<Double> corner1 = corners.get(1);
-            List<Double> corner2 = corners.get(2);
-            List<Double> corner3 = corners.get(3);
 
-            telemetry.addData("corner 0", corner0);
-            telemetry.addData("corner 1", corner1);
-            telemetry.addData("corner 2", corner2);
-            telemetry.addData("corner 3", corner3);
+            telemetry.addData("corner 0", corners.get(0));
+            telemetry.addData("corner 1", corners.get(1));
+            telemetry.addData("corner 2", corners.get(2));
+            telemetry.addData("corner 3", corners.get(3));
 
+            if (acceptedClasses.contains(className)) {
 
-            if (queryClasses.contains(className)) {
-                double targetX = 0;
-                double targetY = 0;
-
-                if (orientation == CAMERA_ORIENTATION.NORMAL){
-                    targetX = (corner2.get(0) + corner3.get(0)) / 2;
-                    targetY = corner3.get(1);
-                }
-                else if (orientation == CAMERA_ORIENTATION.UPSIDE_DOWN){
-                    targetX = (corner0.get(0) + corner1.get(0)) / 2;
-                    targetY = corner1.get(1);
-                }
-                else if (orientation == CAMERA_ORIENTATION.CLOCKWISE_90){
-                    targetX = (corner1.get(0) + corner2.get(0)) / 2;
-                    targetY = corner2.get(1);
-                }
-                else if (orientation == CAMERA_ORIENTATION.COUNTER_CLOCKWISE_90){
-                    targetX = (corner3.get(0) + corner0.get(0)) / 2;
-                    targetY = corner0.get(1);
-                }
+                double targetX = getTargetXPixels(CAMERA_ORIENTATION.NORMAL, corners);
+                double targetY = getTargetXPixels(CAMERA_ORIENTATION.NORMAL, corners);
 
                 double xOffset = targetX - cxNN;
                 double yOffset = cyNN - targetY;
@@ -216,11 +171,12 @@ public class Vision {
 
                 telemetry.addData("vertical angle", verticalAngleDeg);
 
-                double depth = cameraPoseOnRobot.getPosition().toUnit(DistanceUnit.INCH).z * Math.tan(Math.toRadians(verticalAngleDeg))
-                        + cameraPoseOnRobot.getPosition().toUnit(DistanceUnit.INCH).x;
-                // artifact center offset TODO: Tune this
+                double depth = cameraPoseOnRobot.getPosition().toUnit(DistanceUnit.INCH).z * Math.tan(Math.toRadians(verticalAngleDeg));
 
-                double horizontal = depth * Math.tan(Math.toRadians(tx + cameraPoseOnRobot.getOrientation().getYaw(AngleUnit.DEGREES))) + cameraPoseOnRobot.getPosition().toUnit(DistanceUnit.INCH).y;
+                double horizontal = depth * Math.tan(Math.toRadians(tx + cameraPoseOnRobot.getOrientation().getYaw(AngleUnit.DEGREES)));
+
+                depth += cameraPoseOnRobot.getPosition().toUnit(DistanceUnit.INCH).x;
+                horizontal += cameraPoseOnRobot.getPosition().toUnit(DistanceUnit.INCH).y;
 
                 double x = botPosePedro.getX();
                 double y = botPosePedro.getY();
@@ -235,7 +191,12 @@ public class Vision {
                 double artifactY =
                         y + depth * sin + horizontal * cos;
 
-                artifactDescriptors.add(new ArtifactDescriptor(artifactX, artifactY, className));
+                ArtifactDescriptor artifact = new ArtifactDescriptor(horizontal, depth, className);
+
+                artifact.setTargetXPixels(targetX);
+                artifact.setTargetYPixels(targetY);
+
+                artifactDescriptors.add(artifact);
             }
         }
         return artifactDescriptors;
@@ -422,6 +383,7 @@ public class Vision {
         telemetry.addLine("ID not in sight");
         return null;
     }
+
     public List<AprilTagDescriptor> getAprilTagDescriptors(){
         if (!limelight.isRunning()){
             limelight.start();
@@ -437,5 +399,143 @@ public class Vision {
             }
         }
         return aprilTagDescriptors;
+    }
+
+    public Pose intakeOneBall(List<ArtifactDescriptor> artifacts, Pose botPose) {
+        double smallestDist = Double.POSITIVE_INFINITY;
+        int indexOfClosestArtifact = 0;
+
+        if (artifacts == null || artifacts.isEmpty() || botPose == null) return null;
+
+        for (int i = 0; i < artifacts.size(); i++){
+            double artifactX = artifacts.get(i).getX();
+            double artifactY = artifacts.get(i).getY();
+
+            double botX = botPose.getX();
+            double botY = botPose.getY();
+
+            double dist = Math.sqrt(Math.pow(artifactX - botX, 2) + Math.pow(artifactY - botY, 2));
+
+            if (dist < smallestDist) {
+                smallestDist = dist;
+                indexOfClosestArtifact = i;
+            }
+        }
+
+        ArtifactDescriptor closestArtifact = artifacts.get(indexOfClosestArtifact);
+
+        return new Pose(closestArtifact.getX(), closestArtifact.getY());
+    }
+
+    public Double intakingAngleArtifacts(List<ArtifactDescriptor> artifacts, int intakingWidth, Pose botPose){
+        int bestCount = 0;
+        double bestAngle = 0;
+
+        for (ArtifactDescriptor artifact : artifacts) {
+
+            double theta = Math.atan2(artifact.getY(), artifact.getX());
+            double cos = Math.cos(theta);
+            double sin = Math.sin(theta);
+
+            int count = 0;
+
+            for (ArtifactDescriptor surroundingArtifact : artifacts) {
+                double distance = Math.abs(surroundingArtifact.getX() * sin - surroundingArtifact.getY() * cos);
+
+                if (distance < intakingWidth / 2.0) {
+                    count++;
+                }
+            }
+
+            if (count > bestCount) {
+                bestCount = count;
+                bestAngle = theta;
+            }
+        }
+
+        double angleDegrees = Math.toDegrees(bestAngle);
+
+        return botPose.getHeading() - angleDegrees;
+    }
+    public Pose intakingPositionArtifacts(List<ArtifactDescriptor> artifacts, double intakingWidth){
+        int bestCount = -1;
+        double bestX = 0;
+        double bestY = 0;
+
+        for (ArtifactDescriptor artifact : artifacts) {
+
+            double x = artifact.getX();
+            double y = artifact.getY();
+
+            int count = 0;
+
+            for (ArtifactDescriptor surroundingArtifact : artifacts) {
+
+                if (artifact.equals(surroundingArtifact)) continue;
+
+                double distance = Math.sqrt(Math.pow(surroundingArtifact.getX() - x, 2) + Math.pow(surroundingArtifact.getY() - y, 2));
+
+                if (distance < intakingWidth / 2) count++;
+            }
+
+            if (count > bestCount) {
+                bestCount = count;
+                bestX = x;
+                bestY = y;
+            }
+        }
+        return new Pose(bestX, bestY);
+    }
+
+
+    public Double getTargetXPixels(Vision.CAMERA_ORIENTATION orientation, List<List<Double>> corners) {
+        if (corners == null) return null;
+
+        double targetXPixels = 0;
+
+        List<Double> corner0 = corners.get(0);
+        List<Double> corner1 = corners.get(1);
+        List<Double> corner2 = corners.get(2);
+        List<Double> corner3 = corners.get(3);
+
+        if (orientation == Vision.CAMERA_ORIENTATION.NORMAL){
+            targetXPixels = (corner2.get(0) + corner3.get(0)) / 2;
+        }
+        else if (orientation == Vision.CAMERA_ORIENTATION.UPSIDE_DOWN){
+            targetXPixels = (corner0.get(0) + corner1.get(0)) / 2;
+        }
+        else if (orientation == Vision.CAMERA_ORIENTATION.CLOCKWISE_90){
+            targetXPixels = (corner1.get(0) + corner2.get(0)) / 2;
+        }
+        else if (orientation == Vision.CAMERA_ORIENTATION.COUNTER_CLOCKWISE_90){
+            targetXPixels = (corner3.get(0) + corner0.get(0)) / 2;
+        }
+
+        return targetXPixels;
+    }
+    public Double getTargetYPixels(Vision.CAMERA_ORIENTATION orientation, List<List<Double>> corners) {
+        if (corners == null) return null;
+
+        double targetYPixels = 0;
+
+        List<Double> corner0 = corners.get(0);
+        List<Double> corner1 = corners.get(1);
+        List<Double> corner2 = corners.get(2);
+        List<Double> corner3 = corners.get(3);
+
+        if (orientation == Vision.CAMERA_ORIENTATION.NORMAL){
+            targetYPixels = corner3.get(1);
+        }
+        else if (orientation == Vision.CAMERA_ORIENTATION.UPSIDE_DOWN){
+            targetYPixels = corner1.get(1);
+        }
+        else if (orientation == Vision.CAMERA_ORIENTATION.CLOCKWISE_90){
+            targetYPixels = corner2.get(1);
+        }
+        else if (orientation == Vision.CAMERA_ORIENTATION.COUNTER_CLOCKWISE_90){
+            targetYPixels = corner0.get(1);
+        }
+
+        return targetYPixels;
     }
 }
