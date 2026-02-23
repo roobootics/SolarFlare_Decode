@@ -44,6 +44,9 @@ public class TestArtifactsOnlyLimelight extends OpMode {
         List<ArtifactDescriptor> artifacts = vision.getArtifactDescriptors(botPose, acceptedClasses);
 
         if (!artifacts.isEmpty()) {
+            Double intakingAngle = vision.intakingAngleArtifacts(artifacts, botPose);
+            telemetry.addData("intaking angle", intakingAngle);
+
             for (ArtifactDescriptor artifact : artifacts) {
                 double x = artifact.getX();
                 double y = artifact.getY();

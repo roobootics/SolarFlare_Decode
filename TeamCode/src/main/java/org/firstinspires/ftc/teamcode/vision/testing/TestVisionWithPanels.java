@@ -60,6 +60,20 @@ public class TestVisionWithPanels extends OpMode {
         List<ArtifactDescriptor> artifacts = vision.getArtifactDescriptors(botPose, acceptedClasses);
 
         if (!artifacts.isEmpty()) {
+
+            Double intakingAngle = vision.intakingAngleArtifacts(artifacts, botPose);
+            telemetry.addData("intaking angle", intakingAngle);
+            panelsTelemetry.addData("intaking angle", intakingAngle);
+
+            double lineLength = 10;
+
+            double x2 = botPose.getX() + Math.cos(Math.toRadians(intakingAngle)) * lineLength;
+            double y2 = botPose.getY() + Math.sin(Math.toRadians(intakingAngle)) * lineLength;
+
+            panelsField.setStyle("black", "black", 0);
+            panelsField.moveCursor(botPose.getX(), botPose.getY());
+            panelsField.line(x2, y2);
+
             for (ArtifactDescriptor artifact : artifacts) {
                 double x = artifact.getX();
                 double y = artifact.getY();
