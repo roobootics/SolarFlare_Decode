@@ -350,7 +350,7 @@ public abstract class Fisiks {
         double dragFactor = -K_DRAG * initSpeed * timeGuess;
         double fraction   = Math.max(0.2, 1.0 - dragFactor);
         double midFrac    = (1.0 + fraction) / 2.0;
-        double c          = 2.5;  // tunable
+        double c          = 6;  // tunable
         double halfWidth  = (1.0 - fraction) / 2.0 / (1.0 + c * dragFactor);
 
         double bracketOvercorrect  = baseYaw + correction * (midFrac + halfWidth) +
