@@ -139,7 +139,7 @@ public abstract class Fisiks {
         }
     }
     public static class Solver{
-        public static final double[] hoodBounds = new double[]{22,87};
+        public static final double[] hoodBounds = new double[]{22,90};
         public static final double[] timeBounds = new double[]{0.2,3};
         public static boolean willClampHood(double in){return in<Math.toRadians(hoodBounds[0]) || in>Math.toRadians(hoodBounds[1]);}
         public static boolean willClampTime(double in){return in<timeBounds[0] || in>timeBounds[1];}
@@ -206,6 +206,9 @@ public abstract class Fisiks {
                 double dx1 = -(c*startDistError + dj*startHeightError);
 
                 if (willClampHood(out[0] + dx0) || willClampTime(out[2] + dx1)){
+                    System.out.println("e");
+                    System.out.println(out[0] + dx0);
+                    System.out.println(out[2] + dx1);
                     out[0] = bestPitch;
                     out[2] = bestTime;
                     Error.distError = bestDistError;
@@ -274,7 +277,9 @@ public abstract class Fisiks {
                 return stage1Solve(initialPitchGuess,initialTimeGuess,out[1]);
             }
             double fLo, fHi;
+            System.out.println("low");
             stage1Solve(initialPitchGuess,initialTimeGuess,yawBottomBracket); fLo = Error.sideError;
+            System.out.println("high");
             stage1Solve(initialPitchGuess,initialTimeGuess,yawTopBracket); fHi = Error.sideError;
             while (fLo*fHi>0){
                 System.out.println("faliure");
@@ -357,13 +362,13 @@ public abstract class Fisiks {
     }
     public static void estimateInitialGuesses() {
         double vPar = targetNorm[0] * botVelX + targetNorm[1] * botVelY;
-        double k = 0.5; // tunable
+        double k = 0.6; // tunable
 
         // Step 1: drag-free solution (used only to estimate dragFactor)
-        double A0   = GRAVITY * distance * distance / (2.0 * initSpeed * initSpeed);
+        double A0    = GRAVITY * distance * distance / (2.0 * initSpeed * initSpeed);
         double disc0 = distance * distance - 4.0 * A0 * (A0 - targetPoint[2]);
         if (disc0 < 0) return;
-        double sq0  = sqrt(disc0);
+        double sq0   = sqrt(disc0);
         double phiL0 = atan((-distance + sq0) / (2.0 * A0));
         double phiH0 = atan((-distance - sq0) / (2.0 * A0));
         double vhL0  = initSpeed * cos(phiL0) + vPar;
@@ -389,7 +394,12 @@ public abstract class Fisiks {
             if (vhL > 0) {
                 double tL = distance * (1.0 + 0.5 * k * dfL) / vhL;
                 double sinPhiL = (targetPoint[2] - 0.5 * GRAVITY * tL * tL) / (initSpeed * tL);
-                pitchTimeGuesses[0] = Math.abs(sinPhiL) <= 1.0 ? asin(sinPhiL) : phiL;
+                if (Math.abs(sinPhiL) <= 1.0) {
+                    phiL = asin(sinPhiL);
+                    double vhL2 = initSpeed * cos(phiL) + vPar;
+                    if (vhL2 > 0) tL = distance * (1.0 + 0.5 * k * dfL) / vhL2;
+                }
+                pitchTimeGuesses[0] = phiL;
                 pitchTimeGuesses[1] = tL;
             } else { pitchTimeGuesses[0] = phiL0; pitchTimeGuesses[1] = tL0; }
         }   else   { pitchTimeGuesses[0] = phiL0; pitchTimeGuesses[1] = tL0; }
@@ -404,7 +414,12 @@ public abstract class Fisiks {
             if (vhH > 0) {
                 double tH = distance * (1.0 + 0.5 * k * dfH) / vhH;
                 double sinPhiH = (targetPoint[2] - 0.5 * GRAVITY * tH * tH) / (initSpeed * tH);
-                pitchTimeGuesses[2] = Math.abs(sinPhiH) <= 1.0 ? asin(sinPhiH) : phiH;
+                if (Math.abs(sinPhiH) <= 1.0) {
+                    phiH = asin(sinPhiH);
+                    double vhH2 = initSpeed * cos(phiH) + vPar;
+                    if (vhH2 > 0) tH = distance * (1.0 + 0.5 * k * dfH) / vhH2;
+                }
+                pitchTimeGuesses[2] = phiH;
                 pitchTimeGuesses[3] = tH;
             } else { pitchTimeGuesses[2] = phiH0; pitchTimeGuesses[3] = tH0; }
         }   else   { pitchTimeGuesses[2] = phiH0; pitchTimeGuesses[3] = tH0; }
