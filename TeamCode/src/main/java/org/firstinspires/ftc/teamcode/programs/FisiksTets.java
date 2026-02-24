@@ -13,7 +13,7 @@ public class FisiksTets {
         ElapsedTime timer = new ElapsedTime();
         Fisiks.runPhysics(Inferno.BallPath.LOW,new double[]{141.5,141.5,48},new Pose(72,72,0), new Vector(new Pose(0,0)), 1800);
         timer.reset();
-        double[] out = Fisiks.runPhysics(Inferno.BallPath.HIGH,new double[]{141.5,141.5,48},new Pose(72,72,0), new Vector(new Pose(24,-24)), 1800);
+        double[] out = Fisiks.runPhysics(Inferno.BallPath.HIGH,new double[]{141.5,141.5,48},new Pose(72,24,0), new Vector(new Pose(24,-24)), 2400);
         System.out.println("time "+timer.time());
         System.out.println("pitch "+out[0]);
         System.out.println("yaw "+out[1]);
@@ -21,7 +21,7 @@ public class FisiksTets {
         System.out.println("dist error "+Fisiks.Error.distError);
         System.out.println("side error "+Fisiks.Error.sideError);
         System.out.println("height error "+Fisiks.Error.heightError);
-        double[] out = Fisiks.runPhysics(Inferno.BallPath.HIGH,new double[]{141.5,141.5,48},new Pose(72,24,0), new Vector(new Pose(24,-24)), 2400);
+        out = Fisiks.runPhysics(Inferno.BallPath.HIGH,new double[]{141.5,141.5,48},new Pose(72,24,0), new Vector(new Pose(24,-24)), 2400);
         System.out.println("time "+timer.time());
         System.out.println("pitch "+out[0]);
         System.out.println("yaw "+out[1]);
