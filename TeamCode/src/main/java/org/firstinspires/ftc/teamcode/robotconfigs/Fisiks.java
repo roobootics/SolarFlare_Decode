@@ -350,7 +350,7 @@ public abstract class Fisiks {
         double dragFactor = -K_DRAG * initSpeed * timeGuess;
         double fraction   = Math.max(0.2, 1.0 - dragFactor);
         double midFrac    = (1.0 + fraction) / 2.0;
-        double c          = 6;  // tunable
+        double c          = 0;  // tunable
         double halfWidth  = (1.0 - fraction) / 2.0 / (1.0 + c * dragFactor);
 
         double bracketOvercorrect  = baseYaw + correction * (midFrac + halfWidth) +
@@ -364,30 +364,49 @@ public abstract class Fisiks {
     }
     public static void estimateInitialGuesses() {
         double vPar = targetNorm[0] * botVelX + targetNorm[1] * botVelY;
-        // Drag-free quadratic (no velocity): A·u² + d·u + (A - Δz) = 0
-        double A = GRAVITY * distance * distance / (2.0 * initSpeed * initSpeed);
-        double disc = distance * distance - 4.0 * A * (A - targetPoint[2]);
-        if (disc < 0) return;
+        double k = 0.55; // tunable
 
-        double sqrtDisc = sqrt(disc);
-        double uLow  = (-distance + sqrtDisc) / (2.0 * A);
-        double uHigh = (-distance - sqrtDisc) / (2.0 * A);
-        double pitchLow  = atan(uLow);
-        double pitchHigh = atan(uHigh);
+        // Step 1: drag-free solution to get initial dragFactor estimates
+        double A0   = GRAVITY * distance * distance / (2.0 * initSpeed * initSpeed);
+        double disc0 = distance * distance - 4.0 * A0 * (A0 - targetPoint[2]);
+        if (disc0 < 0) return;
+        double sq0  = sqrt(disc0);
+        double phiL0 = atan((-distance + sq0) / (2.0 * A0));
+        double phiH0 = atan((-distance - sq0) / (2.0 * A0));
+        double vhL0  = initSpeed * cos(phiL0) + vPar;
+        double vhH0  = initSpeed * cos(phiH0) + vPar;
+        if (vhL0 <= 0 || vhH0 <= 0) return;
+        double tL0 = distance / vhL0;
+        double tH0 = distance / vhH0;
 
-        // Correct flight times for parallel robot velocity
-        double vhLow  = initSpeed * cos(pitchLow) + vPar;
-        double vhHigh = initSpeed * cos(pitchHigh) + vPar;
-        if (vhLow <= 0 || vhHigh <= 0) return;
+        // Step 2: effective distances accounting for drag
+        double dfL = -K_DRAG * initSpeed * tL0;
+        double dfH = -K_DRAG * initSpeed * tH0;
+        double dL  = distance * (1.0 + k * dfL);
+        double dH  = distance * (1.0 + k * dfH);
 
-        double timeLow  = distance / vhLow;
-        double timeHigh = distance / vhHigh;
+        // Step 3: re-solve quadratics with effective distances
+        // LOW arc
+        double AL    = GRAVITY * dL * dL / (2.0 * initSpeed * initSpeed);
+        double discL = dL * dL - 4.0 * AL * (AL - targetPoint[2]);
+        if (discL >= 0) {
+            double sqL  = sqrt(discL);
+            double phiL = atan((-dL + sqL) / (2.0 * AL));
+            double vhL  = initSpeed * cos(phiL) + vPar;
+            if (vhL > 0) { pitchTimeGuesses[0] = phiL; pitchTimeGuesses[1] = distance * (1.0 + 0.5 * k * dfL) / vhL; }
+            else          { pitchTimeGuesses[0] = phiL0; pitchTimeGuesses[1] = tL0; }
+        } else             { pitchTimeGuesses[0] = phiL0; pitchTimeGuesses[1] = tL0; }
 
-        pitchTimeGuesses[0] = pitchLow;
-        pitchTimeGuesses[1] = timeLow;
-        pitchTimeGuesses[2] = pitchHigh;
-        pitchTimeGuesses[3] = timeHigh;
-
+        // HIGH arc
+        double AH    = GRAVITY * dH * dH / (2.0 * initSpeed * initSpeed);
+        double discH = dH * dH - 4.0 * AH * (AH - targetPoint[2]);
+        if (discH >= 0) {
+            double sqH  = sqrt(discH);
+            double phiH = atan((-dH - sqH) / (2.0 * AH));
+            double vhH  = initSpeed * cos(phiH) + vPar;
+            if (vhH > 0) { pitchTimeGuesses[2] = phiH; pitchTimeGuesses[3] = distance * (1.0 + 0.5 * k * dfH) / vhH; }
+            else          { pitchTimeGuesses[2] = phiH0; pitchTimeGuesses[3] = tH0; }
+        } else             { pitchTimeGuesses[2] = phiH0; pitchTimeGuesses[3] = tH0; }
     }
 
     public static double[] runPhysics(Inferno.BallPath currentBallPath, double[] targetPoint, Pose pos, Vector botVel, double flywheelVel){
