@@ -19,8 +19,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Vision {
-    // Config ---------------------
-    CAMERA_ORIENTATION orientation = CAMERA_ORIENTATION.NORMAL;
+    CAMERA_ORIENTATION cameraOrientation = CAMERA_ORIENTATION.NORMAL;
+    public double intakingWidthInches = 13;
     public double fx = 1218.145;
     public double fy = 1219.418;
     public double cx = 621.829;
@@ -32,8 +32,6 @@ public class Vision {
     final int NN_PIPELINE_INDEX = 0;
     final int APRIL_TAGS_PIPELINE_INDEX = 1;
     Pose3D cameraPoseOnRobot =  new Pose3D(new Position(DistanceUnit.METER, 0.182, 0, 0.2225, 0), new YawPitchRollAngles(AngleUnit.DEGREES, 0, 0, 0, 0));
-    // ----------------------------
-
     Limelight3A limelight;
     Telemetry telemetry;
 
@@ -50,12 +48,12 @@ public class Vision {
         limelight.setPollRateHz(11);
     }
 
-    public Vision(HardwareMap hardwareMap, Telemetry telemetry, Pose3D cameraPoseOnRobot, CAMERA_ORIENTATION orientation){
+    public Vision(HardwareMap hardwareMap, Telemetry telemetry, Pose3D cameraPoseOnRobot, CAMERA_ORIENTATION cameraOrientation){
         limelight = hardwareMap.get(Limelight3A.class, "limelight");
         this.telemetry = telemetry;
         limelight.setPollRateHz(11);
         this.cameraPoseOnRobot = cameraPoseOnRobot;
-        this.orientation = orientation;
+        this.cameraOrientation = cameraOrientation;
     }
 
     public List<ArtifactDescriptor> getRelativeArtifactDescriptors(List<String> acceptedClasses){
@@ -81,8 +79,8 @@ public class Vision {
             telemetry.addData("corner 3", corners.get(3));
 
             if (acceptedClasses.contains(className)) {
-                double targetX = getTargetXPixels(CAMERA_ORIENTATION.NORMAL, corners);
-                double targetY = getTargetYPixels(CAMERA_ORIENTATION.NORMAL, corners);
+                double targetX = getTargetXPixels(cameraOrientation, corners);
+                double targetY = getTargetYPixels(cameraOrientation, corners);
 
                 double xOffset = targetX - cxNN;
                 double yOffset = cyNN - targetY;
@@ -98,8 +96,6 @@ public class Vision {
                 telemetry.addData("targetY", targetY);
                 telemetry.addData("xOffset", xOffset);
                 telemetry.addData("yOffset", yOffset);
-
-                telemetry.addData("camera orientation", orientation);
 
                 double verticalAngleDeg = 90 + ty + cameraPoseOnRobot.getOrientation().getPitch(AngleUnit.DEGREES);
 
@@ -138,17 +134,14 @@ public class Vision {
 
         for (LLResultTypes.DetectorResult detectorResult : result.getDetectorResults()) {
             String className = detectorResult.getClassName();
-            List<List<Double>> corners = detectorResult.getTargetCorners();
 
-            telemetry.addData("corner 0", corners.get(0));
-            telemetry.addData("corner 1", corners.get(1));
-            telemetry.addData("corner 2", corners.get(2));
-            telemetry.addData("corner 3", corners.get(3));
 
             if (acceptedClasses.contains(className)) {
 
-                double targetX = getTargetXPixels(CAMERA_ORIENTATION.NORMAL, corners);
-                double targetY = getTargetXPixels(CAMERA_ORIENTATION.NORMAL, corners);
+                List<List<Double>> corners = detectorResult.getTargetCorners();
+
+                double targetX = getTargetXPixels(cameraOrientation, corners);
+                double targetY = getTargetYPixels(cameraOrientation, corners);
 
                 double xOffset = targetX - cxNN;
                 double yOffset = cyNN - targetY;
@@ -156,20 +149,7 @@ public class Vision {
                 double tx = Math.toDegrees(Math.atan(xOffset / fxNN));
                 double ty = Math.toDegrees(Math.atan(yOffset / fyNN));
 
-                telemetry.addData("tx", tx);
-                telemetry.addData("ty", ty);
-                telemetry.addData("cx", cxNN);
-                telemetry.addData("cy", cyNN);
-                telemetry.addData("targetX", targetX);
-                telemetry.addData("targetY", targetY);
-                telemetry.addData("xOffset", xOffset);
-                telemetry.addData("yOffset", yOffset);
-
-                telemetry.addData("camera orientation", orientation);
-
                 double verticalAngleDeg = 90 + ty + cameraPoseOnRobot.getOrientation().getPitch(AngleUnit.DEGREES);
-
-                telemetry.addData("vertical angle", verticalAngleDeg);
 
                 double depth = cameraPoseOnRobot.getPosition().toUnit(DistanceUnit.INCH).z * Math.tan(Math.toRadians(verticalAngleDeg));
 
@@ -186,17 +166,33 @@ public class Vision {
                 double sin = Math.sin(theta);
 
                 double artifactX =
-                        x + depth * cos - horizontal * sin;
+                        x + depth * cos - (-horizontal) * sin;
 
                 double artifactY =
-                        y + depth * sin + horizontal * cos;
+                        y + depth * sin + (-horizontal) * cos;
 
-                ArtifactDescriptor artifact = new ArtifactDescriptor(horizontal, depth, className);
+                ArtifactDescriptor artifact = new ArtifactDescriptor(artifactX, artifactY, className);
 
                 artifact.setTargetXPixels(targetX);
                 artifact.setTargetYPixels(targetY);
 
                 artifactDescriptors.add(artifact);
+
+                telemetry.addData("corner 0", corners.get(0));
+                telemetry.addData("corner 1", corners.get(1));
+                telemetry.addData("corner 2", corners.get(2));
+                telemetry.addData("corner 3", corners.get(3));
+                telemetry.addData("targetX", targetX);
+                telemetry.addData("targetY", targetY);
+                telemetry.addData("cx", cxNN);
+                telemetry.addData("cy", cyNN);
+                telemetry.addData("xOffset", xOffset);
+                telemetry.addData("yOffset", yOffset);
+                telemetry.addData("tx", tx);
+                telemetry.addData("ty", ty);
+                telemetry.addData("vertical angle", verticalAngleDeg);
+                telemetry.addData("horizontal", horizontal);
+                telemetry.addData("depth", depth);
             }
         }
         return artifactDescriptors;
@@ -427,66 +423,46 @@ public class Vision {
         return new Pose(closestArtifact.getX(), closestArtifact.getY());
     }
 
-    public Double intakingAngleArtifacts(List<ArtifactDescriptor> artifacts, int intakingWidth, Pose botPose){
-        int bestCount = 0;
-        double bestAngle = 0;
+    public Double intakingAngleArtifacts(List<ArtifactDescriptor> artifacts, Pose botPose){
+        int bestCount = -1;
+        double bestDist = Double.POSITIVE_INFINITY;
+        double bestAngle = -1;
 
         for (ArtifactDescriptor artifact : artifacts) {
 
-            double theta = Math.atan2(artifact.getY(), artifact.getX());
+            double dx = artifact.getX() - botPose.getX();
+            double dy = artifact.getY() - botPose.getY();
+            double theta = Math.atan2(dy, dx);
             double cos = Math.cos(theta);
             double sin = Math.sin(theta);
 
             int count = 0;
 
             for (ArtifactDescriptor surroundingArtifact : artifacts) {
-                double distance = Math.abs(surroundingArtifact.getX() * sin - surroundingArtifact.getY() * cos);
 
-                if (distance < intakingWidth / 2.0) {
+                double rx = surroundingArtifact.getX() - botPose.getX();
+                double ry = surroundingArtifact.getY() - botPose.getY();
+
+                double distance = Math.abs(rx * sin - ry * cos);
+
+                if (distance < intakingWidthInches / 2) {
                     count++;
                 }
             }
 
-            if (count > bestCount) {
+            double distanceToRobot = Math.sqrt(Math.pow(botPose.getX() - artifact.getX(), 2) + Math.pow(botPose.getY() - artifact.getY(), 2));
+
+            if (count > bestCount || (count == bestCount && distanceToRobot < bestDist) ) {
                 bestCount = count;
+                bestDist = distanceToRobot;
                 bestAngle = theta;
             }
         }
 
         double angleDegrees = Math.toDegrees(bestAngle);
 
-        return botPose.getHeading() - angleDegrees;
+        return angleDegrees;
     }
-    public Pose intakingPositionArtifacts(List<ArtifactDescriptor> artifacts, double intakingWidth){
-        int bestCount = -1;
-        double bestX = 0;
-        double bestY = 0;
-
-        for (ArtifactDescriptor artifact : artifacts) {
-
-            double x = artifact.getX();
-            double y = artifact.getY();
-
-            int count = 0;
-
-            for (ArtifactDescriptor surroundingArtifact : artifacts) {
-
-                if (artifact.equals(surroundingArtifact)) continue;
-
-                double distance = Math.sqrt(Math.pow(surroundingArtifact.getX() - x, 2) + Math.pow(surroundingArtifact.getY() - y, 2));
-
-                if (distance < intakingWidth / 2) count++;
-            }
-
-            if (count > bestCount) {
-                bestCount = count;
-                bestX = x;
-                bestY = y;
-            }
-        }
-        return new Pose(bestX, bestY);
-    }
-
 
     public Double getTargetXPixels(Vision.CAMERA_ORIENTATION orientation, List<List<Double>> corners) {
         if (corners == null) return null;

@@ -23,7 +23,7 @@ import java.util.List;
 public class TestArtifactsOnlyLimelightWithPanels extends OpMode {
     Pose3D testerRig = new Pose3D(new Position(DistanceUnit.INCH, -0.78125, 0, 5.05, 0), new YawPitchRollAngles(AngleUnit.DEGREES, 0, -25, 0, 0));
     // Pose3D cameraPoseOnRobot = new Pose3D(new Position(DistanceUnit.METER, 0.182, 0, 0.2225, 0), new YawPitchRollAngles(AngleUnit.DEGREES, 0, 0, 0, 0));
-    Pose botPose = new Pose(72, 0, Math.toRadians(90));
+    Pose botPose = new Pose(0, 72, Math.toRadians(0));
     Vision vision;
     List<String> acceptedClasses = new ArrayList<>();
     FieldManager panelsField = PanelsField.INSTANCE.getField();
@@ -43,6 +43,20 @@ public class TestArtifactsOnlyLimelightWithPanels extends OpMode {
         List<ArtifactDescriptor> artifacts = vision.getArtifactDescriptors(botPose, acceptedClasses);
 
         if (!artifacts.isEmpty()) {
+
+            Double intakingAngle = vision.intakingAngleArtifacts(artifacts, botPose);
+            telemetry.addData("intaking angle", intakingAngle);
+            panelsTelemetry.addData("intaking angle", intakingAngle);
+
+            double lineLength = 10;
+
+            double x2 = botPose.getX() + Math.cos(Math.toRadians(intakingAngle)) * lineLength;
+            double y2 = botPose.getY() + Math.sin(Math.toRadians(intakingAngle)) * lineLength;
+
+            panelsField.setStyle("black", "black", 0);
+            panelsField.moveCursor(botPose.getX(), botPose.getY());
+            panelsField.line(x2, y2);
+
             for (ArtifactDescriptor artifact : artifacts) {
                 double x = artifact.getX();
                 double y = artifact.getY();
