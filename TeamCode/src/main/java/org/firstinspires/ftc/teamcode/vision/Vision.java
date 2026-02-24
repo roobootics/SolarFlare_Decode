@@ -19,18 +19,20 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Vision {
-    CAMERA_ORIENTATION cameraOrientation = CAMERA_ORIENTATION.NORMAL;
-    public double intakingWidthInches = 13;
-    public double fx = 1218.145;
-    public double fy = 1219.418;
-    public double cx = 621.829;
-    public double cy = 500.362;
-    public double fxNN = fx / 2;
-    public double fyNN = fy / 2;
-    public double cxNN = cx / 2;
-    public double cyNN = cy / 2;
-    final int NN_PIPELINE_INDEX = 0;
-    final int APRIL_TAGS_PIPELINE_INDEX = 1;
+    public final double INTAKING_WIDTH_INCHES = 13;
+    public CAMERA_ORIENTATION cameraOrientation = CAMERA_ORIENTATION.NORMAL;
+    public final double fx = 1218.145;
+    public final double fy = 1219.418;
+    public final double cx = 621.829;
+    public final double cy = 500.362;
+    public final double fxNN = fx / 4;
+    public final double fyNN = fy / 4;
+    public final double cxNN = cx / 4;
+    public final double cyNN = cy / 4;
+    public final int NN_PIPELINE_INDEX = 0;
+    public final int APRIL_TAGS_PIPELINE_INDEX = 1;
+    public final double HORIZONTAL_FOV = 54.4;
+
     Pose3D cameraPoseOnRobot =  new Pose3D(new Position(DistanceUnit.METER, 0.182, 0, 0.2225, 0), new YawPitchRollAngles(AngleUnit.DEGREES, 0, 0, 0, 0));
     Limelight3A limelight;
     Telemetry telemetry;
@@ -445,7 +447,7 @@ public class Vision {
 
                 double distance = Math.abs(rx * sin - ry * cos);
 
-                if (distance < intakingWidthInches / 2) {
+                if (distance < INTAKING_WIDTH_INCHES / 2) {
                     count++;
                 }
             }
@@ -459,9 +461,62 @@ public class Vision {
             }
         }
 
-        double angleDegrees = Math.toDegrees(bestAngle);
+        return Math.toDegrees(bestAngle);
+    }
 
-        return angleDegrees;
+    public Double intakingAngleArtifacts2(List<ArtifactDescriptor> artifacts, Pose botPose, int stepDeg) {
+
+        if (artifacts.isEmpty()) return null;
+
+        double bestAngle = -1;
+
+        double bestScore = Double.NEGATIVE_INFINITY;
+
+        double w1 = 1;
+        double w2 = 1;
+        double w3 = 1;
+
+        double horizontalLeftBound = Math.toDegrees(botPose.getHeading()) + (HORIZONTAL_FOV / 2);
+        double horizontalRightBound = Math.toDegrees(botPose.getHeading()) - (HORIZONTAL_FOV / 2);
+
+        for (double angleDeg = horizontalLeftBound; angleDeg >= horizontalRightBound; angleDeg -= stepDeg) {
+
+            double theta = Math.toRadians(angleDeg);
+            double cos = Math.cos(theta);
+            double sin = Math.sin(theta);
+
+            int count = 0;
+            double totalPerpDist = 0;
+            double totalDist = 0;
+
+            for (ArtifactDescriptor artifact : artifacts) {
+                double rx = artifact.getX() - botPose.getX();
+                double ry = artifact.getY() - botPose.getY();
+
+                double perpDist = Math.abs(rx * sin - ry * cos);
+                double distance = Math.hypot(rx, ry);
+
+                if (perpDist < INTAKING_WIDTH_INCHES / 2) {
+                    count++;
+                    totalPerpDist += perpDist;
+                    totalDist += distance;
+                }
+            }
+
+            if (count > 0) {
+                double avgPerpDist = totalPerpDist / count;
+                double avgDist = totalDist / count;
+
+                double score = w1 * count - w2 * avgPerpDist - w3 * avgDist;
+
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestAngle = theta;
+                }
+            }
+        }
+
+        return Math.toDegrees(bestAngle);
     }
 
     public Double getTargetXPixels(Vision.CAMERA_ORIENTATION orientation, List<List<Double>> corners) {
@@ -474,16 +529,16 @@ public class Vision {
         List<Double> corner2 = corners.get(2);
         List<Double> corner3 = corners.get(3);
 
-        if (orientation == Vision.CAMERA_ORIENTATION.NORMAL){
+        if (orientation == CAMERA_ORIENTATION.NORMAL){
             targetXPixels = (corner2.get(0) + corner3.get(0)) / 2;
         }
-        else if (orientation == Vision.CAMERA_ORIENTATION.UPSIDE_DOWN){
+        else if (orientation == CAMERA_ORIENTATION.UPSIDE_DOWN){
             targetXPixels = (corner0.get(0) + corner1.get(0)) / 2;
         }
-        else if (orientation == Vision.CAMERA_ORIENTATION.CLOCKWISE_90){
+        else if (orientation == CAMERA_ORIENTATION.CLOCKWISE_90){
             targetXPixels = (corner1.get(0) + corner2.get(0)) / 2;
         }
-        else if (orientation == Vision.CAMERA_ORIENTATION.COUNTER_CLOCKWISE_90){
+        else if (orientation == CAMERA_ORIENTATION.COUNTER_CLOCKWISE_90){
             targetXPixels = (corner3.get(0) + corner0.get(0)) / 2;
         }
 
@@ -499,16 +554,16 @@ public class Vision {
         List<Double> corner2 = corners.get(2);
         List<Double> corner3 = corners.get(3);
 
-        if (orientation == Vision.CAMERA_ORIENTATION.NORMAL){
+        if (orientation == CAMERA_ORIENTATION.NORMAL){
             targetYPixels = corner3.get(1);
         }
-        else if (orientation == Vision.CAMERA_ORIENTATION.UPSIDE_DOWN){
+        else if (orientation == CAMERA_ORIENTATION.UPSIDE_DOWN){
             targetYPixels = corner1.get(1);
         }
-        else if (orientation == Vision.CAMERA_ORIENTATION.CLOCKWISE_90){
+        else if (orientation == CAMERA_ORIENTATION.CLOCKWISE_90){
             targetYPixels = corner2.get(1);
         }
-        else if (orientation == Vision.CAMERA_ORIENTATION.COUNTER_CLOCKWISE_90){
+        else if (orientation == CAMERA_ORIENTATION.COUNTER_CLOCKWISE_90){
             targetYPixels = corner0.get(1);
         }
 

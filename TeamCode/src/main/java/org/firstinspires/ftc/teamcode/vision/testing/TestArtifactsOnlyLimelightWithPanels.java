@@ -1,6 +1,11 @@
 package org.firstinspires.ftc.teamcode.vision.testing;
 
+import androidx.annotation.NonNull;
+
+import com.bylazar.field.CanvasRotation;
 import com.bylazar.field.FieldManager;
+import com.bylazar.field.FieldPresetParams;
+import com.bylazar.field.ImagePreset;
 import com.bylazar.field.PanelsField;
 import com.bylazar.telemetry.PanelsTelemetry;
 import com.bylazar.telemetry.TelemetryManager;
@@ -23,7 +28,7 @@ import java.util.List;
 public class TestArtifactsOnlyLimelightWithPanels extends OpMode {
     Pose3D testerRig = new Pose3D(new Position(DistanceUnit.INCH, -0.78125, 0, 5.05, 0), new YawPitchRollAngles(AngleUnit.DEGREES, 0, -25, 0, 0));
     // Pose3D cameraPoseOnRobot = new Pose3D(new Position(DistanceUnit.METER, 0.182, 0, 0.2225, 0), new YawPitchRollAngles(AngleUnit.DEGREES, 0, 0, 0, 0));
-    Pose botPose = new Pose(0, 72, Math.toRadians(0));
+    Pose botPose = new Pose(73, 0, Math.toRadians(90));
     Vision vision;
     List<String> acceptedClasses = new ArrayList<>();
     FieldManager panelsField = PanelsField.INSTANCE.getField();
@@ -35,7 +40,8 @@ public class TestArtifactsOnlyLimelightWithPanels extends OpMode {
         acceptedClasses.add("purple");
         acceptedClasses.add("green");
 
-        panelsField.setOffsets(PanelsField.INSTANCE.getPresets().getPEDRO_PATHING());
+
+        panelsField.setOffsets(new FieldPresetParams("decode", -72, -72, CanvasRotation.DEG_0, false, false, true));
     }
     @Override
     public void loop(){
@@ -44,7 +50,7 @@ public class TestArtifactsOnlyLimelightWithPanels extends OpMode {
 
         if (!artifacts.isEmpty()) {
 
-            Double intakingAngle = vision.intakingAngleArtifacts(artifacts, botPose);
+            Double intakingAngle = vision.intakingAngleArtifacts2(artifacts, botPose, 1);
             telemetry.addData("intaking angle", intakingAngle);
             panelsTelemetry.addData("intaking angle", intakingAngle);
 
@@ -53,7 +59,7 @@ public class TestArtifactsOnlyLimelightWithPanels extends OpMode {
             double x2 = botPose.getX() + Math.cos(Math.toRadians(intakingAngle)) * lineLength;
             double y2 = botPose.getY() + Math.sin(Math.toRadians(intakingAngle)) * lineLength;
 
-            panelsField.setStyle("black", "black", 0);
+            panelsField.setStyle("red", "red", 1);
             panelsField.moveCursor(botPose.getX(), botPose.getY());
             panelsField.line(x2, y2);
 
