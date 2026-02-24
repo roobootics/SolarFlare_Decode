@@ -38,6 +38,7 @@ public abstract class Fisiks {
     final static double VEL_THRESHOLD = 0.2;
 
     static double[] targetPoint;
+    static Inferno.BallPath currentBallPath;
     static double botVelX;
     static double botVelY;
     public static double initSpeed;
@@ -139,13 +140,13 @@ public abstract class Fisiks {
         }
     }
     public static class Solver{
-        public static final double[] hoodBounds = new double[]{22,87};
+        public static final double[] hoodBounds = new double[]{22,90};
         public static final double[] timeBounds = new double[]{0.2,3};
         public static boolean willClampHood(double in){return in<Math.toRadians(hoodBounds[0]) || in>Math.toRadians(hoodBounds[1]);}
         public static boolean willClampTime(double in){return in<timeBounds[0] || in>timeBounds[1];}
         final public static double[] out = new double[3]; //pitch, yaw, time
         private static final double STAGE1MAXITR = 8;
-        private static final double STAGE2MAXITR = 5;
+        private static final double STAGE2MAXITR = 6;
         private static final double DISTERR = 0.15;
         private static final double HEIGHTERR = 0.15;
         private static final double YAWERR = 0.15;
@@ -206,6 +207,9 @@ public abstract class Fisiks {
                 double dx1 = -(c*startDistError + dj*startHeightError);
 
                 if (willClampHood(out[0] + dx0) || willClampTime(out[2] + dx1)){
+                    System.out.println("e");
+                    System.out.println(out[0] + dx0);
+                    System.out.println(out[2] + dx1);
                     out[0] = bestPitch;
                     out[2] = bestTime;
                     Error.distError = bestDistError;
@@ -274,7 +278,9 @@ public abstract class Fisiks {
                 return stage1Solve(initialPitchGuess,initialTimeGuess,out[1]);
             }
             double fLo, fHi;
+            System.out.println("low");
             stage1Solve(initialPitchGuess,initialTimeGuess,yawBottomBracket); fLo = Error.sideError;
+            System.out.println("high");
             stage1Solve(initialPitchGuess,initialTimeGuess,yawTopBracket); fHi = Error.sideError;
             while (fLo*fHi>0){
                 System.out.println("faliure");
@@ -339,58 +345,90 @@ public abstract class Fisiks {
     public static void yawBrackets(double pitchGuess, double timeGuess){
         double baseYaw = atan2(targetPoint[1], targetPoint[0]);
         double vPerp = sidewaysNorm[0] * botVelX + sidewaysNorm[1] * botVelY;
-        double arg = -vPerp / (initSpeed * cos(pitchGuess));
-        // clamp to valid asin range
-        arg = Math.max(-1, Math.min(1, arg));
+        double arg = Math.max(-1, Math.min(1, -vPerp / (initSpeed * cos(pitchGuess))));
         double correction = asin(arg);
         int corrSign = (correction >= 0) ? 1 : -1;
 
         double epsilon = Math.toRadians(1);
-
         double dragFactor = -K_DRAG * initSpeed * timeGuess;
-        double fraction   = Math.max(0.2, 1.0 - dragFactor);
-        double midFrac    = (1.0 + fraction) / 2.0;
-        double c          = 6;  // tunable
-        double halfWidth  = (1.0 - fraction) / 2.0 / (1.0 + c * dragFactor);
+        double c = 0.07; // tunable
+        double w = c * Math.min(dragFactor, 1.0);
 
-        double bracketOvercorrect  = baseYaw + correction * (midFrac + halfWidth) +
-                corrSign * epsilon;
-        double bracketUndercorrect = baseYaw + correction * (midFrac - halfWidth) -
-                corrSign * epsilon;
+        // As arg approaches ±1, pitchGuess is too steep → formula overcorrects.
+        // Base: (1 - sat²) collapses the undercorrect bracket at high saturation.
+        // Extra margin: subtract sat*w so c controls additional width at nonzero velocity.
+        double saturation = Math.abs(arg);
+        double undercorrectFactor = Math.max(0.0, (1.0 - saturation * saturation) * (1.0 - w) - saturation * w);
+
+        double bracketOvercorrect  = baseYaw + correction * (1.0 + w) + corrSign * epsilon;
+        double bracketUndercorrect = baseYaw + correction * undercorrectFactor - corrSign * epsilon;
 
         yawBrackets[0] = Math.min(bracketOvercorrect, bracketUndercorrect);
         yawBrackets[1] = Math.max(bracketOvercorrect, bracketUndercorrect);
-
     }
     public static void estimateInitialGuesses() {
         double vPar = targetNorm[0] * botVelX + targetNorm[1] * botVelY;
-        // Drag-free quadratic (no velocity): A·u² + d·u + (A - Δz) = 0
-        double A = GRAVITY * distance * distance / (2.0 * initSpeed * initSpeed);
-        double disc = distance * distance - 4.0 * A * (A - targetPoint[2]);
-        if (disc < 0) return;
+        double kL = 0.86; // tunable
+        double kH = 0.77; // tunable
 
-        double sqrtDisc = sqrt(disc);
-        double uLow  = (-distance + sqrtDisc) / (2.0 * A);
-        double uHigh = (-distance - sqrtDisc) / (2.0 * A);
-        double pitchLow  = atan(uLow);
-        double pitchHigh = atan(uHigh);
 
-        // Correct flight times for parallel robot velocity
-        double vhLow  = initSpeed * cos(pitchLow) + vPar;
-        double vhHigh = initSpeed * cos(pitchHigh) + vPar;
-        if (vhLow <= 0 || vhHigh <= 0) return;
+        // Step 1: drag-free solution (used only to estimate dragFactor)
+        double A0    = GRAVITY * distance * distance / (2.0 * initSpeed * initSpeed);
+        double disc0 = distance * distance - 4.0 * A0 * (A0 - targetPoint[2]);
+        if (disc0 < 0) return;
+        double sq0   = sqrt(disc0);
+        double phiL0 = atan((-distance + sq0) / (2.0 * A0));
+        double phiH0 = atan((-distance - sq0) / (2.0 * A0));
+        double vhL0  = initSpeed * cos(phiL0) + vPar;
+        double vhH0  = initSpeed * cos(phiH0) + vPar;
+        if (vhL0 <= 0 || vhH0 <= 0) return;
+        double tL0 = distance / vhL0;
+        double tH0 = distance / vhH0;
 
-        double timeLow  = distance / vhLow;
-        double timeHigh = distance / vhHigh;
+        // Step 2: effective distances accounting for drag
+        double dfL = -K_DRAG * distance / cos(phiL0);
+        double dfH = -K_DRAG * distance / cos(phiH0);
+        double dL  = distance * (1.0 + kL * dfL);
+        double dH  = distance * (1.0 + kH * dfH);
 
-        pitchTimeGuesses[0] = pitchLow;
-        pitchTimeGuesses[1] = timeLow;
-        pitchTimeGuesses[2] = pitchHigh;
-        pitchTimeGuesses[3] = timeHigh;
+        // Step 3: re-solve quadratics with effective distances
+        // LOW arc — re-derivation safe (ascending branch = correct branch for low arc)
+        double AL    = GRAVITY * dL * dL / (2.0 * initSpeed * initSpeed);
+        double discL = dL * dL - 4.0 * AL * (AL - targetPoint[2]);
+        if (discL >= 0) {
+            double sqL  = sqrt(discL);
+            double phiL = atan((-dL + sqL) / (2.0 * AL));
+            double vhL  = initSpeed * cos(phiL) + vPar;
+            if (vhL > 0) {
+                double tL = distance * (1.0 + 0.5 * kL * dfL) / vhL;
+                double sinPhiL = (targetPoint[2] - 0.5 * GRAVITY * tL * tL) / (initSpeed * tL);
+                if (Math.abs(sinPhiL) <= 1.0) {
+                    phiL = asin(sinPhiL);
+                    double vhL2 = initSpeed * cos(phiL) + vPar;
+                    if (vhL2 > 0) tL = distance * (1.0 + 0.5 * kL * dfL) / vhL2;
+                }
+                pitchTimeGuesses[0] = phiL;
+                pitchTimeGuesses[1] = tL;
+            } else { pitchTimeGuesses[0] = phiL0; pitchTimeGuesses[1] = tL0; }
+        }   else   { pitchTimeGuesses[0] = phiL0; pitchTimeGuesses[1] = tL0; }
 
+        // HIGH arc — no re-derivation: d_eff quadratic already satisfies both
+        // horizontal and vertical constraints for the descending solution
+        double AH    = GRAVITY * dH * dH / (2.0 * initSpeed * initSpeed);
+        double discH = dH * dH - 4.0 * AH * (AH - targetPoint[2]);
+        if (discH >= 0) {
+            double sqH  = sqrt(discH);
+            double phiH = atan((-dH - sqH) / (2.0 * AH));
+            double vhH  = initSpeed * cos(phiH) + vPar;
+            if (vhH > 0) {
+                pitchTimeGuesses[2] = phiH;
+                pitchTimeGuesses[3] = distance * (1.0 + 0.5 * kH * dfH) / vhH;
+            } else { pitchTimeGuesses[2] = phiH0; pitchTimeGuesses[3] = tH0; }
+        }   else   { pitchTimeGuesses[2] = phiH0; pitchTimeGuesses[3] = tH0; }
     }
 
     public static double[] runPhysics(Inferno.BallPath currentBallPath, double[] targetPoint, Pose pos, Vector botVel, double flywheelVel){
+        Fisiks.currentBallPath = currentBallPath;
         Solver.resetJacobian = true;
         buildPhysics(targetPoint,pos,botVel,flywheelVel);
         estimateInitialGuesses();

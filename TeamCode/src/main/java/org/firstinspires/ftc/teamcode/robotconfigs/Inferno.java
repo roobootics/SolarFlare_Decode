@@ -303,12 +303,13 @@ public class Inferno implements RobotConfig{
     public static final Command setShooter = new ContinuousCommand(()->{
         setTargetPoint();
         Pose pos = follower.getPose();
-        double xPos = pos.getX();
-        double yPos = pos.getY();
-        double dist = sqrt((targetPoint[0]-xPos)*(targetPoint[0]-xPos) + (targetPoint[1]-yPos)*(targetPoint[1]-yPos));
-        targetFlywheelVelocity = VelRegression.regressFormula(dist);
-        double vel = flywheel.get("flywheelLeft").getVelocity();
-        double[] turret = new double[]{HoodRegression.regressFormula(dist,vel),Math.toDegrees(atan2(targetPoint[1] - yPos,targetPoint[0] - xPos))};
+        double[] turret;
+        if (robotState == RobotState.SHOOTING || robotState == RobotState.STOPPED) {
+            turret = Fisiks.runPhysics(currentBallPath, targetPoint, pos, follower.getVelocity(), flywheel.get("flywheelLeft").getVelocity());
+        }
+        else{
+            turret = new double[]{turretPitch.get("turretPitchLeft").getTarget()/TURRET_PITCH_RATIO-TURRET_PITCH_OFFSET, Math.toDegrees(atan2(targetPoint[1] - pos.getY(),targetPoint[0] - pos.getX()))};
+        }
         double heading = Math.toDegrees(follower.getHeading());
         if ((turret[1]-heading)<=-225) turret[1] += 360;
         else if ((turret[1]-heading)>225) turret[1] -= 360;
