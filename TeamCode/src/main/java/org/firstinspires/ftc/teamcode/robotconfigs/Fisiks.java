@@ -362,7 +362,9 @@ public abstract class Fisiks {
     }
     public static void estimateInitialGuesses() {
         double vPar = targetNorm[0] * botVelX + targetNorm[1] * botVelY;
-        double k = 0.7; // tunable
+        double kL = 0.86; // tunable
+        double kH = 0.77; // tunable
+
 
         // Step 1: drag-free solution (used only to estimate dragFactor)
         double A0    = GRAVITY * distance * distance / (2.0 * initSpeed * initSpeed);
@@ -380,8 +382,8 @@ public abstract class Fisiks {
         // Step 2: effective distances accounting for drag
         double dfL = -K_DRAG * distance / cos(phiL0);
         double dfH = -K_DRAG * distance / cos(phiH0);
-        double dL  = distance * (1.0 + k * dfL);
-        double dH  = distance * (1.0 + k * dfH);
+        double dL  = distance * (1.0 + kL * dfL);
+        double dH  = distance * (1.0 + kH * dfH);
 
         // Step 3: re-solve quadratics with effective distances
         // LOW arc — re-derivation safe (ascending branch = correct branch for low arc)
@@ -392,12 +394,12 @@ public abstract class Fisiks {
             double phiL = atan((-dL + sqL) / (2.0 * AL));
             double vhL  = initSpeed * cos(phiL) + vPar;
             if (vhL > 0) {
-                double tL = distance * (1.0 + 0.5 * k * dfL) / vhL;
+                double tL = distance * (1.0 + 0.5 * kL * dfL) / vhL;
                 double sinPhiL = (targetPoint[2] - 0.5 * GRAVITY * tL * tL) / (initSpeed * tL);
                 if (Math.abs(sinPhiL) <= 1.0) {
                     phiL = asin(sinPhiL);
                     double vhL2 = initSpeed * cos(phiL) + vPar;
-                    if (vhL2 > 0) tL = distance * (1.0 + 0.5 * k * dfL) / vhL2;
+                    if (vhL2 > 0) tL = distance * (1.0 + 0.5 * kL * dfL) / vhL2;
                 }
                 pitchTimeGuesses[0] = phiL;
                 pitchTimeGuesses[1] = tL;
@@ -414,7 +416,7 @@ public abstract class Fisiks {
             double vhH  = initSpeed * cos(phiH) + vPar;
             if (vhH > 0) {
                 pitchTimeGuesses[2] = phiH;
-                pitchTimeGuesses[3] = distance * (1.0 + 0.5 * k * dfH) / vhH;
+                pitchTimeGuesses[3] = distance * (1.0 + 0.5 * kH * dfH) / vhH;
             } else { pitchTimeGuesses[2] = phiH0; pitchTimeGuesses[3] = tH0; }
         }   else   { pitchTimeGuesses[2] = phiH0; pitchTimeGuesses[3] = tH0; }
     }
