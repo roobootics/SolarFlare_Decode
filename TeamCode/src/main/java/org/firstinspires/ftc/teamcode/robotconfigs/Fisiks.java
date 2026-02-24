@@ -38,6 +38,7 @@ public abstract class Fisiks {
     final static double VEL_THRESHOLD = 0.2;
 
     static double[] targetPoint;
+    static Inferno.BallPath currentBallPath;
     static double botVelX;
     static double botVelY;
     public static double initSpeed;
@@ -145,7 +146,7 @@ public abstract class Fisiks {
         public static boolean willClampTime(double in){return in<timeBounds[0] || in>timeBounds[1];}
         final public static double[] out = new double[3]; //pitch, yaw, time
         private static final double STAGE1MAXITR = 8;
-        private static final double STAGE2MAXITR = 5;
+        private static final double STAGE2MAXITR = 6;
         private static final double DISTERR = 0.15;
         private static final double HEIGHTERR = 0.15;
         private static final double YAWERR = 0.15;
@@ -350,12 +351,17 @@ public abstract class Fisiks {
 
         double epsilon = Math.toRadians(1);
         double dragFactor = -K_DRAG * initSpeed * timeGuess;
-        double c = 0.1; // tunable
-
+        double c = 0.07; // tunable
         double w = c * Math.min(dragFactor, 1.0);
 
+        // As arg approaches ±1, pitchGuess is too steep → formula overcorrects.
+        // Base: (1 - sat²) collapses the undercorrect bracket at high saturation.
+        // Extra margin: subtract sat*w so c controls additional width at nonzero velocity.
+        double saturation = Math.abs(arg);
+        double undercorrectFactor = Math.max(0.0, (1.0 - saturation * saturation) * (1.0 - w) - saturation * w);
+
         double bracketOvercorrect  = baseYaw + correction * (1.0 + w) + corrSign * epsilon;
-        double bracketUndercorrect = baseYaw + correction * (1.0 - w) - corrSign * epsilon;
+        double bracketUndercorrect = baseYaw + correction * undercorrectFactor - corrSign * epsilon;
 
         yawBrackets[0] = Math.min(bracketOvercorrect, bracketUndercorrect);
         yawBrackets[1] = Math.max(bracketOvercorrect, bracketUndercorrect);
@@ -422,6 +428,7 @@ public abstract class Fisiks {
     }
 
     public static double[] runPhysics(Inferno.BallPath currentBallPath, double[] targetPoint, Pose pos, Vector botVel, double flywheelVel){
+        Fisiks.currentBallPath = currentBallPath;
         Solver.resetJacobian = true;
         buildPhysics(targetPoint,pos,botVel,flywheelVel);
         estimateInitialGuesses();
