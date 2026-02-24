@@ -339,34 +339,27 @@ public abstract class Fisiks {
     public static void yawBrackets(double pitchGuess, double timeGuess){
         double baseYaw = atan2(targetPoint[1], targetPoint[0]);
         double vPerp = sidewaysNorm[0] * botVelX + sidewaysNorm[1] * botVelY;
-        double arg = -vPerp / (initSpeed * cos(pitchGuess));
-        // clamp to valid asin range
-        arg = Math.max(-1, Math.min(1, arg));
+        double arg = Math.max(-1, Math.min(1, -vPerp / (initSpeed * cos(pitchGuess))));
         double correction = asin(arg);
         int corrSign = (correction >= 0) ? 1 : -1;
 
         double epsilon = Math.toRadians(1);
-
         double dragFactor = -K_DRAG * initSpeed * timeGuess;
-        double fraction   = Math.max(0.2, 1.0 - dragFactor);
-        double midFrac    = (1.0 + fraction) / 2.0;
-        double c          = 0;  // tunable
-        double halfWidth  = (1.0 - fraction) / 2.0 / (1.0 + c * dragFactor);
+        double c = 0.2; // tunable
 
-        double bracketOvercorrect  = baseYaw + correction * (midFrac + halfWidth) +
-                corrSign * epsilon;
-        double bracketUndercorrect = baseYaw + correction * (midFrac - halfWidth) -
-                corrSign * epsilon;
+        double w = c * Math.min(dragFactor, 1.0);
+
+        double bracketOvercorrect  = baseYaw + correction * (1.0 + w) + corrSign * epsilon;
+        double bracketUndercorrect = baseYaw + correction * (1.0 - w) - corrSign * epsilon;
 
         yawBrackets[0] = Math.min(bracketOvercorrect, bracketUndercorrect);
         yawBrackets[1] = Math.max(bracketOvercorrect, bracketUndercorrect);
-
     }
     public static void estimateInitialGuesses() {
         double vPar = targetNorm[0] * botVelX + targetNorm[1] * botVelY;
-        double k = 0.55; // tunable
+        double k = 0.5; // tunable
 
-        // Step 1: drag-free solution to get initial dragFactor estimates
+        // Step 1: drag-free solution (used only to estimate dragFactor)
         double A0   = GRAVITY * distance * distance / (2.0 * initSpeed * initSpeed);
         double disc0 = distance * distance - 4.0 * A0 * (A0 - targetPoint[2]);
         if (disc0 < 0) return;
@@ -393,9 +386,13 @@ public abstract class Fisiks {
             double sqL  = sqrt(discL);
             double phiL = atan((-dL + sqL) / (2.0 * AL));
             double vhL  = initSpeed * cos(phiL) + vPar;
-            if (vhL > 0) { pitchTimeGuesses[0] = phiL; pitchTimeGuesses[1] = distance * (1.0 + 0.5 * k * dfL) / vhL; }
-            else          { pitchTimeGuesses[0] = phiL0; pitchTimeGuesses[1] = tL0; }
-        } else             { pitchTimeGuesses[0] = phiL0; pitchTimeGuesses[1] = tL0; }
+            if (vhL > 0) {
+                double tL = distance * (1.0 + 0.5 * k * dfL) / vhL;
+                double sinPhiL = (targetPoint[2] - 0.5 * GRAVITY * tL * tL) / (initSpeed * tL);
+                pitchTimeGuesses[0] = Math.abs(sinPhiL) <= 1.0 ? asin(sinPhiL) : phiL;
+                pitchTimeGuesses[1] = tL;
+            } else { pitchTimeGuesses[0] = phiL0; pitchTimeGuesses[1] = tL0; }
+        }   else   { pitchTimeGuesses[0] = phiL0; pitchTimeGuesses[1] = tL0; }
 
         // HIGH arc
         double AH    = GRAVITY * dH * dH / (2.0 * initSpeed * initSpeed);
@@ -404,9 +401,13 @@ public abstract class Fisiks {
             double sqH  = sqrt(discH);
             double phiH = atan((-dH - sqH) / (2.0 * AH));
             double vhH  = initSpeed * cos(phiH) + vPar;
-            if (vhH > 0) { pitchTimeGuesses[2] = phiH; pitchTimeGuesses[3] = distance * (1.0 + 0.5 * k * dfH) / vhH; }
-            else          { pitchTimeGuesses[2] = phiH0; pitchTimeGuesses[3] = tH0; }
-        } else             { pitchTimeGuesses[2] = phiH0; pitchTimeGuesses[3] = tH0; }
+            if (vhH > 0) {
+                double tH = distance * (1.0 + 0.5 * k * dfH) / vhH;
+                double sinPhiH = (targetPoint[2] - 0.5 * GRAVITY * tH * tH) / (initSpeed * tH);
+                pitchTimeGuesses[2] = Math.abs(sinPhiH) <= 1.0 ? asin(sinPhiH) : phiH;
+                pitchTimeGuesses[3] = tH;
+            } else { pitchTimeGuesses[2] = phiH0; pitchTimeGuesses[3] = tH0; }
+        }   else   { pitchTimeGuesses[2] = phiH0; pitchTimeGuesses[3] = tH0; }
     }
 
     public static double[] runPhysics(Inferno.BallPath currentBallPath, double[] targetPoint, Pose pos, Vector botVel, double flywheelVel){
