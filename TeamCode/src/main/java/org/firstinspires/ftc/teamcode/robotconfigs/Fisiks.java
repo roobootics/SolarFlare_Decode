@@ -350,7 +350,7 @@ public abstract class Fisiks {
 
         double epsilon = Math.toRadians(1);
         double dragFactor = -K_DRAG * initSpeed * timeGuess;
-        double c = 0.2; // tunable
+        double c = 0.1; // tunable
 
         double w = c * Math.min(dragFactor, 1.0);
 
@@ -362,7 +362,7 @@ public abstract class Fisiks {
     }
     public static void estimateInitialGuesses() {
         double vPar = targetNorm[0] * botVelX + targetNorm[1] * botVelY;
-        double k = 0.6; // tunable
+        double k = 0.7; // tunable
 
         // Step 1: drag-free solution (used only to estimate dragFactor)
         double A0    = GRAVITY * distance * distance / (2.0 * initSpeed * initSpeed);
@@ -378,13 +378,13 @@ public abstract class Fisiks {
         double tH0 = distance / vhH0;
 
         // Step 2: effective distances accounting for drag
-        double dfL = -K_DRAG * initSpeed * tL0;
-        double dfH = -K_DRAG * initSpeed * tH0;
+        double dfL = -K_DRAG * distance / cos(phiL0);
+        double dfH = -K_DRAG * distance / cos(phiH0);
         double dL  = distance * (1.0 + k * dfL);
         double dH  = distance * (1.0 + k * dfH);
 
         // Step 3: re-solve quadratics with effective distances
-        // LOW arc
+        // LOW arc — re-derivation safe (ascending branch = correct branch for low arc)
         double AL    = GRAVITY * dL * dL / (2.0 * initSpeed * initSpeed);
         double discL = dL * dL - 4.0 * AL * (AL - targetPoint[2]);
         if (discL >= 0) {
@@ -404,7 +404,8 @@ public abstract class Fisiks {
             } else { pitchTimeGuesses[0] = phiL0; pitchTimeGuesses[1] = tL0; }
         }   else   { pitchTimeGuesses[0] = phiL0; pitchTimeGuesses[1] = tL0; }
 
-        // HIGH arc
+        // HIGH arc — no re-derivation: d_eff quadratic already satisfies both
+        // horizontal and vertical constraints for the descending solution
         double AH    = GRAVITY * dH * dH / (2.0 * initSpeed * initSpeed);
         double discH = dH * dH - 4.0 * AH * (AH - targetPoint[2]);
         if (discH >= 0) {
@@ -412,15 +413,8 @@ public abstract class Fisiks {
             double phiH = atan((-dH - sqH) / (2.0 * AH));
             double vhH  = initSpeed * cos(phiH) + vPar;
             if (vhH > 0) {
-                double tH = distance * (1.0 + 0.5 * k * dfH) / vhH;
-                double sinPhiH = (targetPoint[2] - 0.5 * GRAVITY * tH * tH) / (initSpeed * tH);
-                if (Math.abs(sinPhiH) <= 1.0) {
-                    phiH = asin(sinPhiH);
-                    double vhH2 = initSpeed * cos(phiH) + vPar;
-                    if (vhH2 > 0) tH = distance * (1.0 + 0.5 * k * dfH) / vhH2;
-                }
                 pitchTimeGuesses[2] = phiH;
-                pitchTimeGuesses[3] = tH;
+                pitchTimeGuesses[3] = distance * (1.0 + 0.5 * k * dfH) / vhH;
             } else { pitchTimeGuesses[2] = phiH0; pitchTimeGuesses[3] = tH0; }
         }   else   { pitchTimeGuesses[2] = phiH0; pitchTimeGuesses[3] = tH0; }
     }
