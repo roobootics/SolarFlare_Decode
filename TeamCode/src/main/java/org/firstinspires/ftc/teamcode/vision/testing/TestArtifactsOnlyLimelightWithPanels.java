@@ -27,7 +27,7 @@ import java.util.List;
 @TeleOp
 public class TestArtifactsOnlyLimelightWithPanels extends OpMode {
     Pose3D testerRig = new Pose3D(new Position(DistanceUnit.INCH, -0.78125, 0, 5.05, 0), new YawPitchRollAngles(AngleUnit.DEGREES, 0, -25, 0, 0));
-    // Pose3D cameraPoseOnRobot = new Pose3D(new Position(DistanceUnit.METER, 0.182, 0, 0.2225, 0), new YawPitchRollAngles(AngleUnit.DEGREES, 0, 0, 0, 0));
+    Pose3D cameraPoseOnRobot = new Pose3D(new Position(DistanceUnit.METER, 0.182, 0, 0.2225, 0), new YawPitchRollAngles(AngleUnit.DEGREES, 0, 0, 0, 0));
     Pose botPose = new Pose(73, 0, Math.toRadians(90));
     Vision vision;
     List<String> acceptedClasses = new ArrayList<>();
@@ -36,7 +36,7 @@ public class TestArtifactsOnlyLimelightWithPanels extends OpMode {
 
     @Override
     public void init(){
-        vision = new Vision(hardwareMap, telemetry, testerRig, Vision.CAMERA_ORIENTATION.NORMAL);
+        vision = new Vision(hardwareMap, telemetry, cameraPoseOnRobot, Vision.CAMERA_ORIENTATION.NORMAL);
         acceptedClasses.add("purple");
         acceptedClasses.add("green");
 
@@ -50,7 +50,7 @@ public class TestArtifactsOnlyLimelightWithPanels extends OpMode {
 
         if (!artifacts.isEmpty()) {
 
-            Double intakingAngle = vision.intakingAngleArtifacts2(artifacts, botPose, 1);
+            Double intakingAngle = vision.intakingAngleArtifacts(artifacts, botPose);
             telemetry.addData("intaking angle", intakingAngle);
             panelsTelemetry.addData("intaking angle", intakingAngle);
 
