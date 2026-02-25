@@ -1,11 +1,12 @@
 package org.firstinspires.ftc.teamcode.vision.testing;
 
+import static org.firstinspires.ftc.teamcode.base.Components.initialize;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
 
-import com.acmerobotics.dashboard.FtcDashboard;
-import com.acmerobotics.dashboard.canvas.Canvas;
-import com.acmerobotics.dashboard.config.Config;
-import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
+import com.bylazar.field.FieldManager;
+import com.bylazar.field.PanelsField;
+import com.bylazar.telemetry.PanelsTelemetry;
+import com.bylazar.telemetry.TelemetryManager;
 import com.pedropathing.geometry.Pose;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
@@ -16,29 +17,31 @@ import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 import org.firstinspires.ftc.teamcode.pedroPathing.Pedro;
+import org.firstinspires.ftc.teamcode.robotconfigs.Inferno;
 import org.firstinspires.ftc.teamcode.vision.Vision;
-import org.firstinspires.ftc.teamcode.vision.descriptors.ArtifactDescriptor;
 
 import java.util.ArrayList;
 import java.util.List;
 
-@Config
 @TeleOp
-public class TestVision extends OpMode {
+public class TestAprilTagWithPanels extends OpMode {
     Vision vision;
-    public static double ARTIFACT_CENTER_OFFSET = 2.5;
     Pose3D cameraPose = new Pose3D(new Position(DistanceUnit.METER, 0.182, 0, 0.2225, 0), new YawPitchRollAngles(AngleUnit.DEGREES, 0, 0, 0, 0));
-    FtcDashboard dashboard;
-    Pose initPosePedro = new Pose(0,0,Math.toRadians(90));
+    double robotWidth = 15;
+    double robotLength = 18;
+    Pose initPosePedro = new Pose(72, 144 - (robotLength / 2), Math.toRadians(270));
+    FieldManager panelsField = PanelsField.INSTANCE.getField();
+    TelemetryManager panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
     List<String> acceptedClasses = new ArrayList<>();
 
     @Override
     public void init(){
         vision = new Vision(hardwareMap, telemetry, cameraPose, Vision.CAMERA_ORIENTATION.NORMAL);
 
+        initialize(this, new Inferno(),false,true);
         Pedro.createFollower(initPosePedro);
 
-        dashboard = FtcDashboard.getInstance();
+        panelsField.setOffsets(PanelsField.INSTANCE.getPresets().getPEDRO_PATHING());
 
         acceptedClasses.add("purple");
         acceptedClasses.add("green");
@@ -47,46 +50,22 @@ public class TestVision extends OpMode {
     @Override
     public void loop(){
         follower.updatePose();
-        TelemetryPacket packet = new TelemetryPacket();
-        Canvas fieldOverlay = packet.fieldOverlay();
 
         Pose botPose = follower.getPose();
-
-        telemetry.addData("botPose x", botPose.getX());
-        telemetry.addData("botPose y", botPose.getY());
-        telemetry.addData("botPose Heading", Math.toDegrees(botPose.getHeading()));
 
         Integer id = vision.getObeliskID();
         Pose botPoseMT1 = vision.getBotPoseMT1();
         Pose botPoseMT2 = vision.getBotPoseMT2(Math.toDegrees(botPose.getHeading()));
         Pose botPoseMT2WithMT1 = vision.getBotPoseMT2WithMT1();
 
-        List<ArtifactDescriptor> artifacts = vision.getArtifactDescriptors(botPose, acceptedClasses);
+        telemetry.addData("botPose x", botPose.getX());
+        telemetry.addData("botPose y", botPose.getY());
+        telemetry.addData("botPose Heading", Math.toDegrees(botPose.getHeading()));
 
-        if (!artifacts.isEmpty()) {
-            artifacts = vision.pedroToStandardPoseArtifacts(artifacts);
+        panelsField.setStyle("black", "black", 0);
+        panelsField.moveCursor(botPose.getX(), botPose.getY());
+        panelsField.circle(3);
 
-            for (ArtifactDescriptor artifact : artifacts) {
-                double x = artifact.getX();
-                double y = artifact.getY();
-                String className = artifact.getClassName();
-
-                packet.put("x", x);
-                packet.put("y", y + ARTIFACT_CENTER_OFFSET);
-                packet.put("className", className);
-
-                telemetry.addData("x", x);
-                telemetry.addData("y", y);
-                telemetry.addData("className", className);
-
-                fieldOverlay.setFill(className);
-                fieldOverlay.fillCircle(x, y, 2.5);
-
-            }
-        }
-        else {
-            telemetry.addLine("No artifacts detected");
-        }
 
         if (id != null){
             telemetry.addData("obelisk id", id);
@@ -99,6 +78,10 @@ public class TestVision extends OpMode {
             telemetry.addData("botPoseMT1 x", botPoseMT1.getX());
             telemetry.addData("botPoseMT1 y", botPoseMT1.getY());
             telemetry.addData("botPoseMT1 heading", Math.toDegrees(botPoseMT1.getHeading()));
+
+            panelsField.setStyle("blue", "blue", 0);
+            panelsField.moveCursor(botPoseMT1.getX(), botPoseMT1.getY());
+            panelsField.circle(3);
         }
         else {
             telemetry.addLine("MT1 is null");
@@ -108,6 +91,10 @@ public class TestVision extends OpMode {
             telemetry.addData("botPoseMT2 x", botPoseMT2.getX());
             telemetry.addData("botPoseMT2 y", botPoseMT2.getY());
             telemetry.addData("botPoseMT2 heading", Math.toDegrees(botPoseMT2.getHeading()));
+
+            panelsField.setStyle("red", "red", 0);
+            panelsField.moveCursor(botPoseMT2.getX(), botPoseMT2.getY());
+            panelsField.circle(3);
         }
         else {
             telemetry.addLine("MT2 is null");
@@ -117,12 +104,17 @@ public class TestVision extends OpMode {
             telemetry.addData("botPoseMT2 with MT1 x", botPoseMT2WithMT1.getX());
             telemetry.addData("botPoseMT2 with MT1 y", botPoseMT2WithMT1.getY());
             telemetry.addData("botPoseMT2 with MT1 heading", Math.toDegrees(botPoseMT2WithMT1.getHeading()));
+
+            panelsField.setStyle("purple", "purple", 0);
+            panelsField.moveCursor(botPoseMT2WithMT1.getX(), botPoseMT2WithMT1.getY());
+            panelsField.circle(3);
         }
         else {
             telemetry.addLine("MT2 with MT1 is null");
         }
 
-        dashboard.sendTelemetryPacket(packet);
+        panelsField.update();
+        panelsTelemetry.update();
         telemetry.update();
     }
 }

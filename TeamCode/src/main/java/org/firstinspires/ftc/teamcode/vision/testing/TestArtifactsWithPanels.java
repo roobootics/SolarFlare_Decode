@@ -3,8 +3,8 @@ package org.firstinspires.ftc.teamcode.vision.testing;
 import static org.firstinspires.ftc.teamcode.base.Components.initialize;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
 
-import com.bylazar.field.PanelsField;
 import com.bylazar.field.FieldManager;
+import com.bylazar.field.PanelsField;
 import com.bylazar.telemetry.PanelsTelemetry;
 import com.bylazar.telemetry.TelemetryManager;
 import com.pedropathing.geometry.Pose;
@@ -25,7 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @TeleOp
-public class TestVisionWithPanels extends OpMode {
+public class TestArtifactsWithPanels extends OpMode {
     Vision vision;
     Pose3D cameraPose = new Pose3D(new Position(DistanceUnit.METER, 0.182, 0, 0.2225, 0), new YawPitchRollAngles(AngleUnit.DEGREES, 0, 0, 0, 0));
     Pose initPosePedro = new Pose(72,144,Math.toRadians(270));
@@ -46,7 +46,7 @@ public class TestVisionWithPanels extends OpMode {
     }
 
     @Override
-    public void loop(){
+    public void loop() {
         follower.updatePose();
 
         Pose botPose = follower.getPose();
@@ -58,11 +58,6 @@ public class TestVisionWithPanels extends OpMode {
         panelsField.setStyle("black", "black", 0);
         panelsField.moveCursor(botPose.getX(), botPose.getY());
         panelsField.rect(14, 13);
-
-        Integer id = vision.getObeliskID();
-        Pose botPoseMT1 = vision.getBotPoseMT1();
-        Pose botPoseMT2 = vision.getBotPoseMT2(Math.toDegrees(botPose.getHeading()));
-        Pose botPoseMT2WithMT1 = vision.getBotPoseMT2WithMT1();
 
         List<ArtifactDescriptor> artifacts = vision.getArtifactDescriptors(botPose, acceptedClasses);
 
@@ -97,46 +92,9 @@ public class TestVisionWithPanels extends OpMode {
                 panelsField.setStyle(className, className, 0);
                 panelsField.moveCursor(x, y);
                 panelsField.circle(2.5);
+
             }
         }
-        else {
-            telemetry.addLine("No artifacts detected");
-        }
-
-        if (id != null){
-            telemetry.addData("obelisk id", id);
-        }
-        else {
-            telemetry.addLine("id is null");
-        }
-
-        if (botPoseMT1 != null){
-            telemetry.addData("botPoseMT1 x", botPoseMT1.getX());
-            telemetry.addData("botPoseMT1 y", botPoseMT1.getY());
-            telemetry.addData("botPoseMT1 heading", Math.toDegrees(botPoseMT1.getHeading()));
-        }
-        else {
-            telemetry.addLine("MT1 is null");
-        }
-
-        if (botPoseMT2 != null){
-            telemetry.addData("botPoseMT2 x", botPoseMT2.getX());
-            telemetry.addData("botPoseMT2 y", botPoseMT2.getY());
-            telemetry.addData("botPoseMT2 heading", Math.toDegrees(botPoseMT2.getHeading()));
-        }
-        else {
-            telemetry.addLine("MT2 is null");
-        }
-
-        if (botPoseMT2WithMT1 != null){
-            telemetry.addData("botPoseMT2 with MT1 x", botPoseMT2WithMT1.getX());
-            telemetry.addData("botPoseMT2 with MT1 y", botPoseMT2WithMT1.getY());
-            telemetry.addData("botPoseMT2 with MT1 heading", Math.toDegrees(botPoseMT2WithMT1.getHeading()));
-        }
-        else {
-            telemetry.addLine("MT2 with MT1 is null");
-        }
-
         panelsField.update();
         panelsTelemetry.update();
         telemetry.update();
