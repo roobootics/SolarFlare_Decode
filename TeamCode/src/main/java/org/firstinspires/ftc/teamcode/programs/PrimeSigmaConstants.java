@@ -13,6 +13,7 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.clearIntegralA
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.currentBallPath;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.flywheel;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.gamePhase;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftFront;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.loopFSM;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.robotState;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.setShooter;
@@ -197,6 +198,7 @@ public class PrimeSigmaConstants {
     }
     public static void runOpMode(Inferno.Alliance alliance, LinearOpMode opMode){
         initialize(opMode,new Inferno(),true,true);
+        leftFront.resetEncoder();
         Inferno.alliance = alliance;
         turretOffsetFromAuto = 0;
         gamePhase = Inferno.GamePhase.AUTO;
@@ -267,8 +269,8 @@ public class PrimeSigmaConstants {
             telemetry.addData("Target Flywheel Velocity",targetFlywheelVelocity);
             telemetry.addData("Flywheel Velocity",flywheel.get("flywheelLeft").getVelocity());
             telemetry.addLine("");
-            telemetry.addData("Yaw Target",turretYaw.get("turretYawFront").getTarget());
-            telemetry.addData("Yaw Desired",-(turretYaw.get("turretYawFront").getTarget()-180)+Math.toDegrees(follower.getHeading()));
+            telemetry.addData("Yaw Target",turretYaw.get("turretYawTop").getTarget());
+            telemetry.addData("Yaw Desired",-(turretYaw.get("turretYawTop").getTarget()-180)+Math.toDegrees(follower.getHeading()));
             telemetry.addLine("");
             telemetry.addData("PoseX",follower.getPose().getX());
             telemetry.addData("PoseY",follower.getPose().getY());
