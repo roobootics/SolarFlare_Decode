@@ -303,6 +303,7 @@ public class Inferno implements RobotConfig{
     public static final Command setShooter = new ContinuousCommand(()->{
         setTargetPoint();
         Pose pos = follower.getPose();
+        targetFlywheelVelocity = VelRegression.regressFormula(pos.distanceFrom(new Pose(targetPoint[0],targetPoint[1])));
         double[] turret;
         if (robotState == RobotState.SHOOTING || robotState == RobotState.STOPPED) {
             turret = Fisiks.runPhysics(currentBallPath, targetPoint, pos, follower.getVelocity(), flywheel.get("flywheelLeft").getVelocity());
