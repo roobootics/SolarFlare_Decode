@@ -41,20 +41,20 @@ public class Inferno implements RobotConfig{
     public static BotMotor rightRear = new BotMotor("rightRear", DcMotorSimple.Direction.FORWARD);
     public static SyncedActuators<BotMotor> flywheel;
     public static double targetFlywheelVelocity;
-    private static final double ENCODER_RATIO = 1;
-    private static final double ENCODER_OFFSET = 0;
+    private static final double ENCODER_RATIO = -(360*39.0/83.0)/4096;
+    private static final double ENCODER_OFFSET = 180;
     public static SyncedActuators<CRBotServo> turretYaw  = new SyncedActuators<>(
-            new CRBotServo("turretYawFront", DcMotorSimple.Direction.FORWARD, (CRServo servo)->leftFront.getCurrentPosition()*ENCODER_RATIO+ENCODER_OFFSET,1,5, 5, new String[]{"PID"},new ControlSystem<>(new PositionPID(0.015,0,0))),
-            new CRBotServo("turretYawBack", DcMotorSimple.Direction.FORWARD, (CRServo servo)->leftFront.getCurrentPosition()*ENCODER_RATIO+ENCODER_OFFSET, 1, 5,5, new String[]{"PID"},new ControlSystem<>(new PositionPID(0.015,0,0)))
+            new CRBotServo("turretYawTop", DcMotorSimple.Direction.REVERSE, (CRServo servo)->leftFront.getCurrentPosition()*ENCODER_RATIO+ENCODER_OFFSET,1,5, 5, new String[]{"PID"},new ControlSystem<>(new PositionPID(0.015,0,0,false))),
+            new CRBotServo("turretYawBottom", DcMotorSimple.Direction.FORWARD, (CRServo servo)->leftFront.getCurrentPosition()*ENCODER_RATIO+ENCODER_OFFSET, 1, 5,5, new String[]{"PID"},new ControlSystem<>(new PositionPID(0.015,0,0,false)))
     );
     private static final double TURRET_YAW_RATIO = 1.0;
     private static final double TURRET_YAW_OFFSET = 0;
     public static SyncedActuators<BotServo> turretPitch = new SyncedActuators<>(
-            new BotServo("turretPitchLeft", Servo.Direction.REVERSE, 422,5,355,0),
-            new BotServo("turretPitchRight", Servo.Direction.FORWARD, 422,5,355,0)
+            new BotServo("turretPitchLeft", Servo.Direction.FORWARD, 422,5,180,130),
+            new BotServo("turretPitchRight", Servo.Direction.REVERSE, 422,5,180,130)
     );
-    private static final double TURRET_PITCH_RATIO = (double) 48/40;
-    private static final double TURRET_PITCH_OFFSET = 80.2;
+    private static final double TURRET_PITCH_RATIO = (double) 48/30;
+    private static final double TURRET_PITCH_OFFSET = 0;
     public static BotMotor frontIntake  = new BotMotor("frontIntake", DcMotorSimple.Direction.FORWARD);
     public static BotMotor backIntake = new BotMotor("backIntake", DcMotorSimple.Direction.FORWARD);
     public static BotServo frontIntakeGate = new BotServo("frontIntakeGate", Servo.Direction.FORWARD, 422, 5, 180, 90.8);
@@ -117,7 +117,7 @@ public class Inferno implements RobotConfig{
                         ))
         );
         turretYaw.call((CRBotServo servo) -> servo.setTargetBounds(() -> 315*TURRET_YAW_RATIO, () -> 0.0));
-        turretPitch.call((BotServo servo) -> servo.setTargetBounds(() -> 173.0, () -> 150-5*TURRET_PITCH_RATIO));
+        turretPitch.call((BotServo servo) -> servo.setTargetBounds(() -> 180.0, () -> 120.1));
         turretPitch.call((BotServo servo)->servo.setPositionCacheThreshold(0.2));
         frontIntake.setKeyPowers(
                 new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel","frontDrive","sideSelect"},
@@ -315,7 +315,7 @@ public class Inferno implements RobotConfig{
         if ((turret[1]-heading)<=-225) turret[1] += 360;
         else if ((turret[1]-heading)>225) turret[1] -= 360;
         turretPitch.call((BotServo servo)->servo.setTarget((turret[0]+TURRET_PITCH_OFFSET)*TURRET_PITCH_RATIO));
-        turretYaw.call((CRBotServo servo)->servo.setTarget((180-(turret[1]-heading)+TURRET_YAW_OFFSET)*TURRET_YAW_RATIO));
+        turretYaw.call((CRBotServo servo)->servo.setTarget(turret[1]));
     });
     public static final Command stopAll = new ParallelCommand(
             frontIntake.setPowerCommand("stopped"),
@@ -639,7 +639,7 @@ public class Inferno implements RobotConfig{
     @Override
     public ArrayList<Actuator<?>> getActuators() {
         return new ArrayList<>(Arrays.asList(leftFront, leftRear, rightFront, rightRear, frontIntake, backIntake, frontIntakeGate, backIntakeGate, transferGate,
-            flywheel.get("flywheelLeft"), flywheel.get("flywheelRight"), turretYaw.get("turretYawFront"), turretYaw.get("turretYawBack"), turretPitch.get("turretPitchLeft"), turretPitch.get("turretPitchRight")));
+            flywheel.get("flywheelLeft"), flywheel.get("flywheelRight"), turretYaw.get("turretYawTop"), turretYaw.get("turretYawBottom"), turretPitch.get("turretPitchLeft"), turretPitch.get("turretPitchRight")));
     }
 
     @Override

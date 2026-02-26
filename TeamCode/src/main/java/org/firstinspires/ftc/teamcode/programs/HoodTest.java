@@ -4,6 +4,7 @@ import static org.firstinspires.ftc.teamcode.base.Commands.executor;
 import static org.firstinspires.ftc.teamcode.base.Components.initialize;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.flywheel;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftFront;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretPitch;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretYaw;
 
@@ -23,6 +24,7 @@ public class HoodTest extends LinearOpMode {
     @Override
     public void runOpMode(){
         initialize(this,new Inferno(),true,true);
+        leftFront.resetEncoder();
         Pedro.createFollower(new Pose(0,0,0));
         executor.setCommands(
                 turretPitch.command((Components.BotServo servo)->servo.triggeredDynamicTargetCommand(()->gamepad1.right_bumper,()->gamepad1.left_bumper,0.1)),
@@ -31,15 +33,18 @@ public class HoodTest extends LinearOpMode {
                         new Commands.InstantCommand(()->{
                             if (targetYaw>180) targetYaw=180;
                             else if (targetYaw<-135) targetYaw = -135;
-                        })
+                        }),
+                        turretYaw.command(servo->servo.instantSetTargetCommand(()->targetYaw))
                 )
-
         );
         executor.setWriteToTelemetry(()->{
             telemetry.addData("hood",turretPitch.get("turretPitchLeft").getTarget());
-            telemetry.addData("yaw pos",turretYaw.get("turretYawFront").getTarget());
+            telemetry.addData("yaw pos",turretYaw.get("turretYawTop").getCurrentPosition());
+            telemetry.addData("encoder count",leftFront.getCurrentPosition());
+            telemetry.addData("yaw target",turretYaw.get("turretYawTop").getTarget());
             telemetry.addData("yaw angle",targetYaw);
-            telemetry.addData("pinpoint heading",follower.getHeading());
+            telemetry.addData("top yaw power",turretYaw.get("turretYawTop").getPower());
+            telemetry.addData("bottom yaw power",turretYaw.get("turretYawBottom").getPower());
         });
         waitForStart();
         Components.activateActuatorControl();

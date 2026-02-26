@@ -12,7 +12,6 @@ import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
-import org.firstinspires.ftc.teamcode.vision.descriptors.AprilTagDescriptor;
 import org.firstinspires.ftc.teamcode.vision.descriptors.ArtifactDescriptor;
 
 import java.util.ArrayList;
@@ -180,6 +179,7 @@ public class Vision {
 
                 artifactDescriptors.add(artifact);
 
+                /*
                 telemetry.addData("corner 0", corners.get(0));
                 telemetry.addData("corner 1", corners.get(1));
                 telemetry.addData("corner 2", corners.get(2));
@@ -195,6 +195,8 @@ public class Vision {
                 telemetry.addData("vertical angle", verticalAngleDeg);
                 telemetry.addData("horizontal", horizontal);
                 telemetry.addData("depth", depth);
+
+                 */
             }
         }
         return artifactDescriptors;
@@ -368,35 +370,21 @@ public class Vision {
         }
         limelight.pipelineSwitch(APRIL_TAGS_PIPELINE_INDEX);
 
-        List<AprilTagDescriptor> tags = getAprilTagDescriptors();
+        LLResult result = limelight.getLatestResult();
 
-        if (tags != null){
-            for (AprilTagDescriptor tag : tags){
-                int id = tag.getId();
-                if (id == 21 || id == 22 || id == 33){
+        if (result != null && result.isValid()){
+            List<LLResultTypes.FiducialResult> aprilTags = result.getFiducialResults();
+
+            for (LLResultTypes.FiducialResult aprilTag : aprilTags){
+                int id = aprilTag.getFiducialId();
+                if (id == 21 || id == 22 || id == 23){
                     return id;
                 }
             }
         }
+
         telemetry.addLine("ID not in sight");
         return null;
-    }
-
-    public List<AprilTagDescriptor> getAprilTagDescriptors(){
-        if (!limelight.isRunning()){
-            limelight.start();
-        }
-        limelight.pipelineSwitch(APRIL_TAGS_PIPELINE_INDEX);
-
-        List<AprilTagDescriptor> aprilTagDescriptors = new ArrayList<>();
-        LLResult result = limelight.getLatestResult();
-        if (result != null && result.isValid()){
-            for (LLResultTypes.FiducialResult fiducialResult : result.getFiducialResults()){
-                AprilTagDescriptor aprilTagDescriptor = new AprilTagDescriptor(fiducialResult.getTargetXDegrees(), fiducialResult.getTargetYDegrees(), fiducialResult.getFiducialId());
-                aprilTagDescriptors.add(aprilTagDescriptor);
-            }
-        }
-        return aprilTagDescriptors;
     }
 
     public Pose intakeOneBall(List<ArtifactDescriptor> artifacts, Pose botPose) {

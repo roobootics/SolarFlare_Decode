@@ -85,13 +85,21 @@ public abstract class PresetControl { //Holds control functions that actuators c
     public static class PositionPID extends ControlFunc<CRActuator<?>>{ //Position PIDF controller for CRActuators
         private final GenericPID PID;
         private final Function<CRActuator<?>,Double> getPosition;
-        public PositionPID(Function<CRActuator<?>,Double> getPosition, double kP, double kI, double kD){
+        private final boolean clearIntegral;
+        public PositionPID(Function<CRActuator<?>,Double> getPosition, double kP, double kI, double kD, boolean clearIntegral){
             this.getPosition = getPosition;
             this.PID=new GenericPID(kP,kI,kD);
+            this.clearIntegral = clearIntegral;
         }
         public PositionPID(double kP, double kI, double kD){
             this.getPosition = CRActuator::getCurrentPosition;
             this.PID=new GenericPID(kP,kI,kD);
+            this.clearIntegral = true;
+        }
+        public PositionPID(double kP, double kI, double kD, boolean clearIntegral){
+            this.getPosition = CRActuator::getCurrentPosition;
+            this.PID=new GenericPID(kP,kI,kD);
+            this.clearIntegral = clearIntegral;
         }
         @Override
         public void runProcedure(){
@@ -99,7 +107,7 @@ public abstract class PresetControl { //Holds control functions that actuators c
                 PID.clearIntegral();
                 PID.clearFivePointStencil();
             }
-            if (system.isNewReference("targetPosition")){
+            if (system.isNewReference("targetPosition") && clearIntegral){
                 PID.clearIntegral();
             }
             double output=PID.getPIDOutput(system.getInstantReference("targetPosition"), getPosition.apply(parentActuator));
