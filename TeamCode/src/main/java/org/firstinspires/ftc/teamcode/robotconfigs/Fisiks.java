@@ -12,6 +12,8 @@ import static java.lang.Math.sqrt;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.math.Vector;
 
+import org.firstinspires.ftc.teamcode.base.Components;
+
 public abstract class Fisiks {
     final static double MASS = 74.8;
     final static double AIR_DENSITY = 0.020;
@@ -22,7 +24,7 @@ public abstract class Fisiks {
     final static double BALL_RAD = 2.5;
     final static double SURFACE_SPEED_RATIO = 0.75;
 
-    final static double FRICTION = 0.5;
+    final static double FRICTION = 0.9;
     final static double AUTHORITY = 0.25;
     final static double TRANSLATIONAL_DRAG = 0.50;
     final static double ANGULAR_DRAG = 0;
@@ -133,10 +135,10 @@ public abstract class Fisiks {
             distError = s.tPos.x*targetNorm[0] + s.tPos.y*targetNorm[1] - distance;
             heightError = s.tPos.z - targetPoint[2];
             sideError = sidewaysNorm[0]*(s.tPos.x-targetPoint[0]) + sidewaysNorm[1]*(s.tPos.y-targetPoint[1]);
-            System.out.printf(
+            /*System.out.printf(
                     "pitch=%.3f  time=%.3f  yaw=%.3f  distErr=%.2f  heightErr=%.2f  sideErr=%.2f\n",
                     pitch, time, yaw, distError, heightError, sideError
-            );
+            );*/
         }
     }
     public static class Solver{
@@ -437,7 +439,10 @@ public abstract class Fisiks {
         if (currentBallPath == Inferno.BallPath.HIGH) {initialPitchGuess = pitchTimeGuesses[2]; initialTimeGuess = pitchTimeGuesses[3];} else {initialPitchGuess = pitchTimeGuesses[0]; initialTimeGuess = pitchTimeGuesses[1];}
         yawBrackets(initialPitchGuess, initialTimeGuess);
         boolean success = Solver.solve(initialPitchGuess,initialTimeGuess,yawBrackets[1],yawBrackets[0]);
-        System.out.println(success);
+        //System.out.println(success);
+        if (!success){
+            Components.telemetry.addLine("PHYSICS FAILED TO CONVERGE");
+        }
         return Solver.out;
     }
 }

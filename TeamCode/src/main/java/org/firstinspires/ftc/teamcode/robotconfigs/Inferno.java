@@ -54,7 +54,7 @@ public class Inferno implements RobotConfig{
             new BotServo("turretPitchRight", Servo.Direction.REVERSE, 422,5,180,130)
     );
     private static final double TURRET_PITCH_RATIO = (double) 48/30;
-    private static final double TURRET_PITCH_OFFSET = 0;
+    private static final double TURRET_PITCH_OFFSET = 46.5;
     public static BotMotor frontIntake  = new BotMotor("frontIntake", DcMotorSimple.Direction.FORWARD);
     public static BotMotor backIntake = new BotMotor("backIntake", DcMotorSimple.Direction.FORWARD);
     public static BotServo frontIntakeGate = new BotServo("frontIntakeGate", Servo.Direction.FORWARD, 422, 5, 180, 90.8);
@@ -100,7 +100,7 @@ public class Inferno implements RobotConfig{
         }
         flywheel = new SyncedActuators<>(
                 new BotMotor("flywheelLeft", DcMotorSimple.Direction.REVERSE, 0, 0, new String[]{"VelocityPIDF"},
-                        new ControlSystem<>(new String[]{"targetVelocity"}, List.of(() -> targetFlywheelVelocity), leftVelocityPID, new CustomFeedforward(1, ()->targetFlywheelVelocity/(80/0.58 * voltageSensorRead.get() + 673)), new Clamp(),
+                        new ControlSystem<>(new String[]{"targetVelocity"}, List.of(() -> targetFlywheelVelocity), leftVelocityPID, new CustomFeedforward(1, ()->targetFlywheelVelocity/(1700)), new Clamp(),
                                 new CustomFeedforward(1, ()->{
                                     if (isSpinningUp || ((robotState==RobotState.SHOOTING || robotState==RobotState.INTAKE_FRONT_AND_SHOOT || robotState==RobotState.INTAKE_BACK_AND_SHOOT)&&flywheel.get("flywheelLeft").getVelocity()<targetFlywheelVelocity)) {return 1.0;}
                                     if ((robotState==RobotState.SHOOTING || robotState==RobotState.INTAKE_FRONT_AND_SHOOT || robotState==RobotState.INTAKE_BACK_AND_SHOOT)&&flywheel.get("flywheelLeft").getVelocity()>targetFlywheelVelocity+54){return -0.5;}
@@ -108,7 +108,7 @@ public class Inferno implements RobotConfig{
                                     else {return 0.0;}})
                         )),
                 new BotMotor("flywheelRight", DcMotorSimple.Direction.FORWARD, 0, 0, new String[]{"VelocityPIDF"},
-                        new ControlSystem<>(new String[]{"targetVelocity"}, List.of(() -> targetFlywheelVelocity), rightVelocityPID, new CustomFeedforward(1, ()->targetFlywheelVelocity/(80/0.58 * voltageSensorRead.get() + 673)), new Clamp(),
+                        new ControlSystem<>(new String[]{"targetVelocity"}, List.of(() -> targetFlywheelVelocity), rightVelocityPID, new CustomFeedforward(1, ()->targetFlywheelVelocity/(1700)), new Clamp(),
                                 new CustomFeedforward(1, ()->{
                                     if (isSpinningUp || ((robotState==RobotState.SHOOTING || robotState==RobotState.INTAKE_FRONT_AND_SHOOT || robotState==RobotState.INTAKE_BACK_AND_SHOOT)&&flywheel.get("flywheelLeft").getVelocity()<targetFlywheelVelocity)) {return 1.0;}
                                     else if ((robotState==RobotState.SHOOTING || robotState==RobotState.INTAKE_FRONT_AND_SHOOT || robotState==RobotState.INTAKE_BACK_AND_SHOOT)&&flywheel.get("flywheelLeft").getVelocity()>targetFlywheelVelocity+54){return -0.5;}
@@ -117,7 +117,7 @@ public class Inferno implements RobotConfig{
                         ))
         );
         turretYaw.call((CRBotServo servo) -> servo.setTargetBounds(() -> 315*TURRET_YAW_RATIO, () -> 0.0));
-        turretPitch.call((BotServo servo) -> servo.setTargetBounds(() -> 180.0, () -> 120.1));
+        turretPitch.call((BotServo servo) -> servo.setTargetBounds(() -> 159.8, () -> 98.5));
         turretPitch.call((BotServo servo)->servo.setPositionCacheThreshold(0.2));
         frontIntake.setKeyPowers(
                 new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel","frontDrive","sideSelect"},
@@ -305,7 +305,8 @@ public class Inferno implements RobotConfig{
     public static final Command setShooter = new ContinuousCommand(()->{
         setTargetPoint();
         Pose pos = follower.getPose();
-        targetFlywheelVelocity = VelRegression.regressFormula(pos.distanceFrom(new Pose(targetPoint[0],targetPoint[1])));
+        //targetFlywheelVelocity = VelRegression.regressFormula(pos.distanceFrom(new Pose(targetPoint[0],targetPoint[1])));
+        targetFlywheelVelocity = 900;
         double[] turret;
         if (robotState == RobotState.SHOOTING || robotState == RobotState.STOPPED || robotState==RobotState.INTAKE_FRONT_AND_SHOOT || robotState==RobotState.INTAKE_BACK_AND_SHOOT) {
             turret = Fisiks.runPhysics(currentBallPath, targetPoint, pos, follower.getVelocity(), flywheel.get("flywheelLeft").getVelocity());
