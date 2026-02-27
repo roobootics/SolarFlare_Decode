@@ -54,7 +54,7 @@ public class Inferno implements RobotConfig{
             new BotServo("turretPitchRight", Servo.Direction.REVERSE, 422,5,180,130)
     );
     private static final double TURRET_PITCH_RATIO = (double) 48/30;
-    private static final double TURRET_PITCH_OFFSET = 0;
+    private static final double TURRET_PITCH_OFFSET = 46.5;
     public static BotMotor frontIntake  = new BotMotor("frontIntake", DcMotorSimple.Direction.FORWARD);
     public static BotMotor backIntake = new BotMotor("backIntake", DcMotorSimple.Direction.FORWARD);
     public static BotServo frontIntakeGate = new BotServo("frontIntakeGate", Servo.Direction.FORWARD, 422, 5, 180, 90.8);
@@ -117,7 +117,7 @@ public class Inferno implements RobotConfig{
                         ))
         );
         turretYaw.call((CRBotServo servo) -> servo.setTargetBounds(() -> 315*TURRET_YAW_RATIO, () -> 0.0));
-        turretPitch.call((BotServo servo) -> servo.setTargetBounds(() -> 180.0, () -> 120.1));
+        turretPitch.call((BotServo servo) -> servo.setTargetBounds(() -> 159.8, () -> Double.NEGATIVE_INFINITY));
         turretPitch.call((BotServo servo)->servo.setPositionCacheThreshold(0.2));
         frontIntake.setKeyPowers(
                 new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel","frontDrive","sideSelect"},
