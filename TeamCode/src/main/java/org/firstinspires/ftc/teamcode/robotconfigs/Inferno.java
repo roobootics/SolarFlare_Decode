@@ -127,8 +127,8 @@ public class Inferno implements RobotConfig{
                 new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel","frontDrive","sideSelect"},
                 new double[]{1.0,-1.0,1.0,0.9,0,-1.0,0.75,-1.0}
         );
-        frontIntakeGate.setKeyPositions(new String[]{"open", "closed","push"}, new double[]{180,60.9,55.9});
-        backIntakeGate.setKeyPositions(new String[]{"open", "closed","push"}, new double[]{180,75.9,70.9});
+        frontIntakeGate.setKeyPositions(new String[]{"open", "closed","backoff"}, new double[]{110.7,56.4,66.4});
+        backIntakeGate.setKeyPositions(new String[]{"open", "closed","backoff"}, new double[]{133,73.9,83.9});
         transferGate.setKeyPositions(new String[]{"open","closed"},new double[]{148.5,86.4});
         frontIntake.setZeroPowerFloat();
         backIntake.setZeroPowerFloat();
@@ -170,8 +170,8 @@ public class Inferno implements RobotConfig{
                     transferGate.instantSetTargetCommand("open"),
                     frontIntake.setPowerCommand("transfer"),
                     backIntake.setPowerCommand("otherSideTransfer"),
-                    frontIntakeGate.instantSetTargetCommand("push"),
-                    backIntakeGate.instantSetTargetCommand("push")
+                    frontIntakeGate.instantSetTargetCommand("backoff"),
+                    backIntakeGate.instantSetTargetCommand("backoff")
             ),
             new SleepCommand(TRANSFER_SELECT_DELAY),
             new ParallelCommand(
@@ -194,8 +194,8 @@ public class Inferno implements RobotConfig{
                     transferGate.instantSetTargetCommand("open"),
                     frontIntake.setPowerCommand("otherSideTransfer"),
                     backIntake.setPowerCommand("transfer"),
-                    frontIntakeGate.instantSetTargetCommand("push"),
-                    backIntakeGate.instantSetTargetCommand("push")
+                    frontIntakeGate.instantSetTargetCommand("backoff"),
+                    backIntakeGate.instantSetTargetCommand("backoff")
             ),
             new SleepCommand(TRANSFER_SELECT_DELAY),
             new ParallelCommand(
@@ -263,7 +263,9 @@ public class Inferno implements RobotConfig{
             new ParallelCommand(
                     frontIntake.setPowerCommand("stopped"),
                     backIntake.setPowerCommand("stopped"),
-                    transferGate.instantSetTargetCommand("open")
+                    transferGate.instantSetTargetCommand("open"),
+                    frontIntakeGate.instantSetTargetCommand("backoff"),
+                    backIntakeGate.instantSetTargetCommand("backoff")
             )
     );
     public static final ParallelCommand expel = new ParallelCommand(
@@ -499,8 +501,8 @@ public class Inferno implements RobotConfig{
             protected boolean runProcedure() {
                 if (isStart()) {
                     startTime = -9999;
-                    frontIntakeGate.setTarget(frontIntakeGate.getPos("push"));
-                    backIntakeGate.setTarget(backIntakeGate.getPos("push"));
+                    frontIntakeGate.setTarget(frontIntakeGate.getPos("closed"));
+                    backIntakeGate.setTarget(backIntakeGate.getPos("closed"));
                 }
                 if (timer.time() - startTime > BALL_SHOT_TIMING && !ballPaths.isEmpty()) {
                     startTime = timer.time();
