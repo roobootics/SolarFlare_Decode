@@ -263,6 +263,26 @@ public abstract class PresetControl { //Holds control functions that actuators c
             PID.setPIDCoefficients(kP,kI,kD);
         }
     }
+    public static class PositionLowerLimit extends ControlFunc<CRActuator<?>>{
+        private final double threshold;
+        private final Function<Double,Double> limit;
+        public PositionLowerLimit(double threshold, Function<Double,Double> limit){
+            this.threshold = threshold;
+            this.limit = limit;
+        }
+        public PositionLowerLimit(double threshold, double limit){
+            this(threshold, (pos)->limit);
+        }
+        @Override
+        protected void runProcedure() {
+            if (!(Math.abs(system.getInstantReference("targetPosition") - parentActuator.getCurrentPosition())<threshold)){
+                double limitNum = Math.abs(this.limit.apply(parentActuator.getCurrentPosition()));
+                double absOutput = Math.abs(system.getOutput());
+                double output = Math.max(limitNum,absOutput);
+                system.setOutput(output*Math.signum(system.getInstantReference("targetPosition") - parentActuator.getCurrentPosition()));
+            }
+        }
+    }
     public static class BasicFeedforward extends ControlFunc<CRActuator<?>>{
         private final double kF;
         private final String reference;

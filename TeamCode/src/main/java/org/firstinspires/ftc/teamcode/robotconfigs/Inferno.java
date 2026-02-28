@@ -4,8 +4,6 @@ import static org.firstinspires.ftc.teamcode.base.Components.getHardwareMap;
 import static org.firstinspires.ftc.teamcode.base.Components.timer;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
 
-import static java.lang.Math.sqrt;
-
 import org.apache.commons.lang3.tuple.Triple;
 
 import com.pedropathing.geometry.BezierCurve;
@@ -44,8 +42,10 @@ public class Inferno implements RobotConfig{
     private static final double ENCODER_RATIO = -(360*39.0/83.0)/4096;
     private static final double ENCODER_OFFSET = 180;
     public static SyncedActuators<CRBotServo> turretYaw  = new SyncedActuators<>(
-            new CRBotServo("turretYawTop", DcMotorSimple.Direction.REVERSE, (CRServo servo)->leftFront.getCurrentPosition()*ENCODER_RATIO+ENCODER_OFFSET,1,5, 5, new String[]{"SQUID"}, new ControlSystem<>(new PositionSQUID(0.05,0,0.001,false))),
-            new CRBotServo("turretYawBottom", DcMotorSimple.Direction.FORWARD, (CRServo servo)->leftFront.getCurrentPosition()*ENCODER_RATIO+ENCODER_OFFSET, 1, 5,5, new String[]{"SQUID"}, new ControlSystem<>(new PositionSQUID(0.05,0,0.001,false)))
+            new CRBotServo("turretYawTop", DcMotorSimple.Direction.REVERSE, (CRServo servo)->leftFront.getCurrentPosition()*ENCODER_RATIO+ENCODER_OFFSET,1,5, 5,
+                    new String[]{"SQUID"}, new ControlSystem<>(new PositionSQUID(0.05,0,0.001,false),new PositionLowerLimit(1,0.03))),
+            new CRBotServo("turretYawBottom", DcMotorSimple.Direction.FORWARD, (CRServo servo)->leftFront.getCurrentPosition()*ENCODER_RATIO+ENCODER_OFFSET, 1, 5,5, new String[]{"SQUID"},
+                    new ControlSystem<>(new PositionSQUID(0.05,0,0.001,false),new PositionLowerLimit(1,0.03)))
     );
     public static SyncedActuators<BotServo> turretPitch = new SyncedActuators<>(
             new BotServo("turretPitchLeft", Servo.Direction.FORWARD, 422,5,180,130),
@@ -305,7 +305,7 @@ public class Inferno implements RobotConfig{
     public static final Command setShooter = new ContinuousCommand(()->{
         setTargetPoint();
         Pose pos = follower.getPose();
-        targetFlywheelVelocity = VelRegression.regressFormula(pos.distanceFrom(new Pose(targetPoint[0],targetPoint[1])));
+        targetFlywheelVelocity = VelRegression.regressFormula(Math.sqrt((targetPoint[0]-pos.getX())*(targetPoint[0]-pos.getX()) + (targetPoint[1]-pos.getY())*(targetPoint[1]-pos.getY())));
         double[] turret;
         if (robotState == RobotState.SHOOTING || robotState == RobotState.STOPPED || robotState==RobotState.INTAKE_FRONT_AND_SHOOT || robotState==RobotState.INTAKE_BACK_AND_SHOOT) {
             turret = Fisiks.runPhysics(currentBallPath, targetPoint, pos, follower.getVelocity(), flywheel.get("flywheelLeft").getVelocity());
