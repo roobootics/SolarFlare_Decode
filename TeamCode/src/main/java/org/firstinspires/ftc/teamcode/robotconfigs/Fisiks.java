@@ -24,7 +24,7 @@ public abstract class Fisiks {
     final static double BALL_RAD = 2.5;
     final static double SURFACE_SPEED_RATIO = 0.75;
 
-    final static double FRICTION = 0.9;
+    final static double FRICTION = 0.8;
     final static double AUTHORITY = 0.25;
     final static double TRANSLATIONAL_DRAG = 0.50;
     final static double ANGULAR_DRAG = 0;
@@ -209,9 +209,9 @@ public abstract class Fisiks {
                 double dx1 = -(c*startDistError + dj*startHeightError);
 
                 if (willClampHood(out[0] + dx0) || willClampTime(out[2] + dx1)){
-                    System.out.println("e");
-                    System.out.println(out[0] + dx0);
-                    System.out.println(out[2] + dx1);
+                    //System.out.println("e");
+                    //System.out.println(out[0] + dx0);
+                    //System.out.println(out[2] + dx1);
                     out[0] = bestPitch;
                     out[2] = bestTime;
                     Error.distError = bestDistError;

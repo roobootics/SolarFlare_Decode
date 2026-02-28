@@ -4,6 +4,8 @@ import static org.firstinspires.ftc.teamcode.base.Commands.executor;
 import static org.firstinspires.ftc.teamcode.base.Components.initialize;
 import static org.firstinspires.ftc.teamcode.base.Components.timer;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.TURRET_PITCH_OFFSET;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.TURRET_PITCH_RATIO;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.aprilTagRelocalize;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.autoGateIntake;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.ballStorage;
@@ -12,6 +14,7 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.clearIntegralA
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.currentBallPath;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.flywheel;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.gamePhase;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.hoodDesired;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftFront;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftRear;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.loopFSM;
@@ -24,8 +27,11 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.targetFlywheel
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.toggleShotType;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.transfer;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretOffsetFromAuto;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretPitch;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretYaw;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.yawDesired;
 
+import org.firstinspires.ftc.teamcode.base.Commands;
 import org.firstinspires.ftc.teamcode.base.Commands.*;
 
 import com.pedropathing.geometry.Pose;
@@ -46,7 +52,6 @@ import java.util.Objects;
 @TeleOp
 public class DecodeTeleOp extends LinearOpMode {
     private boolean holdingPosition = false;
-    private double targetVelocity = 1800;
     private double lastTime = 0;
     private double previousBallCount = -1;
     private void breakFollowing(){
@@ -122,6 +127,7 @@ public class DecodeTeleOp extends LinearOpMode {
                                         Pedro.updateCommand()
                                 )
                         ),
+                        Commands.triggeredDynamicCommand(()->gamepad1.dpad_right,()->gamepad1.dpad_left,new InstantCommand(()->targetFlywheelVelocity+=2),new InstantCommand(()->targetFlywheelVelocity-=2)),
                         loopFSM
                         /*new InstantCommand(()->{
                             if (315-turretYaw.get("turretYawFront").getTarget()<15 && !gamepad1.isRumbling()){gamepad1.rumble(1000000000);}
@@ -143,6 +149,7 @@ public class DecodeTeleOp extends LinearOpMode {
                 clearIntegralAtPeak
         );
         executor.setWriteToTelemetry(()->{
+            telemetry.addData("Target Flywheel",targetFlywheelVelocity);
             telemetry.addLine("");
             telemetry.addData("Ball Storage", Arrays.asList(ballStorage));
             telemetry.addLine("");
@@ -156,12 +163,18 @@ public class DecodeTeleOp extends LinearOpMode {
             telemetry.addData("Target Flywheel Velocity",targetFlywheelVelocity);
             telemetry.addData("Flywheel Velocity",flywheel.get("flywheelLeft").getVelocity());
             telemetry.addLine("");
+            telemetry.addData("Hood Angle",(turretPitch.get("turretPitchLeft").getTarget()-TURRET_PITCH_OFFSET)/TURRET_PITCH_RATIO);
+            telemetry.addData("Hood Desired",hoodDesired);
+            telemetry.addLine("");
+            telemetry.addData("Yaw Pos",turretYaw.get("turretYawTop").getCurrentPosition());
             telemetry.addData("Yaw Target",turretYaw.get("turretYawTop").getTarget());
-            telemetry.addData("Yaw Desired",-(turretYaw.get("turretYawTop").getTarget()-180)+Math.toDegrees(follower.getHeading()));
+            telemetry.addData("Yaw Angle",yawDesired);
             telemetry.addLine("");
             telemetry.addData("PoseX",follower.getPose().getX());
             telemetry.addData("PoseY",follower.getPose().getY());
             telemetry.addData("PoseHeading",Math.toDegrees(follower.getHeading()));
+            telemetry.addData("VelX",follower.getVelocity().getXComponent());
+            telemetry.addData("VelY",follower.getVelocity().getYComponent());
             telemetry.addLine("");
             telemetry.addData("Flywheel Left Power",flywheel.get("flywheelLeft").getPower());
             telemetry.addData("Flywheel Right Power",flywheel.get("flywheelRight").getPower());

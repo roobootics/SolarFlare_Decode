@@ -2,7 +2,6 @@ package org.firstinspires.ftc.teamcode.programs;
 
 import static org.firstinspires.ftc.teamcode.base.Commands.executor;
 import static org.firstinspires.ftc.teamcode.base.Components.initialize;
-import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.flywheel;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftFront;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretPitch;
@@ -18,7 +17,7 @@ import org.firstinspires.ftc.teamcode.pedroPathing.Pedro;
 import org.firstinspires.ftc.teamcode.robotconfigs.Inferno;
 
 @TeleOp
-public class HoodTest extends LinearOpMode {
+public class ShooterTest extends LinearOpMode {
     public double targetYaw = 180;
 
     @Override
@@ -28,11 +27,17 @@ public class HoodTest extends LinearOpMode {
         Pedro.createFollower(new Pose(0,0,0));
         executor.setCommands(
                 turretPitch.command((Components.BotServo servo)->servo.triggeredDynamicTargetCommand(()->gamepad1.right_bumper,()->gamepad1.left_bumper,0.1)),
-                Commands.triggeredDynamicCommand(()->gamepad1.right_trigger>0.3,()->gamepad1.left_trigger>0.3,new Commands.InstantCommand(()->targetYaw-=0.05),new Commands.InstantCommand(()->targetYaw+=0.05)),
+                Commands.triggeredDynamicCommand(()->gamepad1.right_trigger>0.3,()->gamepad1.left_trigger>0.3,new Commands.InstantCommand(()->targetYaw-=0.12),new Commands.InstantCommand(()->targetYaw+=0.12)),
                 new Commands.RunResettingLoop(
+                        new Commands.PressCommand(
+                                new Commands.IfThen(()->gamepad1.dpad_left, new Commands.InstantCommand(()->targetYaw-=30)),
+                                new Commands.IfThen(()->gamepad1.dpad_right, new Commands.InstantCommand(()->targetYaw+=30)),
+                                new Commands.IfThen(()->gamepad1.dpad_up, new Commands.InstantCommand(()->targetYaw-=100)),
+                                new Commands.IfThen(()->gamepad1.dpad_down, new Commands.InstantCommand(()->targetYaw+=100))
+                        ),
                         new Commands.InstantCommand(()->{
                             if (targetYaw>180) targetYaw=180;
-                            else if (targetYaw<-135) targetYaw = -135;
+                            else if (targetYaw<-111) targetYaw = -111;
                         }),
                         turretYaw.command(servo->servo.instantSetTargetCommand(()->targetYaw))
                 )
