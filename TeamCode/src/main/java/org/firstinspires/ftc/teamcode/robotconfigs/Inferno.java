@@ -43,10 +43,10 @@ public class Inferno implements RobotConfig{
     private static final double ENCODER_OFFSET = 180;
     public static SyncedActuators<CRBotServo> turretYaw  = new SyncedActuators<>(
             new CRBotServo("turretYawTop", DcMotorSimple.Direction.REVERSE, (CRServo servo)->leftFront.getCurrentPosition()*ENCODER_RATIO+ENCODER_OFFSET,1,5, 5,
-                    new String[]{"SQUID"}, new ControlSystem<>(new PositionSQUID(0.05,0,0.001,false),new PositionLowerLimit(1,0.03))),
+                    new String[]{"SQUID"}, new ControlSystem<>(new PositionSQUID(0.05,0,0.001,false),new PositionLowerLimit(1,0.03), new CustomFeedforward(0.1,()->-follower.getAngularVelocity()))),
             new CRBotServo("turretYawBottom", DcMotorSimple.Direction.FORWARD, (CRServo servo)->leftFront.getCurrentPosition()*ENCODER_RATIO+ENCODER_OFFSET, 1, 5,5, new String[]{"SQUID"},
-                    new ControlSystem<>(new PositionSQUID(0.05,0,0.001,false),new PositionLowerLimit(1,0.03)))
-    );
+                    new ControlSystem<>(new PositionSQUID(0.05,0,0.001,false),new PositionLowerLimit(1,0.03), new CustomFeedforward(0.1,()->-follower.getAngularVelocity()))
+    ));
     public static SyncedActuators<BotServo> turretPitch = new SyncedActuators<>(
             new BotServo("turretPitchLeft", Servo.Direction.FORWARD, 422,5,180,130),
             new BotServo("turretPitchRight", Servo.Direction.REVERSE, 422,5,180,130)
