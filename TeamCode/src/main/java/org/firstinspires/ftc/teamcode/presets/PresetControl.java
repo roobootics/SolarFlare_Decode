@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode.presets;
 
 import static org.firstinspires.ftc.teamcode.base.Components.timer;
 
+import org.firstinspires.ftc.teamcode.base.Components;
 import org.firstinspires.ftc.teamcode.base.Components.Actuator;
 import org.firstinspires.ftc.teamcode.base.Components.BotMotor;
 import org.firstinspires.ftc.teamcode.base.Components.BotServo;
@@ -15,6 +16,24 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 public abstract class PresetControl { //Holds control functions that actuators can use. Note that more control functions, like other types of motion profiling, can be coded and used.
+    public static class Condition<E extends Actuator<?>> extends ControlFunc<E>{
+        private final Supplier<Boolean> condition;
+        private final ControlFunc<E> func;
+        public Condition(Supplier<Boolean> condition, ControlFunc<E> func){
+            this.condition = condition;
+            this.func = func;
+        }
+        public void registerToSystem(Components.ControlSystem<? extends E> system){
+            super.registerToSystem(system);
+            func.registerToSystem(system);
+        }
+        @Override
+        public void runProcedure() {
+            if (condition.get()){
+                func.runProcedure();
+            }
+        }
+    }
     public static class GenericPID{ //A class that creates a PID controller for any purpose.
         private double kP;
         private double kI;
@@ -178,7 +197,7 @@ public abstract class PresetControl { //Holds control functions that actuators c
                 PID.clearIntegral();
             }
             double output=PID.getPIDOutput(system.getInstantReference("targetPosition"), getPosition.apply(parentActuator));
-            system.setOutput(system.getOutput()+output);
+            system.setOutput(output);
         }
         public void clearIntegral(){
             PID.clearIntegral();
@@ -216,7 +235,7 @@ public abstract class PresetControl { //Holds control functions that actuators c
                 SQUID.clearIntegral();
             }
             double output= SQUID.getSQUIDOutput(system.getInstantReference("targetPosition"), getPosition.apply(parentActuator));
-            system.setOutput(system.getOutput()+output);
+            system.setOutput(output);
         }
         public void clearIntegral(){
             SQUID.clearIntegral();
@@ -254,7 +273,7 @@ public abstract class PresetControl { //Holds control functions that actuators c
                 PID.clearIntegral();
             }
             double output=PID.getPIDOutput(system.getInstantReference("targetVelocity"), getVelocity.apply(parentActuator));
-            system.setOutput(system.getOutput()+output);
+            system.setOutput(output);
         }
         public void clearIntegral(){
             PID.clearIntegral();
@@ -274,7 +293,7 @@ public abstract class PresetControl { //Holds control functions that actuators c
             this(threshold, (pos)->limit);
         }
         @Override
-        protected void runProcedure() {
+        public void runProcedure() {
             if (!(Math.abs(system.getInstantReference("targetPosition") - parentActuator.getCurrentPosition())<threshold)){
                 double limitNum = Math.abs(this.limit.apply(parentActuator.getCurrentPosition()));
                 double absOutput = Math.abs(system.getOutput());
@@ -291,7 +310,7 @@ public abstract class PresetControl { //Holds control functions that actuators c
             this.reference = reference;
         }
         @Override
-        protected void runProcedure() {
+        public void runProcedure() {
             system.setOutput(system.getOutput()+kF*system.getInstantReference(reference));
         }
     }
@@ -301,7 +320,7 @@ public abstract class PresetControl { //Holds control functions that actuators c
             this.kF = kF;
         }
         @Override
-        protected void runProcedure() {
+        public void runProcedure() {
             system.setOutput(system.getOutput()+kF);
         }
     }
@@ -315,7 +334,7 @@ public abstract class PresetControl { //Holds control functions that actuators c
             this.angleAtZero=angleAtZero;
         }
         @Override
-        protected void runProcedure() {
+        public void runProcedure() {
             system.setOutput(kF*Math.cos(system.getOutput()*referenceToRad+angleAtZero));
         }
     }
@@ -326,7 +345,7 @@ public abstract class PresetControl { //Holds control functions that actuators c
             this.kF = kF; this.func=func;
         }
         @Override
-        protected void runProcedure() {
+        public void runProcedure() {
             system.setOutput(system.getOutput()+kF*func.get());
         }
     }
@@ -336,7 +355,7 @@ public abstract class PresetControl { //Holds control functions that actuators c
             this.kP=kP;
         }
         @Override
-        protected void runProcedure() {
+        public void runProcedure() {
             double error = system.getInstantReference("targetPosition")- parentActuator.getCurrentPosition();
             system.setOutput(
                     kP * Math.sqrt(Math.abs(error))*Math.signum(error)+system.getOutput()
@@ -381,7 +400,7 @@ public abstract class PresetControl { //Holds control functions that actuators c
             newParams=true;
         }
         @Override
-        protected void runProcedure() {
+        public void runProcedure() {
             if (system.isNewReference("targetPosition")||newParams||system.isStart()){
                 if (system.isStart()){
                     instantTarget=parentActuator.getCurrentPosition();
@@ -503,13 +522,13 @@ public abstract class PresetControl { //Holds control functions that actuators c
 
     public static class ServoControl extends ControlFunc<BotServo>{ //Control function to get servos to their targets by calling setPosition. Automatically given to BotServos depending on the constructor you call.
         @Override
-        protected void runProcedure() {
+        public void runProcedure() {
             system.setOutput(system.getInstantReference("targetPosition"));
         }
     }
     public static class SetVelocity extends ControlFunc<BotMotor>{
         @Override
-        protected void runProcedure() {
+        public void runProcedure() {
             system.setOutput(system.getInstantReference("targetVelocity"));
         }
     }
@@ -522,7 +541,7 @@ public abstract class PresetControl { //Holds control functions that actuators c
             this.powerFunc=powerFunc;
         }
         @Override
-        protected void runProcedure() {
+        public void runProcedure() {
             double currentPosition = parentActuator.getCurrentPosition();
             if (Math.abs(system.getInstantReference("targetPosition")-currentPosition)>parentActuator.getErrorTol()){
                 system.setOutput(system.getOutput()+ powerFunc.get()*Math.signum(system.getInstantReference("targetPosition")-currentPosition));

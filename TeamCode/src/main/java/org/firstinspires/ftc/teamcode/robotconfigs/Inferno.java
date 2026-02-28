@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.robotconfigs;
 import static org.apache.commons.math3.util.FastMath.atan2;
 import static org.firstinspires.ftc.teamcode.base.Components.getHardwareMap;
+import static org.firstinspires.ftc.teamcode.base.Components.telemetry;
 import static org.firstinspires.ftc.teamcode.base.Components.timer;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
 
@@ -41,12 +42,7 @@ public class Inferno implements RobotConfig{
     public static double targetFlywheelVelocity;
     private static final double ENCODER_RATIO = -(360*39.0/83.0)/4096;
     private static final double ENCODER_OFFSET = 180;
-    public static SyncedActuators<CRBotServo> turretYaw  = new SyncedActuators<>(
-            new CRBotServo("turretYawTop", DcMotorSimple.Direction.REVERSE, (CRServo servo)->leftFront.getCurrentPosition()*ENCODER_RATIO+ENCODER_OFFSET,1,5, 5,
-                    new String[]{"SQUID"}, new ControlSystem<>(new PositionSQUID(0.05,0,0.001,false),new PositionLowerLimit(1,0.03), new CustomFeedforward(0.1,()->-follower.getAngularVelocity()))),
-            new CRBotServo("turretYawBottom", DcMotorSimple.Direction.FORWARD, (CRServo servo)->leftFront.getCurrentPosition()*ENCODER_RATIO+ENCODER_OFFSET, 1, 5,5, new String[]{"SQUID"},
-                    new ControlSystem<>(new PositionSQUID(0.05,0,0.001,false),new PositionLowerLimit(1,0.03), new CustomFeedforward(0.1,()->-follower.getAngularVelocity()))
-    ));
+    public static SyncedActuators<CRBotServo> turretYaw;
     public static SyncedActuators<BotServo> turretPitch = new SyncedActuators<>(
             new BotServo("turretPitchLeft", Servo.Direction.FORWARD, 422,5,180,130),
             new BotServo("turretPitchRight", Servo.Direction.REVERSE, 422,5,180,130)
@@ -98,6 +94,14 @@ public class Inferno implements RobotConfig{
                     },2
             )::cachedRead);
         }
+        turretYaw = new SyncedActuators<>(
+                new CRBotServo("turretYawTop", DcMotorSimple.Direction.REVERSE, (CRServo servo)->leftFront.getCurrentPosition()*ENCODER_RATIO+ENCODER_OFFSET,1,5, 5, new String[]{"PID"},
+                        new ControlSystem<>(new PositionPID(0.015,0,0.0,false), new Condition<>(()->Math.abs(turretYaw.get("turretYawTop").getTarget() - turretYaw.get("turretYawTop").getCurrentPosition())<13,new PositionPID(0.0135,0,0.0001)),
+                                new PositionLowerLimit(1,0.08), new CustomFeedforward(0.1,()->{if (Math.abs(turretYaw.get("turretYawTop").getTarget() - turretYaw.get("turretYawTop").getCurrentPosition())>2.5) return -follower.getAngularVelocity(); else return 0.0;}))),
+                new CRBotServo("turretYawBottom", DcMotorSimple.Direction.FORWARD, (CRServo servo)->leftFront.getCurrentPosition()*ENCODER_RATIO+ENCODER_OFFSET, 1, 5,5, new String[]{"PID"},
+                        new ControlSystem<>(new PositionPID(0.015,0,0.0,false), new Condition<>(()->Math.abs(turretYaw.get("turretYawTop").getTarget() - turretYaw.get("turretYawTop").getCurrentPosition())<13,new PositionPID(0.0135,0,0.0001)),
+                                new PositionLowerLimit(1,0.08), new CustomFeedforward(0.1,()->{if (Math.abs(turretYaw.get("turretYawTop").getTarget() - turretYaw.get("turretYawTop").getCurrentPosition())>2.5) return -follower.getAngularVelocity(); else return 0.0;}))
+        ));
         flywheel = new SyncedActuators<>(
                 new BotMotor("flywheelLeft", DcMotorSimple.Direction.REVERSE, 0, 0, new String[]{"VelocityPIDF"},
                         new ControlSystem<>(new String[]{"targetVelocity"}, List.of(() -> targetFlywheelVelocity), leftVelocityPID, new CustomFeedforward(1, ()->targetFlywheelVelocity/(2300)), new Clamp(),
@@ -127,11 +131,12 @@ public class Inferno implements RobotConfig{
                 new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel","frontDrive","sideSelect"},
                 new double[]{1.0,-1.0,1.0,0.9,0,-1.0,0.75,-1.0}
         );
-        frontIntakeGate.setKeyPositions(new String[]{"open", "closed","backoff"}, new double[]{110.7,56.4,63.4});
-        backIntakeGate.setKeyPositions(new String[]{"open", "closed","backoff"}, new double[]{133,73.9,80.9});
+        frontIntakeGate.setKeyPositions(new String[]{"open", "closed","backoff"}, new double[]{110.7,56.4,69.4});
+        backIntakeGate.setKeyPositions(new String[]{"open", "closed","backoff"}, new double[]{133,73.9,86.9});
         transferGate.setKeyPositions(new String[]{"open","closed"},new double[]{148.5,86.4});
         frontIntake.setZeroPowerFloat();
         backIntake.setZeroPowerFloat();
+        turretYaw.call(servo->servo.setPowerCacheThreshold(0.001));
     }
     public enum Color{
         PURPLE,
@@ -308,7 +313,10 @@ public class Inferno implements RobotConfig{
         targetFlywheelVelocity = VelRegression.regressFormula(Math.sqrt((targetPoint[0]-pos.getX())*(targetPoint[0]-pos.getX()) + (targetPoint[1]-pos.getY())*(targetPoint[1]-pos.getY())));
         double[] turret;
         if (robotState == RobotState.SHOOTING || robotState == RobotState.STOPPED || robotState==RobotState.INTAKE_FRONT_AND_SHOOT || robotState==RobotState.INTAKE_BACK_AND_SHOOT) {
-            turret = Fisiks.runPhysics(currentBallPath, targetPoint, pos, follower.getVelocity(), flywheel.get("flywheelLeft").getVelocity());
+            double startTime = timer.time();
+            turret = Fisiks.runPhysics(currentBallPath, new double[]{targetPoint[0],targetPoint[1],targetPoint[2]}, pos, follower.getVelocity(), flywheel.get("flywheelLeft").getVelocity());
+            double endTime = timer.time();
+            telemetry.addData("physics time",endTime-startTime);
             turret[0] = Math.toDegrees(turret[0]);
             turret[1] = Math.toDegrees(turret[1]);
         }
@@ -637,7 +645,7 @@ public class Inferno implements RobotConfig{
     }
     public static class Clamp extends ControlFunc<BotMotor>{
         @Override
-        protected void runProcedure() {
+        public void runProcedure() {
             double output = system.getOutput();
             if (output>1) output=1; else if (output<-1) output=-1;
             system.setOutput(output);

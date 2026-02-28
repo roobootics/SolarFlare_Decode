@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode.programs;
 
 import static org.firstinspires.ftc.teamcode.base.Commands.executor;
 import static org.firstinspires.ftc.teamcode.base.Components.initialize;
+import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.flywheel;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftFront;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretPitch;
@@ -40,16 +41,16 @@ public class ShooterTest extends LinearOpMode {
                             else if (targetYaw<-111) targetYaw = -111;
                         }),
                         turretYaw.command(servo->servo.instantSetTargetCommand(()->targetYaw))
-                )
+                ),
+                Pedro.updatePoseCommand()
         );
         executor.setWriteToTelemetry(()->{
             telemetry.addData("hood",turretPitch.get("turretPitchLeft").getTarget());
             telemetry.addData("yaw pos",turretYaw.get("turretYawTop").getCurrentPosition());
-            telemetry.addData("encoder count",leftFront.getCurrentPosition());
-            telemetry.addData("yaw target",turretYaw.get("turretYawTop").getTarget());
             telemetry.addData("yaw angle",targetYaw);
             telemetry.addData("top yaw power",turretYaw.get("turretYawTop").getPower());
             telemetry.addData("bottom yaw power",turretYaw.get("turretYawBottom").getPower());
+            telemetry.addData("angular velocity", follower.getAngularVelocity());
         });
         waitForStart();
         Components.activateActuatorControl();

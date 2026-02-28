@@ -50,10 +50,10 @@ public abstract class Components {
         return telemetry;
     }
     private static int telemetryUpdateCounter = 0;
-    private static final int telemetryCacheThreshold = 4;
+    private static final int telemetryCacheThreshold = 1;
     static void updateTelemetry(){
         if (telemetryUpdateCounter==0) telemetry.update(); else telemetry.clearAll();
-        if (telemetryUpdateCounter<telemetryCacheThreshold) telemetryUpdateCounter+=1; else telemetryUpdateCounter = 0;
+        if (telemetryUpdateCounter<telemetryCacheThreshold-1) telemetryUpdateCounter+=1; else telemetryUpdateCounter = 0;
     }
     public static Gamepad gamepad1;
     public static Gamepad gamepad2;
@@ -151,11 +151,11 @@ public abstract class Components {
     public abstract static class ControlFunc<E extends Actuator<?>>{ //Control functions extend this subclass
         protected E parentActuator;
         protected ControlSystem<? extends E> system; //Each function has access to the system it's part of
-        private void registerToSystem(ControlSystem<? extends E> system){
+        public void registerToSystem(ControlSystem<? extends E> system){
             this.system=system;
             this.parentActuator=system.getParentActuator();
         }
-        protected abstract void runProcedure(); //This method is where the control function does its job
+        public abstract void runProcedure(); //This method is where the control function does its job
         public void stopProcedure(){} //Takes care of anything that needs to occur when the control function stops running.
     }
     public static class ControlSystem<E extends Actuator<?>>{ //Holds control functions, as well as the necessary plant reference values and the function by which the actuator actuates

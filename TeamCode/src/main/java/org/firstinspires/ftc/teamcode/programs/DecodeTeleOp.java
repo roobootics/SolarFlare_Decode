@@ -66,13 +66,15 @@ public class DecodeTeleOp extends LinearOpMode {
         rightRear.getDevice().setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
     }
     private void stopDrivetrain(){leftFront.setPower(0); leftRear.setPower(0); rightFront.setPower(0); rightRear.setPower(0);}
+    boolean followerMade = false;
     @Override
     public void runOpMode(){
         gamePhase = GamePhase.TELEOP;
         initialize(this,new Inferno(),false,true);
-        if (Objects.isNull(follower)) {Pedro.createFollower(new Pose(72,72,0)); leftFront.resetEncoder();}
-        else Pedro.createFollower(follower.getPose());
+        if (Objects.isNull(follower)) {Pedro.createFollower(new Pose(96,7.5,0)); leftFront.resetEncoder();}
+        else {Pedro.createFollower(follower.getPose()); followerMade = true;}
         executor.setCommands(
+                new RunResettingLoop(new InstantCommand(()->{if (gamepad1.back && !followerMade) {Pedro.createFollower(new Pose(96,7.5,0)); leftFront.resetEncoder(); followerMade = true;}})),
                 new RunResettingLoop(new InstantCommand(()->{if (gamepad1.dpad_left) {Inferno.alliance = Alliance.BLUE;}})),
                 new RunResettingLoop(new InstantCommand(()->{if (gamepad1.dpad_right) {Inferno.alliance = Alliance.RED;}}))
         );
@@ -116,7 +118,7 @@ public class DecodeTeleOp extends LinearOpMode {
                                         new ParallelCommand(
                                                 new RobotCentricMecanumCommand(
                                                         new BotMotor[]{leftFront,leftRear,rightFront,rightRear},
-                                                        ()-> (double) gamepad1.left_stick_x, ()-> (double) gamepad1.left_stick_y, ()-> (double) gamepad1.right_stick_x,
+                                                         ()-> (double) gamepad1.left_stick_x, ()-> (double) gamepad1.left_stick_y, ()-> (double) gamepad1.right_stick_x,
                                                         ()->{if (gamepad1.left_trigger > 0.3) return 0.75; else return 1.0;}
                                                 ),
                                                 Pedro.updatePoseCommand()
