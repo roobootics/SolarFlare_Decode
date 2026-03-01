@@ -615,8 +615,8 @@ public class Inferno implements RobotConfig{
         }
     }
     public abstract static class VelRegression {
-        private static final double M_1 = 4.88;
-        private static final double B = 606;
+        private static final double M_1 = 5.2;
+        private static final double B = 620;
         private static double regressFormula(double dist){
             return M_1*dist+B;
         }
