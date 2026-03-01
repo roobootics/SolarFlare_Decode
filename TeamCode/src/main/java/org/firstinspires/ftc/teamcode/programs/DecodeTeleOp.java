@@ -71,8 +71,8 @@ public class DecodeTeleOp extends LinearOpMode {
     public void runOpMode(){
         gamePhase = GamePhase.TELEOP;
         initialize(this,new Inferno(),false,true);
-        if (Objects.isNull(follower)) {Pedro.createFollower(new Pose(96,7.5,0)); leftFront.resetEncoder();}
-        else {Pedro.createFollower(follower.getPose()); followerMade = true;}
+        if (Objects.isNull(follower)) {Pedro.createFollower(new Pose(96,7.5,0)); leftFront.resetEncoder(); followerMade = true;}
+        else {Pedro.createFollower(follower.getPose());}
         executor.setCommands(
                 new RunResettingLoop(new InstantCommand(()->{if (gamepad1.back && !followerMade) {Pedro.createFollower(new Pose(96,7.5,0)); leftFront.resetEncoder(); followerMade = true;}})),
                 new RunResettingLoop(new InstantCommand(()->{if (gamepad1.dpad_left) {Inferno.alliance = Alliance.BLUE;}})),

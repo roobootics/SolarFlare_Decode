@@ -259,8 +259,8 @@ public class Inferno implements RobotConfig{
     public static final SequentialCommand stopIntake = new SequentialCommand(
             new InstantCommand(()->{if (shotType==ShotType.MOTIF) currentBallPath = findMotifShotPlan(motifShootAll).getLeft().get(0);}),
             new ParallelCommand(
-                    frontIntakeGate.instantSetTargetCommand("closed"),
-                    backIntakeGate.instantSetTargetCommand("closed"),
+                    frontIntakeGate.instantSetTargetCommand("backoff"),
+                    backIntakeGate.instantSetTargetCommand("backoff"),
                     frontIntake.setPowerCommand("frontDrive"),
                     backIntake.setPowerCommand("frontDrive")
             ),
@@ -314,7 +314,7 @@ public class Inferno implements RobotConfig{
         double[] turret;
         if (robotState == RobotState.SHOOTING || robotState == RobotState.STOPPED || robotState==RobotState.INTAKE_FRONT_AND_SHOOT || robotState==RobotState.INTAKE_BACK_AND_SHOOT) {
             double startTime = timer.time();
-            turret = Fisiks.runPhysics(currentBallPath, new double[]{targetPoint[0],targetPoint[1],targetPoint[2]}, pos, follower.getVelocity(), flywheel.get("flywheelLeft").getVelocity());
+            turret = Fisiks.runPhysics(currentBallPath, targetPoint, pos, follower.getVelocity(), flywheel.get("flywheelLeft").getVelocity());
             double endTime = timer.time();
             telemetry.addData("physics time",endTime-startTime);
             turret[0] = Math.toDegrees(turret[0]);
