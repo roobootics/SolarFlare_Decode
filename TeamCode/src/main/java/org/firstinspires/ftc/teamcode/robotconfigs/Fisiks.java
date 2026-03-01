@@ -294,33 +294,28 @@ public abstract class Fisiks {
                     stage1Solve(initialPitchGuess,initialTimeGuess,yawBottomBracket); fLo = Error.sideError;
                 }
             }
+            if (fLo+fHi>0) return false;
             double a=yawBottomBracket, b=yawTopBracket, fa=fLo, fb=fHi;
             double initPitchGuess = initialPitchGuess, initTimeGuess = initialTimeGuess;
-            double prevC = (a*fb - b*fa)/(fb - fa);
             double c = (a*fb - b*fa)/(fb - fa);
             for(int it=0; it<STAGE2MAXITR; it++) {
                 //System.out.println("Stage 2");
                 boolean success = stage1Solve(initPitchGuess,initTimeGuess,c);
-                if (false){
-                    c = prevC + 0.5 * (c - prevC);
-                } else{
-                    prevC = c;
-                    initPitchGuess = out[0];
-                    initTimeGuess = out[2];
-                    double fc = Error.sideError;
-                    if (Math.abs(fc) < YAWERR) {
-                        out[1] = c;
-                        return true;
-                    }
-                    if (fa*fc < 0) {
-                        b=c; fb=fc;
-                        fa*=0.5; // Illinois
-                    } else {
-                        a=c; fa=fc;
-                        fb*=0.5;
-                    }
-                    c = (a*fb - b*fa)/(fb - fa);
+                initPitchGuess = out[0];
+                initTimeGuess = out[2];
+                double fc = Error.sideError;
+                if (Math.abs(fc) < YAWERR && success) {
+                    out[1] = c;
+                    return true;
                 }
+                if (fa*fc < 0) {
+                    b=c; fb=fc;
+                    fa*=0.5; // Illinois
+                } else {
+                    a=c; fa=fc;
+                    fb*=0.5;
+                }
+                c = (a*fb - b*fa)/(fb - fa);
             }
             return false;
         }

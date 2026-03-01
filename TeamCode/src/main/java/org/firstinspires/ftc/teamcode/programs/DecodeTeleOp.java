@@ -18,6 +18,7 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.hoodDesired;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftFront;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftRear;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.loopFSM;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.physicsTime;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.rightFront;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.rightRear;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.robotState;
@@ -182,6 +183,7 @@ public class DecodeTeleOp extends LinearOpMode {
             telemetry.addData("Flywheel Left Power",flywheel.get("flywheelLeft").getPower());
             telemetry.addData("Flywheel Right Power",flywheel.get("flywheelRight").getPower());
             telemetry.addData("Loop Time",timer.time()-lastTime);
+            telemetry.addData("physics time", physicsTime);
             lastTime = timer.time();
         });
         executor.runLoop(this::opModeIsActive);

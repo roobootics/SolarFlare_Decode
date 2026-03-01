@@ -81,6 +81,7 @@ public class Inferno implements RobotConfig{
     public static VelocityPID rightVelocityPID = new VelocityPID(false,(BotMotor motor)->flywheel.get("flywheelLeft").getVelocity(),0.0012, 0.0012 , 0.00003);
     public static double hoodDesired;
     public static double yawDesired;
+    public static double physicsTime;
 
     static {
         for (int i=0;i<3;i++){
@@ -317,10 +318,9 @@ public class Inferno implements RobotConfig{
             double startTime = timer.time();
             turret = Fisiks.runPhysics(currentBallPath, targetPoint, pos, follower.getVelocity(), flywheel.get("flywheelLeft").getVelocity());
             double endTime = timer.time();
-            telemetry.addData("physics time",endTime-startTime);
+            physicsTime = endTime-startTime;
             if (!success){
                 Components.telemetry.addLine("PHYSICS FAILED TO CONVERGE");
-                turret[1] = atan2(targetPoint[1] - pos.getY(),targetPoint[0] - pos.getX());
             }
             turret[0] = Math.toDegrees(turret[0]);
             turret[1] = Math.toDegrees(turret[1]);
