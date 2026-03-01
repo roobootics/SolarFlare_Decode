@@ -71,8 +71,8 @@ public class DecodeTeleOp extends LinearOpMode {
     public void runOpMode(){
         gamePhase = GamePhase.TELEOP;
         initialize(this,new Inferno(),false,true);
-        if (Objects.isNull(follower)) {Pedro.createFollower(new Pose(96,7.5,0)); leftFront.resetEncoder();}
-        else {Pedro.createFollower(follower.getPose()); followerMade = true;}
+        if (Objects.isNull(follower)) {Pedro.createFollower(new Pose(96,7.5,0)); leftFront.resetEncoder(); followerMade = true;}
+        else {Pedro.createFollower(follower.getPose());}
         executor.setCommands(
                 new RunResettingLoop(new InstantCommand(()->{if (gamepad1.back && !followerMade) {Pedro.createFollower(new Pose(96,7.5,0)); leftFront.resetEncoder(); followerMade = true;}})),
                 new RunResettingLoop(new InstantCommand(()->{if (gamepad1.dpad_left) {Inferno.alliance = Alliance.BLUE;}})),
@@ -171,6 +171,7 @@ public class DecodeTeleOp extends LinearOpMode {
             telemetry.addData("Yaw Pos",turretYaw.get("turretYawTop").getCurrentPosition());
             telemetry.addData("Yaw Target",turretYaw.get("turretYawTop").getTarget());
             telemetry.addData("Yaw Angle",yawDesired);
+            telemetry.addData("Yaw Error", turretYaw.get("turretYawTop").getTarget() - turretYaw.get("turretYawTop").getCurrentPosition());
             telemetry.addLine("");
             telemetry.addData("PoseX",follower.getPose().getX());
             telemetry.addData("PoseY",follower.getPose().getY());

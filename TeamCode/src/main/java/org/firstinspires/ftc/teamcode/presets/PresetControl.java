@@ -38,9 +38,6 @@ public abstract class PresetControl { //Holds control functions that actuators c
         private double kP;
         private double kI;
         private double kD;
-        private double integralStartThreshold = Double.POSITIVE_INFINITY;
-        private boolean clearIntegralWindup = false;
-        private double derivativeStartThreshold = Double.POSITIVE_INFINITY;
         private double integralSum;
         private double previousLoop;
         private double previousError;
@@ -55,8 +52,8 @@ public abstract class PresetControl { //Holds control functions that actuators c
             double error=target-current;
             double time=timer.time();
             double loopTime=time-previousLoop;
-
-            integralSum+=loopTime*error;
+            if (Math.abs(error)<10) integralSum+=loopTime*error;
+            if (Math.signum(error)*-1 == Math.signum(previousError)) integralSum = 0;
             previousFiveLoopTimes.add(loopTime);
             previousFiveErrors.add(error);
             if (previousFiveLoopTimes.size()>5){
@@ -104,6 +101,86 @@ public abstract class PresetControl { //Holds control functions that actuators c
             this.kD=kD;
         }
     }
+    public static class GenericSQUID{ //A class that creates a SQUID controller for any purpose.
+        private double kP;
+        private double kI;
+        private double kD;
+        private double integralSum;
+        private double previousLoop;
+        private double previousError;
+        private final ArrayList<Double> previousFiveLoopTimes = new ArrayList<>();
+        private final ArrayList<Double> previousFiveErrors = new ArrayList<>();
+        public GenericSQUID(double kP, double kI, double kD){
+            this.kP=kP;
+            this.kI=kI;
+            this.kD=kD;
+        }
+        public double getSQUIDOutput(double target, double current, double velocity){ //Give it the target value and the current value
+            double error=target-current;
+            double time=timer.time();
+            double loopTime=time-previousLoop;
+
+            integralSum+=loopTime*error;
+            previousFiveLoopTimes.add(loopTime);
+            previousFiveErrors.add(error);
+            if (previousFiveLoopTimes.size()>5){
+                previousFiveErrors.remove(0);
+                previousFiveLoopTimes.remove(0);
+            }
+
+            double pOutput=kP*Math.signum(error)*Math.sqrt(Math.abs(error));
+            double iOutput=kI*integralSum;
+            double dOutput;
+            if (previousFiveErrors.size()==5){
+                double dtAvg=0;
+                for (double dt:previousFiveLoopTimes){
+                    dtAvg+=dt;
+                }
+                dtAvg=dtAvg/5;
+                dOutput=kD*(-previousFiveErrors.get(4)+8*previousFiveErrors.get(3)-8*previousFiveErrors.get(1)+previousFiveErrors.get(0))/(12*dtAvg);
+            } else{
+                dOutput=kD*(error-previousError)/loopTime;
+            }
+            if (!Double.isNaN(velocity)){
+                dOutput=-kD*velocity;
+            }
+
+            previousLoop=time;
+            previousError=error;
+
+            return pOutput+iOutput+dOutput;
+        }
+        public double getSQUIDOutput(double target, double current){
+            return getSQUIDOutput(target,current,Double.NaN);
+        }
+        public void clearIntegral(){
+            integralSum=0;
+        } //Clear the accumulating integral term. Do this when a global target is changed
+        public void clearFivePointStencil(){ //Clear the five point stencil for derivative approximation
+            previousLoop=timer.time();
+            previousError=0;
+            previousFiveLoopTimes.clear();
+            previousFiveErrors.clear();
+        }
+        public void setPIDCoefficients(double kP, double kI, double kD){
+            this.kP=kP;
+            this.kI=kI;
+            this.kD=kD;
+        }
+    }
+    public static class BreakServo extends ControlFunc<CRActuator<?>>{
+        private final double threshold;
+        public BreakServo(double threshold){
+            this.threshold = threshold;
+        }
+
+        @Override
+        public void runProcedure() {
+            if (Math.abs(system.getInstantReference("targetPosition")-parentActuator.getCurrentPosition())<threshold){
+                system.setOutput(0);
+            }
+        }
+    }
     public static class PositionPID extends ControlFunc<CRActuator<?>>{ //Position PID controller for CRActuators
         private final GenericPID PID;
         private final Function<CRActuator<?>,Double> getPosition;
@@ -140,6 +217,44 @@ public abstract class PresetControl { //Holds control functions that actuators c
         }
         public void setPIDCoefficients(double kP, double kI, double kD){
             PID.setPIDCoefficients(kP,kI,kD);
+        }
+    }
+    public static class PositionSQUID extends ControlFunc<CRActuator<?>>{ //Position SQUID controller for CRActuators
+        private final GenericSQUID SQUID;
+        private final Function<CRActuator<?>,Double> getPosition;
+        private final boolean clearIntegral;
+        public PositionSQUID(Function<CRActuator<?>,Double> getPosition, double kP, double kI, double kD, boolean clearIntegral){
+            this.getPosition = getPosition;
+            this.SQUID =new GenericSQUID(kP,kI,kD);
+            this.clearIntegral = clearIntegral;
+        }
+        public PositionSQUID(double kP, double kI, double kD){
+            this.getPosition = CRActuator::getCurrentPosition;
+            this.SQUID =new GenericSQUID(kP,kI,kD);
+            this.clearIntegral = true;
+        }
+        public PositionSQUID(double kP, double kI, double kD, boolean clearIntegral){
+            this.getPosition = CRActuator::getCurrentPosition;
+            this.SQUID =new GenericSQUID(kP,kI,kD);
+            this.clearIntegral = clearIntegral;
+        }
+        @Override
+        public void runProcedure(){
+            if (system.isStart()){
+                SQUID.clearIntegral();
+                SQUID.clearFivePointStencil();
+            }
+            if (system.isNewReference("targetPosition") && clearIntegral){
+                SQUID.clearIntegral();
+            }
+            double output= SQUID.getSQUIDOutput(system.getInstantReference("targetPosition"), getPosition.apply(parentActuator));
+            system.setOutput(output);
+        }
+        public void clearIntegral(){
+            SQUID.clearIntegral();
+        }
+        public void setPIDCoefficients(double kP, double kI, double kD){
+            SQUID.setPIDCoefficients(kP,kI,kD);
         }
     }
     public static class VelocityPID extends ControlFunc<BotMotor>{ //Position PIDF controller for CRActuators
@@ -245,6 +360,19 @@ public abstract class PresetControl { //Holds control functions that actuators c
         @Override
         public void runProcedure() {
             system.setOutput(system.getOutput()+kF*func.get());
+        }
+    }
+    public static class SQUID extends ControlFunc<CRActuator<?>>{ //SQUID controller for CRActuators
+        public double kP;
+        public SQUID(double kP){
+            this.kP=kP;
+        }
+        @Override
+        public void runProcedure() {
+            double error = system.getInstantReference("targetPosition")- parentActuator.getCurrentPosition();
+            system.setOutput(
+                    kP * Math.sqrt(Math.abs(error))*Math.signum(error)+system.getOutput()
+            );
         }
     }
     public static class TrapezoidalMotionProfile extends ControlFunc<Actuator<?>>{ //Trapezoidal motion profile for any actuator.

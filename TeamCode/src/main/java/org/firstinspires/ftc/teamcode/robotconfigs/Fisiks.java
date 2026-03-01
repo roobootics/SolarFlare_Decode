@@ -24,9 +24,9 @@ public abstract class Fisiks {
     final static double BALL_RAD = 2.5;
     final static double SURFACE_SPEED_RATIO = 0.75;
 
-    final static double FRICTION = 0.815;
+    final static double FRICTION = 0.817;
     final static double AUTHORITY = 0.25;
-    final static double TRANSLATIONAL_DRAG = 0.50;
+    final static double TRANSLATIONAL_DRAG = 0.57;
     final static double ANGULAR_DRAG = 0;
     final static double MAGNUS = 0;
 
@@ -39,7 +39,7 @@ public abstract class Fisiks {
     final static double yawBracketIncrement = Math.toRadians(3);
     final static double VEL_THRESHOLD = 0.2;
 
-    static double[] targetPoint;
+    final static double[] targetPoint = new double[3];
     static Inferno.BallPath currentBallPath;
     static double botVelX;
     static double botVelY;
@@ -280,12 +280,13 @@ public abstract class Fisiks {
                 return stage1Solve(initialPitchGuess,initialTimeGuess,out[1]);
             }
             double fLo, fHi;
-            System.out.println("low");
+            //System.out.println("low");
             stage1Solve(initialPitchGuess,initialTimeGuess,yawBottomBracket); fLo = Error.sideError;
-            System.out.println("high");
+            //System.out.println("high");
             stage1Solve(initialPitchGuess,initialTimeGuess,yawTopBracket); fHi = Error.sideError;
-            while (fLo*fHi>0){
-                System.out.println("faliure");
+            for (int i=0;i<5;i++){
+                if (fLo+fHi<=0) break;
+                //System.out.println("faliure");
                 if (fHi<0){
                     yawTopBracket += yawBracketIncrement;
                     stage1Solve(initialPitchGuess,initialTimeGuess,yawTopBracket); fHi = Error.sideError;
@@ -298,7 +299,7 @@ public abstract class Fisiks {
             double initPitchGuess = initialPitchGuess, initTimeGuess = initialTimeGuess;
             double c = (a*fb - b*fa)/(fb - fa);
             for(int it=0; it<STAGE2MAXITR; it++) {
-                System.out.println("Stage 2");
+                //System.out.println("Stage 2");
                 boolean success = stage1Solve(initPitchGuess,initTimeGuess,c);
                 initPitchGuess = out[0];
                 initTimeGuess = out[2];
@@ -322,8 +323,7 @@ public abstract class Fisiks {
     public static void buildPhysics(double[] targetPoint, Pose pos, Vector botVel, double flywheelVel){
         double xPos = pos.getX();
         double yPos = pos.getY();
-        targetPoint[0] -= xPos; targetPoint[1] -= yPos; targetPoint[2] -= HEIGHT;
-        Fisiks.targetPoint = targetPoint;
+        Fisiks.targetPoint[0] = targetPoint[0] - xPos; Fisiks.targetPoint[1] = targetPoint[1] - yPos; Fisiks.targetPoint[2] = targetPoint[2] - HEIGHT;
         Fisiks.distance = sqrt(targetPoint[0]*targetPoint[0]+targetPoint[1]*targetPoint[1]);
         Fisiks.targetNorm[0] = 1/distance * targetPoint[0];
         Fisiks.targetNorm[1] = 1/distance * targetPoint[1];
