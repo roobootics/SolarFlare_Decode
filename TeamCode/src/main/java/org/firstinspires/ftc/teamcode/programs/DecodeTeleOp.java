@@ -171,7 +171,6 @@ public class DecodeTeleOp extends LinearOpMode {
             telemetry.addData("Yaw Pos",turretYaw.get("turretYawTop").getCurrentPosition());
             telemetry.addData("Yaw Target",turretYaw.get("turretYawTop").getTarget());
             telemetry.addData("Yaw Angle",yawDesired);
-            telemetry.addData("Yaw Error", turretYaw.get("turretYawTop").getTarget() - turretYaw.get("turretYawTop").getCurrentPosition());
             telemetry.addLine("");
             telemetry.addData("PoseX",follower.getPose().getX());
             telemetry.addData("PoseY",follower.getPose().getY());

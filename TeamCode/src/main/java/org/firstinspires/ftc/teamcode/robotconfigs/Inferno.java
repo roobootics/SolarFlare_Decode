@@ -96,11 +96,11 @@ public class Inferno implements RobotConfig{
         }
         turretYaw = new SyncedActuators<>(
                 new CRBotServo("turretYawTop", DcMotorSimple.Direction.REVERSE, (CRServo servo)->leftFront.getCurrentPosition()*ENCODER_RATIO+ENCODER_OFFSET,1,5, 5, new String[]{"PID"},
-                        new ControlSystem<>(new PositionPID(0.0106,0.055,0.00036,false), new Condition<>(()->Math.abs(turretYaw.get("turretYawTop").getTarget() - turretYaw.get("turretYawTop").getCurrentPosition())<13,new PositionPID(0.0106,0.055,0.00036)),
-                                new PositionLowerLimit(1,0.067), new CustomFeedforward(0.1,()->{if (Math.abs(turretYaw.get("turretYawTop").getTarget() - turretYaw.get("turretYawTop").getCurrentPosition())>2.5) return -follower.getAngularVelocity(); else return 0.0;}))),
+                        new ControlSystem<>(new PositionPID(0.015,0,0.0,false), new Condition<>(()->Math.abs(turretYaw.get("turretYawTop").getTarget() - turretYaw.get("turretYawTop").getCurrentPosition())<13,new PositionPID(0.0135,0,0.0001)),
+                                new PositionLowerLimit(1,0.08), new CustomFeedforward(0.1,()->{if (Math.abs(turretYaw.get("turretYawTop").getTarget() - turretYaw.get("turretYawTop").getCurrentPosition())>2.5) return -follower.getAngularVelocity(); else return 0.0;}))),
                 new CRBotServo("turretYawBottom", DcMotorSimple.Direction.FORWARD, (CRServo servo)->leftFront.getCurrentPosition()*ENCODER_RATIO+ENCODER_OFFSET, 1, 5,5, new String[]{"PID"},
-                        new ControlSystem<>(new PositionPID(0.0106,0.055,0.00036,false), new Condition<>(()->Math.abs(turretYaw.get("turretYawTop").getTarget() - turretYaw.get("turretYawTop").getCurrentPosition())<13,new PositionPID(0.0106,0.055,0.00036)),
-                                new PositionLowerLimit(1,0.067), new CustomFeedforward(0.1,()->{if (Math.abs(turretYaw.get("turretYawTop").getTarget() - turretYaw.get("turretYawTop").getCurrentPosition())>2.5) return -follower.getAngularVelocity(); else return 0.0;}))
+                        new ControlSystem<>(new PositionPID(0.015,0,0.0,false), new Condition<>(()->Math.abs(turretYaw.get("turretYawTop").getTarget() - turretYaw.get("turretYawTop").getCurrentPosition())<13,new PositionPID(0.0135,0,0.0001)),
+                                new PositionLowerLimit(1,0.08), new CustomFeedforward(0.1,()->{if (Math.abs(turretYaw.get("turretYawTop").getTarget() - turretYaw.get("turretYawTop").getCurrentPosition())>2.5) return -follower.getAngularVelocity(); else return 0.0;}))
         ));
         flywheel = new SyncedActuators<>(
                 new BotMotor("flywheelLeft", DcMotorSimple.Direction.REVERSE, 0, 0, new String[]{"VelocityPIDF"},
@@ -634,13 +634,13 @@ public class Inferno implements RobotConfig{
     }
     public static void setTargetPoint(){
         if (alliance==Alliance.RED){
-            if (follower.getPose().getY()>=108) {targetPoint[0] = 141.5; targetPoint[1] = 139.5; targetPoint[2] = 46;}
-            else if (follower.getPose().getX()>=120) {targetPoint[0] = 139.5; targetPoint[1] = 141.5; targetPoint[2] = 46;}
-            else {targetPoint[0] = 141.5; targetPoint[1] = 141.5; targetPoint[2] = 46;}
+            if (follower.getPose().getY()>=108) {targetPoint[0] = 141.5; targetPoint[1] = 139.5; targetPoint[2] = 44;}
+            else if (follower.getPose().getX()>=120) {targetPoint[0] = 139.5; targetPoint[1] = 141.5; targetPoint[2] = 44;}
+            else {targetPoint[0] = 141.5; targetPoint[1] = 141.5; targetPoint[2] = 44;}
         } else {
-            if (follower.getPose().getY()>=108) {targetPoint[0] = 2.5; targetPoint[1] = 139.5; targetPoint[2] = 46;}
-            else if (follower.getPose().getX()<=24) {targetPoint[0] = 4.5; targetPoint[1] = 144.5; targetPoint[2] = 46;}
-            else {targetPoint[0] = 2.5; targetPoint[1] = 141.5; targetPoint[2] = 46;}
+            if (follower.getPose().getY()>=108) {targetPoint[0] = 2.5; targetPoint[1] = 139.5; targetPoint[2] = 44;}
+            else if (follower.getPose().getX()<=24) {targetPoint[0] = 4.5; targetPoint[1] = 144.5; targetPoint[2] = 44;}
+            else {targetPoint[0] = 2.5; targetPoint[1] = 141.5; targetPoint[2] = 44;}
         }
     }
     public static class Clamp extends ControlFunc<BotMotor>{
