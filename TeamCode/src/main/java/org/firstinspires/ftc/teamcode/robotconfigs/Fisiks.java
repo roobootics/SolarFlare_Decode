@@ -12,8 +12,6 @@ import static java.lang.Math.sqrt;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.math.Vector;
 
-import org.firstinspires.ftc.teamcode.base.Components;
-
 public abstract class Fisiks {
     final static double MASS = 74.8;
     final static double AIR_DENSITY = 0.020;
@@ -75,7 +73,7 @@ public abstract class Fisiks {
         private final static State current = new State();
         private final static State[] derivs = new State[]{new State(),new State(),new State(),new State()};
         private final static State tmp = new State();
-        private final static double deltaT = 0.004;
+        private final static double deltaT = 0.008;
         private static void deriv(State current, State change){
             change.tPos.set(current.tVel);
             double vmag = current.tVel.magnitude();
