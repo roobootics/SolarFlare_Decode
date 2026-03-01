@@ -18,6 +18,7 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.hoodDesired;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftFront;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftRear;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.loopFSM;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.physicsTime;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.rightFront;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.rightRear;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.robotState;
@@ -118,7 +119,7 @@ public class DecodeTeleOp extends LinearOpMode {
                                         new ParallelCommand(
                                                 new RobotCentricMecanumCommand(
                                                         new BotMotor[]{leftFront,leftRear,rightFront,rightRear},
-                                                         ()-> (double) gamepad1.left_stick_x, ()-> (double) gamepad1.left_stick_y, ()-> (double) gamepad1.right_stick_x,
+                                                        ()-> (double) gamepad1.left_stick_x, ()-> (double) gamepad1.left_stick_y, ()-> (double) gamepad1.right_stick_x,
                                                         ()->{if (gamepad1.left_trigger > 0.3) return 0.75; else return 1.0;}
                                                 ),
                                                 Pedro.updatePoseCommand()
@@ -182,6 +183,7 @@ public class DecodeTeleOp extends LinearOpMode {
             telemetry.addData("Flywheel Left Power",flywheel.get("flywheelLeft").getPower());
             telemetry.addData("Flywheel Right Power",flywheel.get("flywheelRight").getPower());
             telemetry.addData("Loop Time",timer.time()-lastTime);
+            telemetry.addData("physics time", physicsTime);
             lastTime = timer.time();
         });
         executor.runLoop(this::opModeIsActive);

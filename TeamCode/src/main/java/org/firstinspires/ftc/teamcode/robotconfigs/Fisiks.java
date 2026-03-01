@@ -12,8 +12,6 @@ import static java.lang.Math.sqrt;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.math.Vector;
 
-import org.firstinspires.ftc.teamcode.base.Components;
-
 public abstract class Fisiks {
     final static double MASS = 74.8;
     final static double AIR_DENSITY = 0.020;
@@ -48,6 +46,7 @@ public abstract class Fisiks {
     static double distance;
     final static double[] targetNorm = new double[2];
     final static double[] sidewaysNorm = new double[2];
+    public static boolean success = true;
     public static class Vec3 {
         public double x,y,z;
         public Vec3(double x, double y, double z){
@@ -74,7 +73,7 @@ public abstract class Fisiks {
         private final static State current = new State();
         private final static State[] derivs = new State[]{new State(),new State(),new State(),new State()};
         private final static State tmp = new State();
-        private final static double deltaT = 0.005;
+        private final static double deltaT = 0.008;
         private static void deriv(State current, State change){
             change.tPos.set(current.tVel);
             double vmag = current.tVel.magnitude();
@@ -295,33 +294,28 @@ public abstract class Fisiks {
                     stage1Solve(initialPitchGuess,initialTimeGuess,yawBottomBracket); fLo = Error.sideError;
                 }
             }
+            if (fLo+fHi>0) return false;
             double a=yawBottomBracket, b=yawTopBracket, fa=fLo, fb=fHi;
             double initPitchGuess = initialPitchGuess, initTimeGuess = initialTimeGuess;
-            double prevC = (a*fb - b*fa)/(fb - fa);
             double c = (a*fb - b*fa)/(fb - fa);
             for(int it=0; it<STAGE2MAXITR; it++) {
                 //System.out.println("Stage 2");
                 boolean success = stage1Solve(initPitchGuess,initTimeGuess,c);
-                if (false){
-                    c = prevC + 0.5 * (c - prevC);
-                } else{
-                    prevC = c;
-                    initPitchGuess = out[0];
-                    initTimeGuess = out[2];
-                    double fc = Error.sideError;
-                    if (Math.abs(fc) < YAWERR) {
-                        out[1] = c;
-                        return true;
-                    }
-                    if (fa*fc < 0) {
-                        b=c; fb=fc;
-                        fa*=0.5; // Illinois
-                    } else {
-                        a=c; fa=fc;
-                        fb*=0.5;
-                    }
-                    c = (a*fb - b*fa)/(fb - fa);
+                initPitchGuess = out[0];
+                initTimeGuess = out[2];
+                double fc = Error.sideError;
+                if (Math.abs(fc) < YAWERR && success) {
+                    out[1] = c;
+                    return true;
                 }
+                if (fa*fc < 0) {
+                    b=c; fb=fc;
+                    fa*=0.5; // Illinois
+                } else {
+                    a=c; fa=fc;
+                    fb*=0.5;
+                }
+                c = (a*fb - b*fa)/(fb - fa);
             }
             return false;
         }
@@ -438,11 +432,8 @@ public abstract class Fisiks {
         double initialTimeGuess;
         if (currentBallPath == Inferno.BallPath.HIGH) {initialPitchGuess = pitchTimeGuesses[2]; initialTimeGuess = pitchTimeGuesses[3];} else {initialPitchGuess = pitchTimeGuesses[0]; initialTimeGuess = pitchTimeGuesses[1];}
         yawBrackets(initialPitchGuess, initialTimeGuess);
-        boolean success = Solver.solve(initialPitchGuess,initialTimeGuess,yawBrackets[1],yawBrackets[0]);
+        success = Solver.solve(initialPitchGuess,initialTimeGuess,yawBrackets[1],yawBrackets[0]);
         //System.out.println(success);
-        if (!success){
-            Components.telemetry.addLine("PHYSICS FAILED TO CONVERGE");
-        }
         return Solver.out;
     }
 }
