@@ -118,7 +118,7 @@ public class DecodeTeleOp extends LinearOpMode {
                                         new ParallelCommand(
                                                 new RobotCentricMecanumCommand(
                                                         new BotMotor[]{leftFront,leftRear,rightFront,rightRear},
-                                                         ()-> (double) gamepad1.left_stick_x, ()-> (double) gamepad1.left_stick_y, ()-> (double) gamepad1.right_stick_x,
+                                                        ()-> (double) gamepad1.left_stick_x, ()-> (double) gamepad1.left_stick_y, ()-> (double) gamepad1.right_stick_x,
                                                         ()->{if (gamepad1.left_trigger > 0.3) return 0.75; else return 1.0;}
                                                 ),
                                                 Pedro.updatePoseCommand()
@@ -171,6 +171,7 @@ public class DecodeTeleOp extends LinearOpMode {
             telemetry.addData("Yaw Pos",turretYaw.get("turretYawTop").getCurrentPosition());
             telemetry.addData("Yaw Target",turretYaw.get("turretYawTop").getTarget());
             telemetry.addData("Yaw Angle",yawDesired);
+            telemetry.addData("Yaw Error", turretYaw.get("turretYawTop").getTarget() - turretYaw.get("turretYawTop").getCurrentPosition());
             telemetry.addLine("");
             telemetry.addData("PoseX",follower.getPose().getX());
             telemetry.addData("PoseY",follower.getPose().getY());

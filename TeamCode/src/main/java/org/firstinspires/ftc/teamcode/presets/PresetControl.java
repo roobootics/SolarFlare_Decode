@@ -52,8 +52,8 @@ public abstract class PresetControl { //Holds control functions that actuators c
             double error=target-current;
             double time=timer.time();
             double loopTime=time-previousLoop;
-
-            integralSum+=loopTime*error;
+            if (Math.abs(error)<10) integralSum+=loopTime*error;
+            if (Math.signum(error)*-1 == Math.signum(previousError)) integralSum = 0;
             previousFiveLoopTimes.add(loopTime);
             previousFiveErrors.add(error);
             if (previousFiveLoopTimes.size()>5){
@@ -166,6 +166,19 @@ public abstract class PresetControl { //Holds control functions that actuators c
             this.kP=kP;
             this.kI=kI;
             this.kD=kD;
+        }
+    }
+    public static class BreakServo extends ControlFunc<CRActuator<?>>{
+        private final double threshold;
+        public BreakServo(double threshold){
+            this.threshold = threshold;
+        }
+
+        @Override
+        public void runProcedure() {
+            if (Math.abs(system.getInstantReference("targetPosition")-parentActuator.getCurrentPosition())<threshold){
+                system.setOutput(0);
+            }
         }
     }
     public static class PositionPID extends ControlFunc<CRActuator<?>>{ //Position PID controller for CRActuators

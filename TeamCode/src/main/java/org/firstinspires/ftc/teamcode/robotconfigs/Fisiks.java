@@ -24,9 +24,9 @@ public abstract class Fisiks {
     final static double BALL_RAD = 2.5;
     final static double SURFACE_SPEED_RATIO = 0.75;
 
-    final static double FRICTION = 0.81;
+    final static double FRICTION = 0.817;
     final static double AUTHORITY = 0.25;
-    final static double TRANSLATIONAL_DRAG = 0.50;
+    final static double TRANSLATIONAL_DRAG = 0.57;
     final static double ANGULAR_DRAG = 0;
     final static double MAGNUS = 0;
 
@@ -74,7 +74,7 @@ public abstract class Fisiks {
         private final static State current = new State();
         private final static State[] derivs = new State[]{new State(),new State(),new State(),new State()};
         private final static State tmp = new State();
-        private final static double deltaT = 0.004;
+        private final static double deltaT = 0.005;
         private static void deriv(State current, State change){
             change.tPos.set(current.tVel);
             double vmag = current.tVel.magnitude();
@@ -297,25 +297,31 @@ public abstract class Fisiks {
             }
             double a=yawBottomBracket, b=yawTopBracket, fa=fLo, fb=fHi;
             double initPitchGuess = initialPitchGuess, initTimeGuess = initialTimeGuess;
+            double prevC = (a*fb - b*fa)/(fb - fa);
             double c = (a*fb - b*fa)/(fb - fa);
             for(int it=0; it<STAGE2MAXITR; it++) {
                 //System.out.println("Stage 2");
                 boolean success = stage1Solve(initPitchGuess,initTimeGuess,c);
-                initPitchGuess = out[0];
-                initTimeGuess = out[2];
-                double fc = Error.sideError;
-                if (Math.abs(fc) < YAWERR) {
-                    out[1] = c;
-                    return true;
+                if (false){
+                    c = prevC + 0.5 * (c - prevC);
+                } else{
+                    prevC = c;
+                    initPitchGuess = out[0];
+                    initTimeGuess = out[2];
+                    double fc = Error.sideError;
+                    if (Math.abs(fc) < YAWERR) {
+                        out[1] = c;
+                        return true;
+                    }
+                    if (fa*fc < 0) {
+                        b=c; fb=fc;
+                        fa*=0.5; // Illinois
+                    } else {
+                        a=c; fa=fc;
+                        fb*=0.5;
+                    }
+                    c = (a*fb - b*fa)/(fb - fa);
                 }
-                if (fa*fc < 0) {
-                    b=c; fb=fc;
-                    fa*=0.5; // Illinois
-                } else {
-                    a=c; fa=fc;
-                    fb*=0.5;
-                }
-                c = (a*fb - b*fa)/(fb - fa);
             }
             return false;
         }

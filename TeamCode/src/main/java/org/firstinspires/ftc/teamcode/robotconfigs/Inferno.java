@@ -96,12 +96,12 @@ public class Inferno implements RobotConfig{
         }
         turretYaw = new SyncedActuators<>(
                 new CRBotServo("turretYawTop", DcMotorSimple.Direction.REVERSE, (CRServo servo)->leftFront.getCurrentPosition()*ENCODER_RATIO+ENCODER_OFFSET,1,5, 5, new String[]{"PID"},
-                        new ControlSystem<>(new PositionPID(0.015,0,0.0,false), new Condition<>(()->Math.abs(turretYaw.get("turretYawTop").getTarget() - turretYaw.get("turretYawTop").getCurrentPosition())<13,new PositionPID(0.0135,0,0.0001)),
-                                new PositionLowerLimit(1,0.08), new CustomFeedforward(0.1,()->{if (Math.abs(turretYaw.get("turretYawTop").getTarget() - turretYaw.get("turretYawTop").getCurrentPosition())>2.5) return -follower.getAngularVelocity(); else return 0.0;}))),
+                        new ControlSystem<>(new PositionPID(0.0106,0.055,0.00036,false), new Condition<>(()->Math.abs(turretYaw.get("turretYawTop").getTarget() - turretYaw.get("turretYawTop").getCurrentPosition())<13,new PositionPID(0.0106,0.055,0.00036)),
+                                new PositionLowerLimit(1,0.067), new CustomFeedforward(0.1,()->{if (Math.abs(turretYaw.get("turretYawTop").getTarget() - turretYaw.get("turretYawTop").getCurrentPosition())>2.5) return -follower.getAngularVelocity(); else return 0.0;}))),
                 new CRBotServo("turretYawBottom", DcMotorSimple.Direction.FORWARD, (CRServo servo)->leftFront.getCurrentPosition()*ENCODER_RATIO+ENCODER_OFFSET, 1, 5,5, new String[]{"PID"},
-                        new ControlSystem<>(new PositionPID(0.015,0,0.0,false), new Condition<>(()->Math.abs(turretYaw.get("turretYawTop").getTarget() - turretYaw.get("turretYawTop").getCurrentPosition())<13,new PositionPID(0.0135,0,0.0001)),
-                                new PositionLowerLimit(1,0.08), new CustomFeedforward(0.1,()->{if (Math.abs(turretYaw.get("turretYawTop").getTarget() - turretYaw.get("turretYawTop").getCurrentPosition())>2.5) return -follower.getAngularVelocity(); else return 0.0;}))
-        ));
+                        new ControlSystem<>(new PositionPID(0.0106,0.055,0.00036,false), new Condition<>(()->Math.abs(turretYaw.get("turretYawTop").getTarget() - turretYaw.get("turretYawTop").getCurrentPosition())<13,new PositionPID(0.0106,0.055,0.00036)),
+                                new PositionLowerLimit(1,0.067), new CustomFeedforward(0.1,()->{if (Math.abs(turretYaw.get("turretYawTop").getTarget() - turretYaw.get("turretYawTop").getCurrentPosition())>2.5) return -follower.getAngularVelocity(); else return 0.0;}))
+                ));
         flywheel = new SyncedActuators<>(
                 new BotMotor("flywheelLeft", DcMotorSimple.Direction.REVERSE, 0, 0, new String[]{"VelocityPIDF"},
                         new ControlSystem<>(new String[]{"targetVelocity"}, List.of(() -> targetFlywheelVelocity), leftVelocityPID, new CustomFeedforward(1, ()->targetFlywheelVelocity/(2300)), new Clamp(),
@@ -295,17 +295,17 @@ public class Inferno implements RobotConfig{
             frontIntakeGate.instantSetTargetCommand("closed")
     );
     public static final Command transfer = new ParallelCommand(
-        new ConditionalCommand(
-            new IfThen(
-                () -> shotType == ShotType.NORMAL,
-                new ParallelCommand(backTransfer,new InstantCommand(()-> currentBallPath = BallPath.LOW))
+            new ConditionalCommand(
+                    new IfThen(
+                            () -> shotType == ShotType.NORMAL,
+                            new ParallelCommand(backTransfer,new InstantCommand(()-> currentBallPath = BallPath.LOW))
+                    ),
+                    new IfThen(
+                            () -> shotType == ShotType.MOTIF,
+                            MotifShoot.getFullMotifCommand()
+                    )
             ),
-            new IfThen(
-                () -> shotType == ShotType.MOTIF,
-                MotifShoot.getFullMotifCommand()
-            )
-        ),
-        new ContinuousCommand(()->{})
+            new ContinuousCommand(()->{})
     );
     public static final Command setShooter = new ContinuousCommand(()->{
         setTargetPoint();
@@ -340,17 +340,17 @@ public class Inferno implements RobotConfig{
     );
     public static final Command loopFSM = new RunResettingLoop(
             new PressCommand(
-                new IfThen(()->robotState==RobotState.STOPPED, stopIntake),
-                new IfThen(()->robotState==RobotState.EXPEL, expel),
-                new IfThen(()->robotState==RobotState.INTAKE_BACK, backIntakeAction),
-                new IfThen(()->robotState==RobotState.INTAKE_FRONT, frontIntakeAction),
-                new IfThen(()->robotState==RobotState.INTAKE_BACK_AND_SHOOT, backIntakeAndTransfer),
-                new IfThen(()->robotState==RobotState.INTAKE_FRONT_AND_SHOOT, frontIntakeAndTransfer),
-                new IfThen(()->robotState==RobotState.SHOOTING, transfer),
-                new IfThen(()->Objects.isNull(robotState), stopAll)
+                    new IfThen(()->robotState==RobotState.STOPPED, stopIntake),
+                    new IfThen(()->robotState==RobotState.EXPEL, expel),
+                    new IfThen(()->robotState==RobotState.INTAKE_BACK, backIntakeAction),
+                    new IfThen(()->robotState==RobotState.INTAKE_FRONT, frontIntakeAction),
+                    new IfThen(()->robotState==RobotState.INTAKE_BACK_AND_SHOOT, backIntakeAndTransfer),
+                    new IfThen(()->robotState==RobotState.INTAKE_FRONT_AND_SHOOT, frontIntakeAndTransfer),
+                    new IfThen(()->robotState==RobotState.SHOOTING, transfer),
+                    new IfThen(()->Objects.isNull(robotState), stopAll)
             ),
-        new InstantCommand(()->{if ((robotState!=RobotState.SHOOTING && robotState!=RobotState.STOPPED) || shotType==ShotType.NORMAL){currentBallPath=BallPath.LOW;}}),
-        setShooter
+            new InstantCommand(()->{if ((robotState!=RobotState.SHOOTING && robotState!=RobotState.STOPPED) || shotType==ShotType.NORMAL){currentBallPath=BallPath.LOW;}}),
+            setShooter
     );
     private static void colorSensorRead(int index){
         double [] greenCenter = new double[]{0.23,0.54,0.23};
@@ -527,9 +527,9 @@ public class Inferno implements RobotConfig{
         }
         public static Command getFullMotifCommand(){
             return new ParallelCommand(
-                new InstantCommand(MotifShoot::getMotifShotPlan),
-                new TransferCommand(),
-                new HoodCommand()
+                    new InstantCommand(MotifShoot::getMotifShotPlan),
+                    new TransferCommand(),
+                    new HoodCommand()
             );
         }
     }
@@ -537,30 +537,30 @@ public class Inferno implements RobotConfig{
         private int transferDirection;
         public SemiSort(){
             setGroup(new ParallelCommand(
-                new InstantCommand(()->{
-                    readBallStorage();
-                    Color[] shotSequence = new Color[3];
-                    if (classifierBallCount%3==0){
-                        shotSequence = motif;
-                    }
-                    else if (classifierBallCount%3==1){
-                        shotSequence[0] = motif[1];
-                        shotSequence[1] = motif[2];
-                        shotSequence[2] = motif[0];
-                    }
-                    else{
-                        shotSequence[0] = motif[2];
-                        shotSequence[1] = motif[0];
-                        shotSequence[2] = motif[1];
-                    }
-                    if (shotSequence[1]==ballStorage[0] && shotSequence[1]!=ballStorage[2]){
-                        transferDirection = 0;
-                    } else transferDirection = 2;
-                }),
-                new ConditionalCommand(
-                        new IfThen(()->transferDirection==0,frontTransfer),
-                        new IfThen(()->transferDirection==2,backTransfer)
-                )
+                    new InstantCommand(()->{
+                        readBallStorage();
+                        Color[] shotSequence = new Color[3];
+                        if (classifierBallCount%3==0){
+                            shotSequence = motif;
+                        }
+                        else if (classifierBallCount%3==1){
+                            shotSequence[0] = motif[1];
+                            shotSequence[1] = motif[2];
+                            shotSequence[2] = motif[0];
+                        }
+                        else{
+                            shotSequence[0] = motif[2];
+                            shotSequence[1] = motif[0];
+                            shotSequence[2] = motif[1];
+                        }
+                        if (shotSequence[1]==ballStorage[0] && shotSequence[1]!=ballStorage[2]){
+                            transferDirection = 0;
+                        } else transferDirection = 2;
+                    }),
+                    new ConditionalCommand(
+                            new IfThen(()->transferDirection==0,frontTransfer),
+                            new IfThen(()->transferDirection==2,backTransfer)
+                    )
             ));
         }
     }
@@ -634,13 +634,13 @@ public class Inferno implements RobotConfig{
     }
     public static void setTargetPoint(){
         if (alliance==Alliance.RED){
-            if (follower.getPose().getY()>=108) {targetPoint[0] = 141.5; targetPoint[1] = 139.5; targetPoint[2] = 44;}
-            else if (follower.getPose().getX()>=120) {targetPoint[0] = 139.5; targetPoint[1] = 141.5; targetPoint[2] = 44;}
-            else {targetPoint[0] = 141.5; targetPoint[1] = 141.5; targetPoint[2] = 44;}
+            if (follower.getPose().getY()>=108) {targetPoint[0] = 141.5; targetPoint[1] = 139.5; targetPoint[2] = 46;}
+            else if (follower.getPose().getX()>=120) {targetPoint[0] = 139.5; targetPoint[1] = 141.5; targetPoint[2] = 46;}
+            else {targetPoint[0] = 141.5; targetPoint[1] = 141.5; targetPoint[2] = 46;}
         } else {
-            if (follower.getPose().getY()>=108) {targetPoint[0] = 2.5; targetPoint[1] = 139.5; targetPoint[2] = 44;}
-            else if (follower.getPose().getX()<=24) {targetPoint[0] = 4.5; targetPoint[1] = 144.5; targetPoint[2] = 44;}
-            else {targetPoint[0] = 2.5; targetPoint[1] = 141.5; targetPoint[2] = 44;}
+            if (follower.getPose().getY()>=108) {targetPoint[0] = 2.5; targetPoint[1] = 139.5; targetPoint[2] = 46;}
+            else if (follower.getPose().getX()<=24) {targetPoint[0] = 4.5; targetPoint[1] = 144.5; targetPoint[2] = 46;}
+            else {targetPoint[0] = 2.5; targetPoint[1] = 141.5; targetPoint[2] = 46;}
         }
     }
     public static class Clamp extends ControlFunc<BotMotor>{
@@ -655,7 +655,7 @@ public class Inferno implements RobotConfig{
     @Override
     public ArrayList<Actuator<?>> getActuators() {
         return new ArrayList<>(Arrays.asList(leftFront, leftRear, rightFront, rightRear, frontIntake, backIntake, frontIntakeGate, backIntakeGate, transferGate,
-            flywheel.get("flywheelLeft"), flywheel.get("flywheelRight"), turretYaw.get("turretYawTop"), turretYaw.get("turretYawBottom"), turretPitch.get("turretPitchLeft"), turretPitch.get("turretPitchRight")));
+                flywheel.get("flywheelLeft"), flywheel.get("flywheelRight"), turretYaw.get("turretYawTop"), turretYaw.get("turretYawBottom"), turretPitch.get("turretPitchLeft"), turretPitch.get("turretPitchRight")));
     }
 
     @Override
@@ -679,22 +679,22 @@ public class Inferno implements RobotConfig{
                             if (Math.toDegrees(follower.getHeading())>90 || Math.toDegrees(follower.getHeading())<-90) {intakeDirection = RobotState.INTAKE_BACK; targetHeading = 180; tangentHeading+=180;}
                             final double finalTargetHeading = targetHeading;
                             return b.addPath(new BezierLine(follower::getPose,new Pose(128,64)))
-                                .setHeadingInterpolation(HeadingInterpolator.piecewise(
-                                        new HeadingInterpolator.PiecewiseNode(
-                                                0.0,0.25,HeadingInterpolator.linear(follower.getHeading(), tangentHeading)
-                                        ),
-                                        new HeadingInterpolator.PiecewiseNode(
-                                                0.25,0.75,HeadingInterpolator.constant(tangentHeading)
-                                        ),
-                                        new HeadingInterpolator.PiecewiseNode(
-                                                0.75,1.0,HeadingInterpolator.linearFromPoint(follower::getHeading,()->finalTargetHeading,1.0)
-                                        )
-                                ))
-                                .addParametricCallback(0.85,()->follower.setMaxPower(0.5))
-                                .addPath(new BezierCurve(follower::getPose,new Pose(126,58),new Pose(128,57)))
-                                .setLinearHeadingInterpolation(Math.toRadians(targetHeading),Math.toRadians(targetHeading+45))
-                                .addParametricCallback(0,setState(intakeDirection)::run)
-                                .addParametricCallback(0.2,()->follower.setMaxPower(1.0));},false
+                                    .setHeadingInterpolation(HeadingInterpolator.piecewise(
+                                            new HeadingInterpolator.PiecewiseNode(
+                                                    0.0,0.25,HeadingInterpolator.linear(follower.getHeading(), tangentHeading)
+                                            ),
+                                            new HeadingInterpolator.PiecewiseNode(
+                                                    0.25,0.75,HeadingInterpolator.constant(tangentHeading)
+                                            ),
+                                            new HeadingInterpolator.PiecewiseNode(
+                                                    0.75,1.0,HeadingInterpolator.linearFromPoint(follower::getHeading,()->finalTargetHeading,1.0)
+                                            )
+                                    ))
+                                    .addParametricCallback(0.85,()->follower.setMaxPower(0.5))
+                                    .addPath(new BezierCurve(follower::getPose,new Pose(126,58),new Pose(128,57)))
+                                    .setLinearHeadingInterpolation(Math.toRadians(targetHeading),Math.toRadians(targetHeading+45))
+                                    .addParametricCallback(0,setState(intakeDirection)::run)
+                                    .addParametricCallback(0.2,()->follower.setMaxPower(1.0));},false
                 )
         );
         else autoGateIntake = new ParallelCommand(setState(RobotState.STOPPED),
@@ -703,22 +703,22 @@ public class Inferno implements RobotConfig{
                             if (Math.toDegrees(follower.getHeading())<90 && Math.toDegrees(follower.getHeading())>-90) {intakeDirection = RobotState.INTAKE_BACK; targetHeading = 0; tangentHeading += 180;}
                             final double finalTargetHeading = targetHeading;
                             return b.addPath(new BezierLine(follower::getPose,new Pose(16,64)))
-                                .setHeadingInterpolation(HeadingInterpolator.piecewise(
-                                        new HeadingInterpolator.PiecewiseNode(
-                                                0.0,0.25,HeadingInterpolator.linear(follower.getHeading(), tangentHeading)
-                                        ),
-                                        new HeadingInterpolator.PiecewiseNode(
-                                                0.25,0.75,HeadingInterpolator.constant(tangentHeading)
-                                        ),
-                                        new HeadingInterpolator.PiecewiseNode(
-                                                0.75,1.0,HeadingInterpolator.linearFromPoint(follower::getHeading,()->finalTargetHeading,1.0)
-                                        )
-                                ))
-                                .addParametricCallback(0.85,()->follower.setMaxPower(0.5))
-                                .addPath(new BezierCurve(follower::getPose,new Pose(18,58),new Pose(16,57)))
-                                .setLinearHeadingInterpolation(Math.toRadians(targetHeading),Math.toRadians(targetHeading-45))
-                                .addParametricCallback(0,setState(intakeDirection)::run)
-                                .addParametricCallback(0.2,()->follower.setMaxPower(1.0));},false
+                                    .setHeadingInterpolation(HeadingInterpolator.piecewise(
+                                            new HeadingInterpolator.PiecewiseNode(
+                                                    0.0,0.25,HeadingInterpolator.linear(follower.getHeading(), tangentHeading)
+                                            ),
+                                            new HeadingInterpolator.PiecewiseNode(
+                                                    0.25,0.75,HeadingInterpolator.constant(tangentHeading)
+                                            ),
+                                            new HeadingInterpolator.PiecewiseNode(
+                                                    0.75,1.0,HeadingInterpolator.linearFromPoint(follower::getHeading,()->finalTargetHeading,1.0)
+                                            )
+                                    ))
+                                    .addParametricCallback(0.85,()->follower.setMaxPower(0.5))
+                                    .addPath(new BezierCurve(follower::getPose,new Pose(18,58),new Pose(16,57)))
+                                    .setLinearHeadingInterpolation(Math.toRadians(targetHeading),Math.toRadians(targetHeading-45))
+                                    .addParametricCallback(0,setState(intakeDirection)::run)
+                                    .addParametricCallback(0.2,()->follower.setMaxPower(1.0));},false
                 )
         );
     }
