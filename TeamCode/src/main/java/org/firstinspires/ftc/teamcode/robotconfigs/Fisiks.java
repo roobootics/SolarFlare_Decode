@@ -48,6 +48,7 @@ public abstract class Fisiks {
     static double distance;
     final static double[] targetNorm = new double[2];
     final static double[] sidewaysNorm = new double[2];
+    public static boolean success = true;
     public static class Vec3 {
         public double x,y,z;
         public Vec3(double x, double y, double z){
@@ -74,7 +75,7 @@ public abstract class Fisiks {
         private final static State current = new State();
         private final static State[] derivs = new State[]{new State(),new State(),new State(),new State()};
         private final static State tmp = new State();
-        private final static double deltaT = 0.005;
+        private final static double deltaT = 0.004;
         private static void deriv(State current, State change){
             change.tPos.set(current.tVel);
             double vmag = current.tVel.magnitude();
@@ -438,11 +439,8 @@ public abstract class Fisiks {
         double initialTimeGuess;
         if (currentBallPath == Inferno.BallPath.HIGH) {initialPitchGuess = pitchTimeGuesses[2]; initialTimeGuess = pitchTimeGuesses[3];} else {initialPitchGuess = pitchTimeGuesses[0]; initialTimeGuess = pitchTimeGuesses[1];}
         yawBrackets(initialPitchGuess, initialTimeGuess);
-        boolean success = Solver.solve(initialPitchGuess,initialTimeGuess,yawBrackets[1],yawBrackets[0]);
+        success = Solver.solve(initialPitchGuess,initialTimeGuess,yawBrackets[1],yawBrackets[0]);
         //System.out.println(success);
-        if (!success){
-            Components.telemetry.addLine("PHYSICS FAILED TO CONVERGE");
-        }
         return Solver.out;
     }
 }

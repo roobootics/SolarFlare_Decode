@@ -4,6 +4,7 @@ import static org.firstinspires.ftc.teamcode.base.Components.getHardwareMap;
 import static org.firstinspires.ftc.teamcode.base.Components.telemetry;
 import static org.firstinspires.ftc.teamcode.base.Components.timer;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Fisiks.success;
 
 import org.apache.commons.lang3.tuple.Triple;
 
@@ -96,10 +97,10 @@ public class Inferno implements RobotConfig{
         }
         turretYaw = new SyncedActuators<>(
                 new CRBotServo("turretYawTop", DcMotorSimple.Direction.REVERSE, (CRServo servo)->leftFront.getCurrentPosition()*ENCODER_RATIO+ENCODER_OFFSET,1,5, 5, new String[]{"PID"},
-                        new ControlSystem<>(new PositionPID(0.0106,0.055,0.00036,false), new Condition<>(()->Math.abs(turretYaw.get("turretYawTop").getTarget() - turretYaw.get("turretYawTop").getCurrentPosition())<13,new PositionPID(0.0106,0.055,0.00036)),
+                        new ControlSystem<>(new PositionPID(0.0106,0.055,0.00036,false).setIntegralStartThreshold(10).setClearIntegralWindup(true),
                                 new PositionLowerLimit(1,0.067), new CustomFeedforward(0.1,()->{if (Math.abs(turretYaw.get("turretYawTop").getTarget() - turretYaw.get("turretYawTop").getCurrentPosition())>2.5) return -follower.getAngularVelocity(); else return 0.0;}))),
                 new CRBotServo("turretYawBottom", DcMotorSimple.Direction.FORWARD, (CRServo servo)->leftFront.getCurrentPosition()*ENCODER_RATIO+ENCODER_OFFSET, 1, 5,5, new String[]{"PID"},
-                        new ControlSystem<>(new PositionPID(0.0106,0.055,0.00036,false), new Condition<>(()->Math.abs(turretYaw.get("turretYawTop").getTarget() - turretYaw.get("turretYawTop").getCurrentPosition())<13,new PositionPID(0.0106,0.055,0.00036)),
+                        new ControlSystem<>(new PositionPID(0.0106,0.055,0.00036,false).setIntegralStartThreshold(10).setClearIntegralWindup(true),
                                 new PositionLowerLimit(1,0.067), new CustomFeedforward(0.1,()->{if (Math.abs(turretYaw.get("turretYawTop").getTarget() - turretYaw.get("turretYawTop").getCurrentPosition())>2.5) return -follower.getAngularVelocity(); else return 0.0;}))
                 ));
         flywheel = new SyncedActuators<>(
@@ -317,6 +318,10 @@ public class Inferno implements RobotConfig{
             turret = Fisiks.runPhysics(currentBallPath, targetPoint, pos, follower.getVelocity(), flywheel.get("flywheelLeft").getVelocity());
             double endTime = timer.time();
             telemetry.addData("physics time",endTime-startTime);
+            if (!success){
+                Components.telemetry.addLine("PHYSICS FAILED TO CONVERGE");
+                turret[1] = atan2(targetPoint[1] - pos.getY(),targetPoint[0] - pos.getX());
+            }
             turret[0] = Math.toDegrees(turret[0]);
             turret[1] = Math.toDegrees(turret[1]);
         }
