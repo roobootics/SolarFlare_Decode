@@ -22,7 +22,7 @@ public abstract class Fisiks {
     final static double BALL_RAD = 2.5;
     final static double SURFACE_SPEED_RATIO = 0.75;
 
-    final static double FRICTION = 0.817;
+    final static double FRICTION = 0.81;
     final static double AUTHORITY = 0.25;
     final static double TRANSLATIONAL_DRAG = 0.57;
     final static double ANGULAR_DRAG = 0;
@@ -35,7 +35,7 @@ public abstract class Fisiks {
 
     final static double yawBracketRange = Math.toRadians(25);
     final static double yawBracketIncrement = Math.toRadians(3);
-    final static double VEL_THRESHOLD = 0.2;
+    final static double VEL_THRESHOLD = 0.7;
 
     final static double[] targetPoint = new double[3];
     static Inferno.BallPath currentBallPath;
@@ -304,9 +304,9 @@ public abstract class Fisiks {
                 initPitchGuess = out[0];
                 initTimeGuess = out[2];
                 double fc = Error.sideError;
-                if (Math.abs(fc) < YAWERR && success) {
+                if (Math.abs(fc) < YAWERR) {
                     out[1] = c;
-                    return true;
+                    return success;
                 }
                 if (fa*fc < 0) {
                     b=c; fb=fc;
@@ -324,11 +324,11 @@ public abstract class Fisiks {
         double xPos = pos.getX();
         double yPos = pos.getY();
         Fisiks.targetPoint[0] = targetPoint[0] - xPos; Fisiks.targetPoint[1] = targetPoint[1] - yPos; Fisiks.targetPoint[2] = targetPoint[2] - HEIGHT;
-        Fisiks.distance = sqrt(targetPoint[0]*targetPoint[0]+targetPoint[1]*targetPoint[1]);
-        Fisiks.targetNorm[0] = 1/distance * targetPoint[0];
-        Fisiks.targetNorm[1] = 1/distance * targetPoint[1];
-        Fisiks.sidewaysNorm[0] = 1/distance * -targetPoint[1];
-        Fisiks.sidewaysNorm[1] = 1/distance * targetPoint[0];
+        Fisiks.distance = sqrt(Fisiks.targetPoint[0]*Fisiks.targetPoint[0]+Fisiks.targetPoint[1]*Fisiks.targetPoint[1]);
+        Fisiks.targetNorm[0] = 1/distance * Fisiks.targetPoint[0];
+        Fisiks.targetNorm[1] = 1/distance * Fisiks.targetPoint[1];
+        Fisiks.sidewaysNorm[0] = 1/distance * -Fisiks.targetPoint[1];
+        Fisiks.sidewaysNorm[1] = 1/distance * Fisiks.targetPoint[0];
         Fisiks.botVelX = botVel.getXComponent();
         Fisiks.botVelY = botVel.getYComponent();
         double flyVel = TICKS_TO_RAD*flywheelVel*WHEEL_RAD;

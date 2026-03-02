@@ -25,6 +25,7 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.robotState;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.setState;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.shotType;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.targetFlywheelVelocity;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.targetPoint;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.toggleShotType;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.transfer;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretOffsetFromAuto;
@@ -72,10 +73,11 @@ public class DecodeTeleOp extends LinearOpMode {
     public void runOpMode(){
         gamePhase = GamePhase.TELEOP;
         initialize(this,new Inferno(),false,true);
+        //targetFlywheelVelocity=1150;
         if (Objects.isNull(follower)) {Pedro.createFollower(new Pose(96,7.5,0)); leftFront.resetEncoder(); followerMade = true;}
         else {Pedro.createFollower(follower.getPose());}
         executor.setCommands(
-                new RunResettingLoop(new InstantCommand(()->{if (gamepad1.back && !followerMade) {Pedro.createFollower(new Pose(96,7.5,0)); leftFront.resetEncoder(); followerMade = true;}})),
+                new RunResettingLoop(new InstantCommand(()->{if (gamepad1.back && !followerMade) {follower.setPose(new Pose(96,7.5,0)); leftFront.resetEncoder(); followerMade = true;}})),
                 new RunResettingLoop(new InstantCommand(()->{if (gamepad1.dpad_left) {Inferno.alliance = Alliance.BLUE;}})),
                 new RunResettingLoop(new InstantCommand(()->{if (gamepad1.dpad_right) {Inferno.alliance = Alliance.RED;}}))
         );
@@ -84,6 +86,7 @@ public class DecodeTeleOp extends LinearOpMode {
         Components.activateActuatorControl();
         breakFollowing();
         executor.setCommands(
+                //Commands.triggeredDynamicCommand(()->gamepad1.dpad_right,()->gamepad1.dpad_left,new InstantCommand(()->targetFlywheelVelocity+=2),new InstantCommand(()->targetFlywheelVelocity-=2)),
                 new RunResettingLoop(
                         new PressCommand(
                                 new IfThen(()->gamepad1.right_bumper, setState(RobotState.INTAKE_FRONT)),
@@ -152,8 +155,6 @@ public class DecodeTeleOp extends LinearOpMode {
                 clearIntegralAtPeak
         );
         executor.setWriteToTelemetry(()->{
-            telemetry.addData("Target Flywheel",targetFlywheelVelocity);
-            telemetry.addLine("");
             telemetry.addData("Ball Storage", Arrays.asList(ballStorage));
             telemetry.addLine("");
             telemetry.addData("Robot State",robotState);
@@ -174,14 +175,15 @@ public class DecodeTeleOp extends LinearOpMode {
             telemetry.addData("Yaw Angle",yawDesired);
             telemetry.addData("Yaw Error", turretYaw.get("turretYawTop").getTarget() - turretYaw.get("turretYawTop").getCurrentPosition());
             telemetry.addLine("");
+            Pose pos = follower.getPose();
+            telemetry.addData("Distance",Math.sqrt((targetPoint[0]-pos.getX())*(targetPoint[0]-pos.getX()) + (targetPoint[1]-pos.getY())*(targetPoint[1]-pos.getY())));
             telemetry.addData("PoseX",follower.getPose().getX());
             telemetry.addData("PoseY",follower.getPose().getY());
             telemetry.addData("PoseHeading",Math.toDegrees(follower.getHeading()));
             telemetry.addData("VelX",follower.getVelocity().getXComponent());
             telemetry.addData("VelY",follower.getVelocity().getYComponent());
+            telemetry.addData("Angular Vel",Math.toDegrees(follower.getAngularVelocity()));
             telemetry.addLine("");
-            telemetry.addData("Flywheel Left Power",flywheel.get("flywheelLeft").getPower());
-            telemetry.addData("Flywheel Right Power",flywheel.get("flywheelRight").getPower());
             telemetry.addData("Loop Time",timer.time()-lastTime);
             telemetry.addData("physics time", physicsTime);
             lastTime = timer.time();

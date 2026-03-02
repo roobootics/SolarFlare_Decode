@@ -1,7 +1,6 @@
 package org.firstinspires.ftc.teamcode.robotconfigs;
 import static org.apache.commons.math3.util.FastMath.atan2;
 import static org.firstinspires.ftc.teamcode.base.Components.getHardwareMap;
-import static org.firstinspires.ftc.teamcode.base.Components.telemetry;
 import static org.firstinspires.ftc.teamcode.base.Components.timer;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Fisiks.success;
@@ -99,11 +98,11 @@ public class Inferno implements RobotConfig{
         turretYaw = new SyncedActuators<>(
                 new CRBotServo("turretYawTop", DcMotorSimple.Direction.REVERSE, (CRServo servo)->leftFront.getCurrentPosition()*ENCODER_RATIO+ENCODER_OFFSET,1,5, 5, new String[]{"PID"},
                         new ControlSystem<>(new PositionPID(0.0106,0.055,0.00036,false).setIntegralStartThreshold(10).setClearIntegralWindup(true),
-                                new PositionLowerLimit(1,0.067), new CustomFeedforward(0.1,()->{if (Math.abs(turretYaw.get("turretYawTop").getTarget() - turretYaw.get("turretYawTop").getCurrentPosition())>2.5) return -follower.getAngularVelocity(); else return 0.0;}))),
+                                new PositionLowerLimit(1,0.067) /*new CustomFeedforward(0.1,()->{if (Math.abs(turretYaw.get("turretYawTop").getTarget() - turretYaw.get("turretYawTop").getCurrentPosition())>2.5) return -follower.getAngularVelocity(); else return 0.0;})*/)),
                 new CRBotServo("turretYawBottom", DcMotorSimple.Direction.FORWARD, (CRServo servo)->leftFront.getCurrentPosition()*ENCODER_RATIO+ENCODER_OFFSET, 1, 5,5, new String[]{"PID"},
                         new ControlSystem<>(new PositionPID(0.0106,0.055,0.00036,false).setIntegralStartThreshold(10).setClearIntegralWindup(true),
-                                new PositionLowerLimit(1,0.067), new CustomFeedforward(0.1,()->{if (Math.abs(turretYaw.get("turretYawTop").getTarget() - turretYaw.get("turretYawTop").getCurrentPosition())>2.5) return -follower.getAngularVelocity(); else return 0.0;}))
-                ));
+                                new PositionLowerLimit(1,0.067) /*new CustomFeedforward(0.1,()->{if (Math.abs(turretYaw.get("turretYawTop").getTarget() - turretYaw.get("turretYawTop").getCurrentPosition())>2.5) return -follower.getAngularVelocity(); else return 0.0;})*/))
+        );
         flywheel = new SyncedActuators<>(
                 new BotMotor("flywheelLeft", DcMotorSimple.Direction.REVERSE, 0, 0, new String[]{"VelocityPIDF"},
                         new ControlSystem<>(new String[]{"targetVelocity"}, List.of(() -> targetFlywheelVelocity), leftVelocityPID, new CustomFeedforward(1, ()->targetFlywheelVelocity/(2300)), new Clamp(),
@@ -189,12 +188,14 @@ public class Inferno implements RobotConfig{
             new ParallelCommand(
                     frontIntake.setPowerCommand("transfer"),
                     backIntake.setPowerCommand("transfer")
-            ),
+            )
+            /*
             new SleepCommand(0.7),
             new ParallelCommand(
                     frontIntake.setPowerCommand(-1.0),
                     backIntake.setPowerCommand(-1.0)
             )
+            */
     );
     private static final SequentialCommand backTransfer = new SequentialCommand(
             new ParallelCommand(
@@ -213,12 +214,14 @@ public class Inferno implements RobotConfig{
             new ParallelCommand(
                     frontIntake.setPowerCommand("transfer"),
                     backIntake.setPowerCommand("transfer")
-            ),
+            )
+            /*
             new SleepCommand(0.7),
             new ParallelCommand(
                     frontIntake.setPowerCommand(-1.0),
                     backIntake.setPowerCommand(-1.0)
             )
+            */
     );
     public static final Command frontIntakeAction = new SequentialCommand(
             new ParallelCommand(
@@ -321,6 +324,15 @@ public class Inferno implements RobotConfig{
             physicsTime = endTime-startTime;
             if (!success){
                 Components.telemetry.addLine("PHYSICS FAILED TO CONVERGE");
+                Components.telemetry.addData("Dist Error",Fisiks.Error.distError);
+                Components.telemetry.addData("Side Error",Fisiks.Error.sideError);
+                Components.telemetry.addData("Height Error",Fisiks.Error.heightError);
+                turret[1] = atan2(targetPoint[1] - pos.getY(),targetPoint[0] - pos.getX());
+            } else {
+                Components.telemetry.addLine("");
+                Components.telemetry.addLine("");
+                Components.telemetry.addLine("");
+                Components.telemetry.addLine("");
             }
             turret[0] = Math.toDegrees(turret[0]);
             turret[1] = Math.toDegrees(turret[1]);
@@ -328,9 +340,11 @@ public class Inferno implements RobotConfig{
         else{
             turret = new double[]{(turretPitch.get("turretPitchLeft").getTarget()-TURRET_PITCH_OFFSET)/TURRET_PITCH_RATIO, Math.toDegrees(atan2(targetPoint[1] - pos.getY(),targetPoint[0] - pos.getX()))};
         }
+        turret[1] = Math.toDegrees(atan2(targetPoint[1] - pos.getY(),targetPoint[0] - pos.getX()));
         double heading = Math.toDegrees(follower.getHeading());
+        turret[1] = turret[1]%360;
         if ((turret[1]-heading)<=-180) turret[1] += 360;
-        else if ((turret[1]-heading)>249) turret[1] -= 360;
+        else if ((turret[1]-heading)>=249) turret[1] -= 360;
         hoodDesired = turret[0];
         yawDesired = turret[1];
         turretPitch.call((BotServo servo)->servo.setTarget(turret[0]*TURRET_PITCH_RATIO+TURRET_PITCH_OFFSET));
@@ -620,8 +634,8 @@ public class Inferno implements RobotConfig{
         }
     }
     public abstract static class VelRegression {
-        private static final double M_1 = 5.2;
-        private static final double B = 620;
+        private static final double M_1 = 4.88;
+        private static final double B = 606;
         private static double regressFormula(double dist){
             return M_1*dist+B;
         }

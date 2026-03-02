@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode.programs;
 
 import static org.firstinspires.ftc.teamcode.base.Commands.executor;
 import static org.firstinspires.ftc.teamcode.base.Components.initialize;
+import static org.firstinspires.ftc.teamcode.base.Components.timer;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.flywheel;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftFront;
@@ -20,6 +21,7 @@ import org.firstinspires.ftc.teamcode.robotconfigs.Inferno;
 @TeleOp
 public class ShooterTest extends LinearOpMode {
     public double targetYaw = 180;
+    public double lastTime;
 
     @Override
     public void runOpMode(){
@@ -50,7 +52,10 @@ public class ShooterTest extends LinearOpMode {
             telemetry.addData("yaw angle",targetYaw);
             telemetry.addData("top yaw power",turretYaw.get("turretYawTop").getPower());
             telemetry.addData("bottom yaw power",turretYaw.get("turretYawBottom").getPower());
-            telemetry.addData("angular velocity", follower.getAngularVelocity());
+            telemetry.addData("heading", Math.toDegrees(follower.getHeading()));
+            telemetry.addData("angular velocity", Math.toDegrees(follower.getAngularVelocity()));
+            telemetry.addData("looptime",timer.time()-lastTime);
+            lastTime = timer.time();
         });
         waitForStart();
         Components.activateActuatorControl();
