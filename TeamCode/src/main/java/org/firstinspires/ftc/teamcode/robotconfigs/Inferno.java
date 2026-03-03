@@ -126,11 +126,11 @@ public class Inferno implements RobotConfig{
         turretPitch.call((BotServo servo)->servo.setPositionCacheThreshold(0.2));
         frontIntake.setKeyPowers(
                 new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel","frontDrive","sideSelect"},
-                new double[]{1.0,-1.0,1.0,0.9,0,-0.8,0.75,-1.0}
+                new double[]{1.0,-1.0,1.0,0.9,0,-0.8,1,-1.0}
         );
         backIntake.setKeyPowers(
                 new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel","frontDrive","sideSelect"},
-                new double[]{1.0,-1.0,1.0,0.9,0,-1.0,0.75,-1.0}
+                new double[]{1.0,-1.0,1.0,0.9,0,-1.0,1,-1.0}
         );
         frontIntakeGate.setKeyPositions(new String[]{"open", "closed","backoff"}, new double[]{110.7,56.4,69.4});
         backIntakeGate.setKeyPositions(new String[]{"open", "closed","backoff"}, new double[]{133,73.9,86.9});
@@ -187,7 +187,9 @@ public class Inferno implements RobotConfig{
             new SleepCommand(TRANSFER_REBOOST_DELAY),
             new ParallelCommand(
                     frontIntake.setPowerCommand("transfer"),
-                    backIntake.setPowerCommand("transfer")
+                    backIntake.setPowerCommand("transfer"),
+                    frontIntakeGate.instantSetTargetCommand("open"),
+                    backIntakeGate.instantSetTargetCommand("open")
             )
             /*
             new SleepCommand(0.7),
@@ -213,7 +215,9 @@ public class Inferno implements RobotConfig{
             new SleepCommand(TRANSFER_REBOOST_DELAY),
             new ParallelCommand(
                     frontIntake.setPowerCommand("transfer"),
-                    backIntake.setPowerCommand("transfer")
+                    backIntake.setPowerCommand("transfer"),
+                    frontIntakeGate.instantSetTargetCommand("open"),
+                    backIntakeGate.instantSetTargetCommand("open")
             )
             /*
             new SleepCommand(0.7),
@@ -269,7 +273,7 @@ public class Inferno implements RobotConfig{
                     frontIntake.setPowerCommand("frontDrive"),
                     backIntake.setPowerCommand("frontDrive")
             ),
-            new SleepCommand(0.5),
+            new SleepCommand(0.8),
             new ParallelCommand(
                     frontIntake.setPowerCommand("stopped"),
                     backIntake.setPowerCommand("stopped"),
