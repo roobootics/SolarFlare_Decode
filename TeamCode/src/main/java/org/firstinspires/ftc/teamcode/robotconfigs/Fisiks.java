@@ -22,9 +22,9 @@ public abstract class Fisiks {
     final static double BALL_RAD = 2.5;
     final static double SURFACE_SPEED_RATIO = 0.75;
 
-    final static double FRICTION = 0.81;
+    final static double FRICTION = 0.8;
     final static double AUTHORITY = 0.25;
-    final static double TRANSLATIONAL_DRAG = 0.57;
+    final static double TRANSLATIONAL_DRAG = 0.5;
     final static double ANGULAR_DRAG = 0;
     final static double MAGNUS = 0;
 
@@ -133,10 +133,10 @@ public abstract class Fisiks {
             distError = s.tPos.x*targetNorm[0] + s.tPos.y*targetNorm[1] - distance;
             heightError = s.tPos.z - targetPoint[2];
             sideError = sidewaysNorm[0]*(s.tPos.x-targetPoint[0]) + sidewaysNorm[1]*(s.tPos.y-targetPoint[1]);
-            System.out.printf(
+            /*System.out.printf(
                     "pitch=%.3f  time=%.3f  yaw=%.3f  distErr=%.2f  heightErr=%.2f  sideErr=%.2f\n",
                     pitch, time, yaw, distError, heightError, sideError
-            );
+            );*/
         }
     }
     public static class Solver{
@@ -207,9 +207,9 @@ public abstract class Fisiks {
                 double dx1 = -(c*startDistError + dj*startHeightError);
 
                 if (willClampHood(out[0] + dx0) || willClampTime(out[2] + dx1)){
-                    System.out.println("e");
-                    System.out.println(out[0] + dx0);
-                    System.out.println(out[2] + dx1);
+                    //System.out.println("e");
+                    //System.out.println(out[0] + dx0);
+                    //System.out.println(out[2] + dx1);
                     out[0] = bestPitch;
                     out[2] = bestTime;
                     Error.distError = bestDistError;
@@ -278,9 +278,9 @@ public abstract class Fisiks {
                 return stage1Solve(initialPitchGuess,initialTimeGuess,out[1]);
             }
             double fLo, fHi;
-            System.out.println("low");
+            //System.out.println("low");
             stage1Solve(initialPitchGuess,initialTimeGuess,yawBottomBracket); fLo = Error.sideError;
-            System.out.println("high");
+            //System.out.println("high");
             stage1Solve(initialPitchGuess,initialTimeGuess,yawTopBracket); fHi = Error.sideError;
             for (int i=0;i<5;i++){
                 if (fLo*fHi<=0) break;
@@ -297,7 +297,7 @@ public abstract class Fisiks {
             double initPitchGuess = initialPitchGuess, initTimeGuess = initialTimeGuess;
             double c = (a*fb - b*fa)/(fb - fa);
             for(int it=0; it<STAGE2MAXITR; it++) {
-                System.out.println("Stage 2");
+                //System.out.println("Stage 2");
                 boolean success = stage1Solve(initPitchGuess,initTimeGuess,c);
                 initPitchGuess = out[0];
                 initTimeGuess = out[2];
