@@ -22,6 +22,7 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.shotType;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.targetFlywheelVelocity;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretOffsetFromAuto;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretYaw;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.vision;
 
 import com.pedropathing.geometry.BezierCurve;
 import com.pedropathing.geometry.BezierLine;
@@ -34,10 +35,12 @@ import org.firstinspires.ftc.teamcode.pedroPathing.Pedro;
 import org.firstinspires.ftc.teamcode.pedroPathing.Pedro.*;
 import org.firstinspires.ftc.teamcode.robotconfigs.Inferno;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Objects;
+
+import static org.apache.commons.math3.util.FastMath.tan;
 
 public class FarPrimeSigmaConstants {
     public static final double INITIAL_WAIT = 0.01;
@@ -64,6 +67,10 @@ public class FarPrimeSigmaConstants {
     }
     public static Pose getPose(String input){if (alliance==Inferno.Alliance.BLUE) return poses.get(input); else return mirrorPose(Objects.requireNonNull(poses.get(input)));}
     public static double getHeading(String input){if (alliance==Inferno.Alliance.BLUE) return Objects.requireNonNull(poses.get(input)).getHeading(); else return mirrorHeading(Objects.requireNonNull(poses.get(input)).getHeading());}
+    public static List<String> classNames = Arrays.asList("green","purple");
+    public static Command preloadShoot = new SequentialCommand(
+            new SleepCommand(INITIAL_WAIT), shoot
+    );
     public static Command firstSpike = new SequentialCommand(
             new PedroCommand(
                     b->b.addPath(new BezierCurve(follower::getPose, getPose("firstSpikeCtrl"), getPose("firstSpike")))
@@ -76,32 +83,34 @@ public class FarPrimeSigmaConstants {
                     true
             ), shoot
     );
-    public static ArrayList<Command> pathList = new ArrayList<>();
-    public static ArrayList<String> pathListDisplay = new ArrayList<>(Arrays.asList(
-            "preloadShoot",
-            "secondSpike",
-            "gate",
-            "firstSpike",
-            "thirdSpike",
-            "park"
-    ));
-    public static int selectionIndex = 0;
-    public static boolean isInserting = true;
-    public static void addAction(Command command, String label){
-        if (isInserting) {
-            pathListDisplay.add(selectionIndex,label);
-            pathList.add(selectionIndex,command);
-        } else {
-            pathListDisplay.set(selectionIndex,label);
-            pathList.set(selectionIndex,command);
-        }
-    }
-    public static void removeAction(){
-        if (!isInserting){
-            pathList.remove(selectionIndex);
-            pathListDisplay.remove(selectionIndex);
-        }
-    }
+    public static Command loadingZone = new SequentialCommand(
+            new PedroCommand(
+                    b->b.addPath(new BezierCurve(follower::getPose, getPose("loadingZoneCtrl"), getPose("loadingZone")))
+                            .setTangentHeadingInterpolation()
+                            .addParametricCallback(slowDownT,()->follower.setMaxPower(slowDownAmount))
+                            .addPath(new BezierCurve(follower::getPose, getPose("secondShootCtrl"), getPose("secondShoot")))
+                            .setLinearHeadingInterpolation(-100,180)
+                            .addParametricCallback(speedUpT,()->follower.setMaxPower(1.0))
+                            .addParametricCallback(stopIntakeT,()->setState(Inferno.RobotState.STOPPED).run()),
+                    true
+            ), shoot
+    );
+    public static Command visionIntake = new SequentialCommand(
+            new PedroCommand(
+                    b->{
+                        Pose pos = follower.getPose();
+                        double angle = vision.intakingAngleArtifacts(vision.getArtifactDescriptors(pos,classNames),pos) + pos.getHeading();
+                        double y = tan(angle)*(9-pos.getX());
+                        return b.addPath(new BezierLine(follower::getPose,new Pose(9,y)))
+                        .setConstantHeadingInterpolation(0)
+                        .addParametricCallback(slowDownT,()->follower.setMaxPower(slowDownAmount))
+                        .addPath(new BezierCurve(follower::getPose, getPose("secondShootCtrl"), getPose("secondShoot")))
+                        .setConstantHeadingInterpolation(0)
+                        .addParametricCallback(speedUpT,()->follower.setMaxPower(1.0))
+                        .addParametricCallback(stopIntakeT,()->setState(Inferno.RobotState.STOPPED).run());},
+                    true
+            )
+    );
     public static void runOpMode(Inferno.Alliance alliance, LinearOpMode opMode){
         initialize(opMode,new Inferno(),true,true);
         leftFront.resetEncoder();
@@ -113,43 +122,11 @@ public class FarPrimeSigmaConstants {
         executor.setWriteToTelemetry(()->{
             telemetry.addData("offset",turretYaw.get("turretYawFront").getOffset());
             telemetry.addLine("");
-            for (int i=0;i<pathListDisplay.size();i++){
-                if (i==selectionIndex && isInserting){
-                    telemetry.addLine("> [    ]");
-                    telemetry.addLine(pathListDisplay.get(i));
-                } else if (i==selectionIndex){
-                    telemetry.addLine("> ["+pathListDisplay.get(i)+"]");
-                } else telemetry.addLine(pathListDisplay.get(i));
-            }
-            telemetry.addLine("");
             telemetry.addLine("Please, Speed, we need this.");
         });
         executor.setCommands(
                 new InstantCommand(setShooter::run),
-                turretYaw.command((Components.CRBotServo servo)->servo.triggeredDynamicOffsetCommand(()->gamepad1.right_trigger>0.4,()->gamepad2.left_trigger>0.4,0.05)),
-                new RunResettingLoop(new PressCommand(
-                        new IfThen(()->gamepad1.dpad_up,new InstantCommand(()->{
-                            if (!isInserting){
-                                isInserting=true;
-                            } else {
-                                if (selectionIndex>0) {
-                                    selectionIndex -= 1;
-                                    isInserting = false;
-                                }
-                            }
-                        })),
-                        new IfThen(()->gamepad1.dpad_down,new InstantCommand(()->{
-                            if (isInserting && selectionIndex!=pathList.size()) {
-                                isInserting = false;
-                            } else {
-                                if (selectionIndex < pathList.size()) {
-                                    selectionIndex += 1;
-                                    isInserting = true;
-                                }
-                            }
-                        })),
-                        new IfThen(()->gamepad1.back,new InstantCommand(ClosePrimeSigmaConstants::removeAction))
-                ))
+                turretYaw.command((Components.CRBotServo servo)->servo.triggeredDynamicOffsetCommand(()->gamepad1.right_trigger>0.4,()->gamepad2.left_trigger>0.4,0.05))
         );
         executor.runLoop(opMode::opModeInInit);
         turretOffsetFromAuto = turretYaw.get("turretYawFront").getOffset();
@@ -180,7 +157,15 @@ public class FarPrimeSigmaConstants {
             telemetry.addData("Flywheel Right Power",flywheel.get("flywheelRight").getPower());
         });
         executor.setCommands(
-                new SequentialCommand(pathList.toArray(new Command[0])),
+                new SequentialCommand(
+                        preloadShoot,
+                        firstSpike,
+                        loadingZone,
+                        visionIntake,
+                        visionIntake,
+                        visionIntake,
+                        visionIntake
+                ),
                 clearIntegralAtPeak,
                 Pedro.updateCommand(),
                 loopFSM
