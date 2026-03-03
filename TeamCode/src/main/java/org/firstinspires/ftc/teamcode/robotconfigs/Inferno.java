@@ -344,7 +344,7 @@ public class Inferno implements RobotConfig{
         setTargetPoint();
         Pose pos = follower.getPose();
         targetFlywheelVelocity = VelRegression.regressFormula(Math.sqrt((targetPoint[0]-pos.getX())*(targetPoint[0]-pos.getX()) + (targetPoint[1]-pos.getY())*(targetPoint[1]-pos.getY())));
-        targetFlywheelVelocity = Math.min(Math.max(targetFlywheelVelocity,825),1350);
+        targetFlywheelVelocity = Math.min(Math.max(targetFlywheelVelocity,835),1400);
         double[] turret;
         if (robotState == RobotState.SHOOTING || robotState == RobotState.STOPPED || robotState==RobotState.INTAKE_FRONT_AND_SHOOT || robotState==RobotState.INTAKE_BACK_AND_SHOOT) {
             double startTime = timer.time();
@@ -684,7 +684,7 @@ public class Inferno implements RobotConfig{
         }
     }
     public abstract static class VelRegression {
-        private static final double M_1 = 4.88;
+        private static final double M_1 = 5.28;
         private static final double B = 606;
         private static double regressFormula(double dist){
             return M_1*dist+B;
