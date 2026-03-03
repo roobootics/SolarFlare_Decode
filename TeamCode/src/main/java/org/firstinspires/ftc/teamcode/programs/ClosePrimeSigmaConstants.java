@@ -39,7 +39,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Objects;
 
-public class PrimeSigmaConstants {
+public class ClosePrimeSigmaConstants {
     public static final double INITIAL_WAIT = 0.01;
     public static final double SHOT_TIME = 1.2;
     public static final double slowDownT = 0.73;
@@ -248,7 +248,7 @@ public class PrimeSigmaConstants {
                         new IfThen(()->gamepad1.y,new InstantCommand(()->addAction(gate,"gate"))),
                         new IfThen(()->gamepad1.dpad_left,new InstantCommand(()->addAction(preloadShoot,"preloadShoot"))),
                         new IfThen(()->gamepad1.dpad_right,new InstantCommand(()->addAction(park,"park"))),
-                        new IfThen(()->gamepad1.back,new InstantCommand(PrimeSigmaConstants::removeAction))
+                        new IfThen(()->gamepad1.back,new InstantCommand(ClosePrimeSigmaConstants::removeAction))
                 ))
         );
         executor.runLoop(opMode::opModeInInit);

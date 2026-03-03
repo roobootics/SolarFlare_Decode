@@ -5,9 +5,9 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import org.firstinspires.ftc.teamcode.robotconfigs.Inferno;
 
 @Autonomous
-public class PrimeSigmaREDAuto extends LinearOpMode {
+public class ClosePrimeSigmaREDAuto extends LinearOpMode {
     @Override
     public void runOpMode() {
-        PrimeSigmaConstants.runOpMode(Inferno.Alliance.RED,this);
+        ClosePrimeSigmaConstants.runOpMode(Inferno.Alliance.RED,this);
     }
 }
