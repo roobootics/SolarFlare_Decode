@@ -331,7 +331,6 @@ public class Inferno implements RobotConfig{
                 Components.telemetry.addData("Dist Error",Fisiks.Error.distError);
                 Components.telemetry.addData("Side Error",Fisiks.Error.sideError);
                 Components.telemetry.addData("Height Error",Fisiks.Error.heightError);
-                turret[1] = atan2(targetPoint[1] - pos.getY(),targetPoint[0] - pos.getX());
             } else {
                 Components.telemetry.addLine("");
                 Components.telemetry.addLine("");
@@ -344,7 +343,6 @@ public class Inferno implements RobotConfig{
         else{
             turret = new double[]{(turretPitch.get("turretPitchLeft").getTarget()-TURRET_PITCH_OFFSET)/TURRET_PITCH_RATIO, Math.toDegrees(atan2(targetPoint[1] - pos.getY(),targetPoint[0] - pos.getX()))};
         }
-        turret[1] = Math.toDegrees(atan2(targetPoint[1] - pos.getY(),targetPoint[0] - pos.getX()));
         double heading = Math.toDegrees(follower.getHeading());
         turret[1] = turret[1]%360;
         if ((turret[1]-heading)<=-180) turret[1] += 360;

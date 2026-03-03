@@ -185,7 +185,7 @@ public class DecodeTeleOp extends LinearOpMode {
             telemetry.addData("Angular Vel",Math.toDegrees(follower.getAngularVelocity()));
             telemetry.addLine("");
             telemetry.addData("Loop Time",timer.time()-lastTime);
-            telemetry.addData("physics time", physicsTime);
+            telemetry.addData("Physics Time", physicsTime);
             lastTime = timer.time();
         });
         executor.runLoop(this::opModeIsActive);

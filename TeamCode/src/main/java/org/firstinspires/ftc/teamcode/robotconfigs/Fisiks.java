@@ -33,9 +33,8 @@ public abstract class Fisiks {
     final static double K_MAGNUS = MAGNUS/MASS;
     final static double K_SPIN = -3/(4*MASS)*AIR_DENSITY*ANGULAR_DRAG*PI*BALL_RAD;
 
-    final static double yawBracketRange = Math.toRadians(25);
     final static double yawBracketIncrement = Math.toRadians(3);
-    final static double VEL_THRESHOLD = 0.7;
+    final static double VEL_THRESHOLD = 2;
 
     final static double[] targetPoint = new double[3];
     static Inferno.BallPath currentBallPath;
@@ -134,10 +133,10 @@ public abstract class Fisiks {
             distError = s.tPos.x*targetNorm[0] + s.tPos.y*targetNorm[1] - distance;
             heightError = s.tPos.z - targetPoint[2];
             sideError = sidewaysNorm[0]*(s.tPos.x-targetPoint[0]) + sidewaysNorm[1]*(s.tPos.y-targetPoint[1]);
-            /*System.out.printf(
+            System.out.printf(
                     "pitch=%.3f  time=%.3f  yaw=%.3f  distErr=%.2f  heightErr=%.2f  sideErr=%.2f\n",
                     pitch, time, yaw, distError, heightError, sideError
-            );*/
+            );
         }
     }
     public static class Solver{
@@ -208,9 +207,9 @@ public abstract class Fisiks {
                 double dx1 = -(c*startDistError + dj*startHeightError);
 
                 if (willClampHood(out[0] + dx0) || willClampTime(out[2] + dx1)){
-                    //System.out.println("e");
-                    //System.out.println(out[0] + dx0);
-                    //System.out.println(out[2] + dx1);
+                    System.out.println("e");
+                    System.out.println(out[0] + dx0);
+                    System.out.println(out[2] + dx1);
                     out[0] = bestPitch;
                     out[2] = bestTime;
                     Error.distError = bestDistError;
@@ -274,18 +273,17 @@ public abstract class Fisiks {
             return false;
         }
         public static boolean solve(double initialPitchGuess, double initialTimeGuess, double yawTopBracket, double yawBottomBracket){
+            out[1] = atan2(targetPoint[1], targetPoint[0]);
             if (Math.abs(sidewaysNorm[0]*botVelX+sidewaysNorm[1]*botVelY)<VEL_THRESHOLD){
-                out[1] = atan2(targetPoint[1], targetPoint[0]);
                 return stage1Solve(initialPitchGuess,initialTimeGuess,out[1]);
             }
             double fLo, fHi;
-            //System.out.println("low");
+            System.out.println("low");
             stage1Solve(initialPitchGuess,initialTimeGuess,yawBottomBracket); fLo = Error.sideError;
-            //System.out.println("high");
+            System.out.println("high");
             stage1Solve(initialPitchGuess,initialTimeGuess,yawTopBracket); fHi = Error.sideError;
             for (int i=0;i<5;i++){
-                if (fLo+fHi<=0) break;
-                //System.out.println("faliure");
+                if (fLo*fHi<=0) break;
                 if (fHi<0){
                     yawTopBracket += yawBracketIncrement;
                     stage1Solve(initialPitchGuess,initialTimeGuess,yawTopBracket); fHi = Error.sideError;
@@ -294,12 +292,12 @@ public abstract class Fisiks {
                     stage1Solve(initialPitchGuess,initialTimeGuess,yawBottomBracket); fLo = Error.sideError;
                 }
             }
-            if (fLo+fHi>0) return false;
+            if (fLo*fHi>0) return false;
             double a=yawBottomBracket, b=yawTopBracket, fa=fLo, fb=fHi;
             double initPitchGuess = initialPitchGuess, initTimeGuess = initialTimeGuess;
             double c = (a*fb - b*fa)/(fb - fa);
             for(int it=0; it<STAGE2MAXITR; it++) {
-                //System.out.println("Stage 2");
+                System.out.println("Stage 2");
                 boolean success = stage1Solve(initPitchGuess,initTimeGuess,c);
                 initPitchGuess = out[0];
                 initTimeGuess = out[2];
@@ -363,6 +361,7 @@ public abstract class Fisiks {
         yawBrackets[1] = Math.max(bracketOvercorrect, bracketUndercorrect);
     }
     public static void estimateInitialGuesses() {
+        pitchTimeGuesses[0] = Math.toRadians(45); pitchTimeGuesses[1] = 0.7; pitchTimeGuesses[2] = Math.toRadians(65); pitchTimeGuesses[3] = 1.1;
         double vPar = targetNorm[0] * botVelX + targetNorm[1] * botVelY;
         double kL = 0.86; // tunable
         double kH = 0.77; // tunable
