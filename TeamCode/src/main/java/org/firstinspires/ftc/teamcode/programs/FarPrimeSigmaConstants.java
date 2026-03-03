@@ -68,6 +68,7 @@ public class FarPrimeSigmaConstants {
     public static Pose getPose(String input){if (alliance==Inferno.Alliance.BLUE) return poses.get(input); else return mirrorPose(Objects.requireNonNull(poses.get(input)));}
     public static double getHeading(String input){if (alliance==Inferno.Alliance.BLUE) return Objects.requireNonNull(poses.get(input)).getHeading(); else return mirrorHeading(Objects.requireNonNull(poses.get(input)).getHeading());}
     public static List<String> classNames = Arrays.asList("green","purple");
+    public static double wallX = 9;
     public static Command preloadShoot = new SequentialCommand(
             new SleepCommand(INITIAL_WAIT), shoot
     );
@@ -99,9 +100,9 @@ public class FarPrimeSigmaConstants {
             new PedroCommand(
                     b->{
                         Pose pos = follower.getPose();
-                        double angle = vision.intakingAngleArtifacts(vision.getArtifactDescriptors(pos,classNames),pos) + pos.getHeading();
-                        double y = tan(angle)*(9-pos.getX());
-                        return b.addPath(new BezierLine(follower::getPose,new Pose(9,y)))
+                        double angle = Math.toRadians(vision.intakingAngleArtifacts(vision.getArtifactDescriptors(pos,classNames),pos));
+                        double wallY = tan(angle)*(wallX-pos.getX());
+                        return b.addPath(new BezierLine(follower::getPose,new Pose(wallX,wallY)))
                         .setConstantHeadingInterpolation(0)
                         .addParametricCallback(slowDownT,()->follower.setMaxPower(slowDownAmount))
                         .addPath(new BezierCurve(follower::getPose, getPose("secondShootCtrl"), getPose("secondShoot")))
@@ -115,6 +116,7 @@ public class FarPrimeSigmaConstants {
         initialize(opMode,new Inferno(),true,true);
         leftFront.resetEncoder();
         Inferno.alliance = alliance;
+        if (alliance == Inferno.Alliance.BLUE) wallX = 9; else wallX = 135;
         turretOffsetFromAuto = 0;
         gamePhase = Inferno.GamePhase.AUTO;
         Pedro.createFollower(getPose("start"));
