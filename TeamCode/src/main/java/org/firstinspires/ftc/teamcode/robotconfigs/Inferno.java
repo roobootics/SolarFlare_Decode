@@ -70,8 +70,8 @@ public class Inferno implements RobotConfig{
     public static final double[] targetPoint = new double[3];
     public static boolean motifShootAll = true;
     private final static double BALL_SHOT_TIMING = 0.17;
-    private final static double TRANSFER_SELECT_DELAY = 0.1;
-    private final static double TRANSFER_REBOOST_DELAY = 0.3;
+    private final static double TRANSFER_SELECT_DELAY = 0.08;
+    private final static double TRANSFER_REBOOST_DELAY = 0.18;
     public static Color[] motif = new Color[]{Color.PURPLE,Color.GREEN,Color.PURPLE};
     public static double classifierBallCount = 0;
     public static Alliance alliance = Alliance.RED;
@@ -81,6 +81,7 @@ public class Inferno implements RobotConfig{
     public static double hoodDesired;
     public static double yawDesired;
     public static double physicsTime;
+    public static RobotState prevState = null;
 
     static {
         for (int i=0;i<3;i++){
@@ -98,10 +99,10 @@ public class Inferno implements RobotConfig{
         turretYaw = new SyncedActuators<>(
                 new CRBotServo("turretYawTop", DcMotorSimple.Direction.REVERSE, (CRServo servo)->leftFront.getCurrentPosition()*ENCODER_RATIO+ENCODER_OFFSET,1,5, 5, new String[]{"PID"},
                         new ControlSystem<>(new PositionPID(0.0106,0.055,0.00036,false).setIntegralStartThreshold(10).setClearIntegralWindup(true),
-                                new PositionLowerLimit(1,0.067) /*new CustomFeedforward(0.1,()->{if (Math.abs(turretYaw.get("turretYawTop").getTarget() - turretYaw.get("turretYawTop").getCurrentPosition())>2.5) return -follower.getAngularVelocity(); else return 0.0;})*/)),
+                                new PositionLowerLimit(1,0.067), new CustomFeedforward(0.11,()->{if (Math.abs(turretYaw.get("turretYawTop").getTarget() - turretYaw.get("turretYawTop").getCurrentPosition())>2.5) return -follower.getAngularVelocity(); else return 0.0;}))),
                 new CRBotServo("turretYawBottom", DcMotorSimple.Direction.FORWARD, (CRServo servo)->leftFront.getCurrentPosition()*ENCODER_RATIO+ENCODER_OFFSET, 1, 5,5, new String[]{"PID"},
                         new ControlSystem<>(new PositionPID(0.0106,0.055,0.00036,false).setIntegralStartThreshold(10).setClearIntegralWindup(true),
-                                new PositionLowerLimit(1,0.067) /*new CustomFeedforward(0.1,()->{if (Math.abs(turretYaw.get("turretYawTop").getTarget() - turretYaw.get("turretYawTop").getCurrentPosition())>2.5) return -follower.getAngularVelocity(); else return 0.0;})*/))
+                                new PositionLowerLimit(1,0.067), new CustomFeedforward(0.11,()->{if (Math.abs(turretYaw.get("turretYawTop").getTarget() - turretYaw.get("turretYawTop").getCurrentPosition())>2.5) return -follower.getAngularVelocity(); else return 0.0;})))
         );
         flywheel = new SyncedActuators<>(
                 new BotMotor("flywheelLeft", DcMotorSimple.Direction.REVERSE, 0, 0, new String[]{"VelocityPIDF"},
@@ -121,16 +122,16 @@ public class Inferno implements RobotConfig{
                                     else {return 0.0;}})
                         ))
         );
-        turretYaw.call((CRBotServo servo) -> servo.setTargetBounds(() -> 180.0, () -> -111.0));
+        turretYaw.call((CRBotServo servo) -> servo.setTargetBounds(() -> 210.0, () -> -111.0));
         turretPitch.call((BotServo servo) -> servo.setTargetBounds(() -> 159.8, () -> 98.5));
         turretPitch.call((BotServo servo)->servo.setPositionCacheThreshold(0.2));
         frontIntake.setKeyPowers(
-                new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel","frontDrive","sideSelect"},
-                new double[]{1.0,-1.0,1.0,0.9,0,-0.8,1,-1.0}
+                new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel","frontDrive","otherFrontDrive","sideSelect"},
+                new double[]{1.0,-1.0,1.0,0.9,0,-0.8,1,0.8,-1.0}
         );
         backIntake.setKeyPowers(
-                new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel","frontDrive","sideSelect"},
-                new double[]{1.0,-1.0,1.0,0.9,0,-1.0,1,-1.0}
+                new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel","frontDrive","otherFrontDrive","sideSelect"},
+                new double[]{1.0,-1.0,1.0,0.9,0,-1.0,1,0.8,-1.0}
         );
         frontIntakeGate.setKeyPositions(new String[]{"open", "closed","backoff"}, new double[]{110.7,56.4,69.4});
         backIntakeGate.setKeyPositions(new String[]{"open", "closed","backoff"}, new double[]{133,73.9,86.9});
@@ -190,14 +191,14 @@ public class Inferno implements RobotConfig{
                     backIntake.setPowerCommand("transfer"),
                     frontIntakeGate.instantSetTargetCommand("open"),
                     backIntakeGate.instantSetTargetCommand("open")
-            )
-            /*
+            ),
             new SleepCommand(0.7),
             new ParallelCommand(
+                    frontIntakeGate.instantSetTargetCommand("backoff"),
+                    backIntakeGate.instantSetTargetCommand("backoff"),
                     frontIntake.setPowerCommand(-1.0),
                     backIntake.setPowerCommand(-1.0)
             )
-            */
     );
     private static final SequentialCommand backTransfer = new SequentialCommand(
             new ParallelCommand(
@@ -218,14 +219,14 @@ public class Inferno implements RobotConfig{
                     backIntake.setPowerCommand("transfer"),
                     frontIntakeGate.instantSetTargetCommand("open"),
                     backIntakeGate.instantSetTargetCommand("open")
-            )
-            /*
+            ),
             new SleepCommand(0.7),
             new ParallelCommand(
+                    frontIntakeGate.instantSetTargetCommand("backoff"),
+                    backIntakeGate.instantSetTargetCommand("backoff"),
                     frontIntake.setPowerCommand(-1.0),
                     backIntake.setPowerCommand(-1.0)
             )
-            */
     );
     public static final Command frontIntakeAction = new SequentialCommand(
             new ParallelCommand(
@@ -267,11 +268,34 @@ public class Inferno implements RobotConfig{
     );
     public static final SequentialCommand stopIntake = new SequentialCommand(
             new InstantCommand(()->{if (shotType==ShotType.MOTIF) currentBallPath = findMotifShotPlan(motifShootAll).getLeft().get(0);}),
-            new ParallelCommand(
-                    frontIntakeGate.instantSetTargetCommand("backoff"),
-                    backIntakeGate.instantSetTargetCommand("backoff"),
-                    frontIntake.setPowerCommand("frontDrive"),
-                    backIntake.setPowerCommand("frontDrive")
+            new ConditionalCommand(
+                    new IfThen(
+                            ()->prevState==RobotState.INTAKE_BACK,
+                            new ParallelCommand(
+                                    frontIntakeGate.instantSetTargetCommand("backoff"),
+                                    backIntakeGate.instantSetTargetCommand("backoff"),
+                                    frontIntake.setPowerCommand("otherFrontDrive"),
+                                    backIntake.setPowerCommand("frontDrive")
+                            )
+                    ),
+                    new IfThen(
+                            ()->prevState==RobotState.INTAKE_FRONT,
+                            new ParallelCommand(
+                                    frontIntakeGate.instantSetTargetCommand("backoff"),
+                                    backIntakeGate.instantSetTargetCommand("backoff"),
+                                    frontIntake.setPowerCommand("frontDrive"),
+                                    backIntake.setPowerCommand("otherFrontDrive")
+                            )
+                    ),
+                    new IfThen(
+                            ()->true,
+                            new ParallelCommand(
+                                    frontIntakeGate.instantSetTargetCommand("backoff"),
+                                    backIntakeGate.instantSetTargetCommand("backoff"),
+                                    frontIntake.setPowerCommand("frontDrive"),
+                                    backIntake.setPowerCommand("frontDrive")
+                            )
+                    )
             ),
             new SleepCommand(0.8),
             new ParallelCommand(
@@ -320,6 +344,7 @@ public class Inferno implements RobotConfig{
         setTargetPoint();
         Pose pos = follower.getPose();
         targetFlywheelVelocity = VelRegression.regressFormula(Math.sqrt((targetPoint[0]-pos.getX())*(targetPoint[0]-pos.getX()) + (targetPoint[1]-pos.getY())*(targetPoint[1]-pos.getY())));
+        targetFlywheelVelocity = Math.min(Math.max(targetFlywheelVelocity,825),1350);
         double[] turret;
         if (robotState == RobotState.SHOOTING || robotState == RobotState.STOPPED || robotState==RobotState.INTAKE_FRONT_AND_SHOOT || robotState==RobotState.INTAKE_BACK_AND_SHOOT) {
             double startTime = timer.time();
@@ -345,7 +370,7 @@ public class Inferno implements RobotConfig{
         }
         double heading = Math.toDegrees(follower.getHeading());
         turret[1] = turret[1]%360;
-        if ((turret[1]-heading)<=-180) turret[1] += 360;
+        if ((turret[1]-heading)<=-150) turret[1] += 360;
         else if ((turret[1]-heading)>=249) turret[1] -= 360;
         hoodDesired = turret[0];
         yawDesired = turret[1];
@@ -469,17 +494,40 @@ public class Inferno implements RobotConfig{
         }
         return Triple.of(ballPaths,transferDirection,leaveRollersOn);
     }
-    public static final Command aprilTagRelocalize = new LambdaCommand(
-            ()->{
-                Pose pose = vision.getBotPoseMT1();
-                if (!Objects.isNull(pose)){
-                    follower.setPose(pose);
+    public static class AprilTagRelocalize extends Command{
+        public static final int LOOPS = 2;
+        private int counter = 0;
+        private final ArrayList<Pose> poseList = new ArrayList<>();
+        private double startTime;
+        @Override
+        protected boolean runProcedure() {
+            if (isStart()){
+                counter=0;
+                poseList.clear();
+                startTime = timer.time();
+            }
+            Pose pose = vision.getBotPoseMT1();
+            if (!Objects.isNull(pose)){
+                poseList.add(pose);
+                counter+=1;
+                if (counter>=LOOPS) {
+                    double x = 0;
+                    double y = 0;
+                    double heading = 0;
+                    for (Pose pos : poseList) {
+                        x += pos.getX();
+                        y += pos.getY();
+                        heading += pos.getHeading();
+                    }
+                    follower.setPose(new Pose(x / LOOPS, y / LOOPS, heading / LOOPS));
+                    counter = 0;
+                    poseList.clear();
                     return false;
-                } else {
-                    return true;
                 }
             }
-    );
+            return timer.time()-startTime<=0.5;
+        }
+    }
     public static final Command findMotif = new LambdaCommand(
             ()->{
                 Integer id = vision.getObeliskID();
@@ -500,7 +548,7 @@ public class Inferno implements RobotConfig{
     public static void findBalls(){}
     public static void countClassifier(){}
     public static Command setState(RobotState robotState){
-        return new InstantCommand(()->Inferno.robotState=robotState);
+        return new InstantCommand(()->{prevState = Inferno.robotState; Inferno.robotState=robotState;});
     }
     public static Command setShotType(ShotType shotType){
         return new InstantCommand(()->Inferno.shotType=shotType);
@@ -655,13 +703,13 @@ public class Inferno implements RobotConfig{
     }
     public static void setTargetPoint(){
         if (alliance==Alliance.RED){
-            if (follower.getPose().getY()>=108) {targetPoint[0] = 141.5; targetPoint[1] = 139.5; targetPoint[2] = 46;}
-            else if (follower.getPose().getX()>=120) {targetPoint[0] = 139.5; targetPoint[1] = 141.5; targetPoint[2] = 46;}
-            else {targetPoint[0] = 141.5; targetPoint[1] = 141.5; targetPoint[2] = 46;}
+            if (follower.getPose().getY()>=108) {targetPoint[0] = 141.5; targetPoint[1] = 139.5; targetPoint[2] = 45;}
+            else if (follower.getPose().getX()>=120) {targetPoint[0] = 139.5; targetPoint[1] = 141.5; targetPoint[2] = 45;}
+            else {targetPoint[0] = 141.5; targetPoint[1] = 141.5; targetPoint[2] = 45;}
         } else {
-            if (follower.getPose().getY()>=108) {targetPoint[0] = 2.5; targetPoint[1] = 139.5; targetPoint[2] = 46;}
-            else if (follower.getPose().getX()<=24) {targetPoint[0] = 4.5; targetPoint[1] = 144.5; targetPoint[2] = 46;}
-            else {targetPoint[0] = 2.5; targetPoint[1] = 141.5; targetPoint[2] = 46;}
+            if (follower.getPose().getY()>=108) {targetPoint[0] = 2.5; targetPoint[1] = 139.5; targetPoint[2] = 45;}
+            else if (follower.getPose().getX()<=24) {targetPoint[0] = 4.5; targetPoint[1] = 144.5; targetPoint[2] = 45;}
+            else {targetPoint[0] = 2.5; targetPoint[1] = 141.5; targetPoint[2] = 45;}
         }
     }
     public static class Clamp extends ControlFunc<BotMotor>{

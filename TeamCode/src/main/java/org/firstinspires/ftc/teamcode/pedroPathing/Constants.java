@@ -19,7 +19,7 @@ import org.firstinspires.ftc.teamcode.robotconfigs.Inferno;
 public class Constants {
 
     public static FollowerConstants followerConstants = new FollowerConstants()
-            .mass(14.15208)
+            .mass(15.05927)
             .forwardZeroPowerAcceleration(-31.9940432459363933)
             .lateralZeroPowerAcceleration(-68.69912366702141)
             .centripetalScaling(0.001)

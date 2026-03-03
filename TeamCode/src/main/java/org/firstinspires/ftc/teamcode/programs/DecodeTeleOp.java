@@ -6,8 +6,6 @@ import static org.firstinspires.ftc.teamcode.base.Components.timer;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.TURRET_PITCH_OFFSET;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.TURRET_PITCH_RATIO;
-import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.aprilTagRelocalize;
-import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.autoGateIntake;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.ballStorage;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.classifierBallCount;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.clearIntegralAtPeak;
@@ -91,9 +89,9 @@ public class DecodeTeleOp extends LinearOpMode {
                         new PressCommand(
                                 new IfThen(()->gamepad1.right_bumper, setState(RobotState.INTAKE_FRONT)),
                                 new IfThen(()->gamepad1.left_bumper, setState(RobotState.INTAKE_BACK)),
-                                new IfThen(()->gamepad1.right_trigger>0.8, new InstantCommand(()->{transfer.reset(); setState(RobotState.SHOOTING).run();})),
-                                new IfThen(()->gamepad1.y, setState(RobotState.STOPPED)),
-                                new IfThen(()->gamepad1.a, autoGateIntake)
+                                new IfThen(()->gamepad1.right_trigger>0.5, new InstantCommand(()->{transfer.reset(); setState(RobotState.SHOOTING).run();})),
+                                new IfThen(()->gamepad1.y, setState(RobotState.STOPPED))
+                                //new IfThen(()->gamepad1.a, autoGateIntake)
                         ),
                         new PressCommand(
                                 new IfThen(()->gamepad2.y,toggleShotType()),
@@ -103,18 +101,19 @@ public class DecodeTeleOp extends LinearOpMode {
                                 new IfThen(()->gamepad2.dpad_up, setState(RobotState.INTAKE_FRONT_AND_SHOOT)),
                                 new IfThen(()->gamepad2.dpad_down, setState(RobotState.INTAKE_BACK_AND_SHOOT)),
                                 new IfThen(()->gamepad2.back,setState(RobotState.EXPEL)),
-                                new IfThen(()->gamepad2.left_bumper,new ParallelCommand(aprilTagRelocalize,new SequentialCommand(new SleepCommand(0.5),new InstantCommand(aprilTagRelocalize::stop))))
+                                new IfThen(()->gamepad2.left_bumper,new AprilTagRelocalize())
                         ),
-                        turretYaw.command((CRBotServo servo)->servo.triggeredDynamicOffsetCommand(()->gamepad2.right_trigger>0.4,()->gamepad2.left_trigger>0.4,0.5)),
+                        turretYaw.command((CRBotServo servo)->servo.triggeredDynamicOffsetCommand(()->gamepad2.left_trigger>0.4,()->gamepad2.right_trigger>0.4,0.5)),
                         new PressCommand(
-                                new IfThen(()->robotState==RobotState.SHOOTING && !(Math.sqrt(gamepad1.left_stick_x*gamepad1.left_stick_x + gamepad1.left_stick_y*gamepad1.left_stick_y)>0.35 || Math.abs(gamepad1.right_stick_x)>0.35),
+                                new IfThen(()->robotState==RobotState.SHOOTING && !(Math.sqrt(gamepad1.left_stick_x*gamepad1.left_stick_x + gamepad1.left_stick_y*gamepad1.left_stick_y)>0.1 || Math.abs(gamepad1.right_stick_x)>0.1),
                                         new SequentialCommand(
-                                                new InstantCommand(()->{this.stopDrivetrain(); holdingPosition = true;}),
-                                                new SleepCommand(0.15),
+                                                new InstantCommand(()->{this.breakFollowing(); holdingPosition = true;}),
+                                                new SleepCommand(0.2),
                                                 new InstantCommand(()->{follower.holdPoint(follower.getPose()); setMotorsToBrake();})
                                         )
                                 ),
-                                new IfThen(()->robotState!=RobotState.SHOOTING,new InstantCommand(()->{if (!follower.isBusy()){this.breakFollowing(); this.stopDrivetrain();}}))
+                                new IfThen(()->!(robotState==RobotState.SHOOTING), new InstantCommand(()->{if (!follower.isBusy()){this.breakFollowing();}})),
+                                new IfThen(()->Math.sqrt(gamepad1.left_stick_x*gamepad1.left_stick_x + gamepad1.left_stick_y*gamepad1.left_stick_y)>0.1 || Math.abs(gamepad1.right_stick_x)>0.1, new InstantCommand(()->{if (!follower.isBusy()){this.breakFollowing();}}))
                         ),
                         new ConditionalCommand(
                                 new IfThen(
@@ -133,6 +132,7 @@ public class DecodeTeleOp extends LinearOpMode {
                                         Pedro.updateCommand()
                                 )
                         ),
+                        new InstantCommand(this::setMotorsToBrake),
                         Commands.triggeredDynamicCommand(()->gamepad1.dpad_right,()->gamepad1.dpad_left,new InstantCommand(()->targetFlywheelVelocity+=2),new InstantCommand(()->targetFlywheelVelocity-=2)),
                         loopFSM
                         /*new InstantCommand(()->{

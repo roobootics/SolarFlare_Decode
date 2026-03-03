@@ -349,8 +349,8 @@ public abstract class Components {
             resetCurrentPositionCache = reader::resetCache;
         }
         public void setTargetBounds(Supplier<Double> maxTargetFunc, Supplier<Double> minTargetFunc){ //Sets the maximum and minimum target that can be set to the Actuator. They are functions because the maximum and minimum may change depending on other factors.
-            this.maxTargetFunc = ()->(maxTargetFunc.get()+offset);
-            this.minTargetFunc = ()->(minTargetFunc.get()+offset);
+            this.maxTargetFunc = maxTargetFunc;
+            this.minTargetFunc = minTargetFunc;
         }
         public String getName(){
             return name;
