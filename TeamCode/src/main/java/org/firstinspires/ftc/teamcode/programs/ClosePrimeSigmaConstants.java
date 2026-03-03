@@ -11,10 +11,12 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.ballStorage;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.classifierBallCount;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.clearIntegralAtPeak;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.currentBallPath;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.findMotif;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.flywheel;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.gamePhase;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftFront;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.loopFSM;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.motif;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.robotState;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.setShooter;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.setState;
@@ -255,7 +257,7 @@ public class ClosePrimeSigmaConstants {
         turretOffsetFromAuto = turretYaw.get("turretYawFront").getOffset();
         Components.activateActuatorControl();
         executor.setWriteToTelemetry(()->{
-            telemetry.addData("is busy",follower.isBusy());
+            telemetry.addData("Motif",motif);
             telemetry.addLine("");
             telemetry.addData("Ball Storage", Arrays.asList(ballStorage));
             telemetry.addLine("");
@@ -280,6 +282,7 @@ public class ClosePrimeSigmaConstants {
             telemetry.addData("Flywheel Right Power",flywheel.get("flywheelRight").getPower());
         });
         executor.setCommands(
+                findMotif,
                 new SequentialCommand(pathList.toArray(new Command[0])),
                 clearIntegralAtPeak,
                 Pedro.updateCommand(),
