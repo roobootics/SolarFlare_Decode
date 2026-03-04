@@ -579,6 +579,11 @@ public abstract class Commands { //Command-based system
                             if (ConditionalPairs[finalI].condition.get()) {
                                 if (!wasPressed.get(finalI)){
                                     wasPressed.set(finalI,true);
+                                    for (int x=0;x<wasPressed.size();x++){
+                                        if (x!=finalI){
+                                            wasPressed.set(x,false);
+                                        }
+                                    }
                                     return true;
                                 }
                                 else{
