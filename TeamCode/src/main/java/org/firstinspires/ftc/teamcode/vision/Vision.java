@@ -1,4 +1,5 @@
 package org.firstinspires.ftc.teamcode.vision;
+import com.bylazar.field.FieldManager;
 import com.pedropathing.geometry.Pose;
 import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.LLResultTypes;
@@ -18,7 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Vision {
-    public final double INTAKING_WIDTH_INCHES = 13;
+    public final double INTAKING_WIDTH_INCHES = 10;
     public CAMERA_ORIENTATION cameraOrientation = CAMERA_ORIENTATION.NORMAL;
     public final double fx = 1218.145;
     public final double fy = 1219.418;
@@ -31,10 +32,10 @@ public class Vision {
     public final int NN_PIPELINE_INDEX = 0;
     public final int APRIL_TAGS_PIPELINE_INDEX = 1;
     public final double HORIZONTAL_FOV = 54.4;
-
-    Pose3D cameraPoseOnRobot =  new Pose3D(new Position(DistanceUnit.METER, 0.182, 0, 0.2225, 0), new YawPitchRollAngles(AngleUnit.DEGREES, 0, 0, 0, 0));
-    Limelight3A limelight;
-    Telemetry telemetry;
+    public Pose3D cameraPoseOnRobot = new Pose3D(new Position(DistanceUnit.METER, 0.182, 0, 0.2225, 0), new YawPitchRollAngles(AngleUnit.DEGREES, 0, 0, 0, 0));
+    public Limelight3A limelight;
+    public Telemetry telemetry;
+    List<Integer> localizationAprilTags = new ArrayList<>();
 
     public enum CAMERA_ORIENTATION{
         NORMAL,
@@ -47,6 +48,8 @@ public class Vision {
         limelight = hardwareMap.get(Limelight3A.class, "limelight");
         this.telemetry = telemetry;
         limelight.setPollRateHz(11);
+        localizationAprilTags.add(20);
+        localizationAprilTags.add(24);
     }
 
     public Vision(HardwareMap hardwareMap, Telemetry telemetry, Pose3D cameraPoseOnRobot, CAMERA_ORIENTATION cameraOrientation){
@@ -55,6 +58,8 @@ public class Vision {
         limelight.setPollRateHz(11);
         this.cameraPoseOnRobot = cameraPoseOnRobot;
         this.cameraOrientation = cameraOrientation;
+        localizationAprilTags.add(20);
+        localizationAprilTags.add(24);
     }
 
     public List<ArtifactDescriptor> getRelativeArtifactDescriptors(List<String> acceptedClasses){
@@ -202,72 +207,119 @@ public class Vision {
         return artifactDescriptors;
     }
 
-    public Pose getBotPoseMT1(){
+    public Pose getBotPoseMT1(double botHeadingDegrees){
         if (!limelight.isRunning()){
             limelight.start();
         }
         limelight.pipelineSwitch(APRIL_TAGS_PIPELINE_INDEX);
 
-        Pose3D botPose;
+        botHeadingDegrees = normalizeHeading360Degrees(botHeadingDegrees);
+
+        Pose out = null;
 
         LLResult result = limelight.getLatestResult();
 
         if (result != null && result.isValid()){
-            botPose = result.getBotpose();
+            List<LLResultTypes.FiducialResult> aprilTags = result.getFiducialResults();
+
+            for (LLResultTypes.FiducialResult aprilTag : aprilTags){
+                if (localizationAprilTags.contains(aprilTag.getFiducialId())){
+                    Pose botPose = limelightToPedroPose(result.getBotpose());
+
+                    double aprilTagHeading = Math.toDegrees(botPose.getHeading());
+
+                    double diff = Math.abs(aprilTagHeading - botHeadingDegrees);
+
+                    if (!(diff > 30)){
+                        out = botPose;
+                    }
+                }
+            }
         }
         else return null;
 
-        return limelightToPedroPose(botPose);
+        return out;
     }
 
-    public Pose getBotPoseMT2(double yawDegreesStandard){
+    public Pose getBotPoseMT2(double botHeadingDegrees){
         if (!limelight.isRunning()){
             limelight.start();
         }
         limelight.pipelineSwitch(APRIL_TAGS_PIPELINE_INDEX);
 
-        limelight.updateRobotOrientation(standardToLimelightYaw(yawDegreesStandard));
+        botHeadingDegrees = normalizeHeading360Degrees(botHeadingDegrees);
 
-        Pose3D botPose;
+        limelight.updateRobotOrientation(standardToLimelightYaw(botHeadingDegrees));
+
+        Pose out = null;
 
         LLResult result = limelight.getLatestResult();
 
         if (result != null && result.isValid()){
-            botPose = result.getBotpose_MT2();
+            List<LLResultTypes.FiducialResult> aprilTags = result.getFiducialResults();
+
+            for (LLResultTypes.FiducialResult aprilTag : aprilTags){
+                if (localizationAprilTags.contains(aprilTag.getFiducialId())){
+                    Pose botPose = limelightToPedroPose(result.getBotpose());
+
+                    double aprilTagHeading = Math.toDegrees(botPose.getHeading());
+
+                    double diff = Math.abs(aprilTagHeading - botHeadingDegrees);
+
+                    if (!(diff > 30)){
+                        out = botPose;
+                    }
+                }
+            }
         }
         else return null;
 
-        return limelightToPedroPose(botPose);
+        return out;
     }
-    public Pose getBotPoseMT2WithMT1() {
+    public Pose getBotPoseMT2WithMT1(double botHeadingDegrees) {
         if (!limelight.isRunning()) {
             limelight.start();
         }
         limelight.pipelineSwitch(APRIL_TAGS_PIPELINE_INDEX);
 
-        Pose botPoseMT1 = getBotPoseMT1();
+        botHeadingDegrees = normalizeHeading360Degrees(botHeadingDegrees);
+
+        Pose botPoseMT1 = getBotPoseMT1(botHeadingDegrees);
 
         if (botPoseMT1 != null) {
-            double yaw = Math.toDegrees(botPoseMT1.getHeading());
-
-            double llYaw = standardToLimelightYaw(yaw);
+            double llYaw = standardToLimelightYaw(Math.toDegrees(botPoseMT1.getHeading()));
 
             limelight.updateRobotOrientation(llYaw);
 
-            Pose3D botPose;
+            Pose out = null;
 
             LLResult result = limelight.getLatestResult();
 
             if (result != null && result.isValid()) {
-                botPose = result.getBotpose_MT2();
-            } else return null;
+                List<LLResultTypes.FiducialResult> aprilTags = result.getFiducialResults();
 
-            return limelightToPedroPose(botPose);
+                for (LLResultTypes.FiducialResult aprilTag : aprilTags){
+                    if (localizationAprilTags.contains(aprilTag.getFiducialId())){
+                        Pose botPose = limelightToPedroPose(result.getBotpose_MT2());
+                        double aprilTagHeading = Math.toDegrees(botPose.getHeading());
+
+                        double diff = Math.abs(aprilTagHeading - botHeadingDegrees);
+
+                        if (!(diff > 30)){
+                            out = botPose;
+                        }
+                    }
+                }
+            }
+
+            return out;
         }
         return null;
     }
 
     public Pose limelightToPedroPose(Pose3D llPose){
+        if (llPose == null) return null;
+
         double llX = llPose.getPosition().toUnit(DistanceUnit.INCH).x;
         double llY = llPose.getPosition().toUnit(DistanceUnit.INCH).y;
         double llYaw = llPose.getOrientation().getYaw(AngleUnit.DEGREES);
@@ -282,6 +334,8 @@ public class Vision {
     }
 
     public Pose3D pedroToLimelightPose(Pose pedroPose){
+        if (pedroPose == null) return null;
+
         double x = pedroPose.getX();
         double y = pedroPose.getY();
         double yaw = Math.toDegrees(pedroPose.getHeading());
@@ -294,6 +348,8 @@ public class Vision {
     }
 
     public Pose2D pedroToStandardPose(Pose pedroPose){
+        if (pedroPose == null) return null;
+
         double x = pedroPose.getX();
         double y = pedroPose.getY();
         double yaw = pedroPose.getHeading();
@@ -306,6 +362,8 @@ public class Vision {
     }
 
     public Pose standardToPedroPose(Pose2D standardPose){
+        if (standardPose == null) return null;
+
         double x = standardPose.getX(DistanceUnit.INCH);
         double y = standardPose.getY(DistanceUnit.INCH);
         double yaw = standardPose.getHeading(AngleUnit.DEGREES);
@@ -414,7 +472,7 @@ public class Vision {
     }
 
     public Double intakingAngleArtifacts(List<ArtifactDescriptor> artifacts, Pose botPose){
-        int bestCount = -1;
+        double bestCount = -1;
         double bestDist = Double.POSITIVE_INFINITY;
         double bestAngle = -1;
 
@@ -449,7 +507,10 @@ public class Vision {
             }
         }
 
-        return Math.toDegrees(bestAngle);
+        double bestAngleDeg = Math.toDegrees(bestAngle);
+        if (bestAngleDeg < 0) bestAngleDeg += 360;
+
+        return bestAngleDeg;
     }
 
     public Double intakingAngleArtifacts2(List<ArtifactDescriptor> artifacts, Pose botPose, int stepDeg) {
@@ -460,8 +521,10 @@ public class Vision {
 
         double bestScore = Double.NEGATIVE_INFINITY;
 
-        double w1 = 1;
-        double w2 = 1;
+        final double MAX_RELEVANT_DISTANCE = 70;
+
+        double w1 = 20;
+        double w2 = 4;
         double w3 = 1;
 
         double horizontalLeftBound = Math.toDegrees(botPose.getHeading()) + (HORIZONTAL_FOV / 2);
@@ -495,7 +558,11 @@ public class Vision {
                 double avgPerpDist = totalPerpDist / count;
                 double avgDist = totalDist / count;
 
-                double score = w1 * count - w2 * avgPerpDist - w3 * avgDist;
+                double normCount = count / (double) artifacts.size();
+                double normPerp = avgPerpDist / (INTAKING_WIDTH_INCHES / 2);
+                double normDist = avgDist / MAX_RELEVANT_DISTANCE;
+
+                double score = w1 * normCount - w2 * normPerp - w3 * normDist;
 
                 if (score > bestScore) {
                     bestScore = score;
@@ -504,7 +571,10 @@ public class Vision {
             }
         }
 
-        return Math.toDegrees(bestAngle);
+        double bestAngleDeg = Math.toDegrees(bestAngle);
+        if (bestAngleDeg < 0) bestAngleDeg += 360;
+
+        return bestAngleDeg;
     }
 
     public Double getTargetXPixels(Vision.CAMERA_ORIENTATION orientation, List<List<Double>> corners) {
@@ -556,5 +626,25 @@ public class Vision {
         }
 
         return targetYPixels;
+    }
+
+    public void drawPoseOnPanels(FieldManager panelsField, Pose pose, String color) {
+
+        if (!(pose == null || panelsField == null)) {
+            panelsField.setStyle(color, color, 0);
+            panelsField.moveCursor(pose.getX(), pose.getY());
+            panelsField.circle(3);
+
+            double headingLineLength = 3;
+            double x2 = pose.getX() + Math.cos(pose.getHeading()) * headingLineLength;
+            double y2 = pose.getY() + Math.sin(pose.getHeading()) * headingLineLength;
+
+            panelsField.setStyle("black", "black", 1);
+            panelsField.line(x2, y2);
+        }
+    }
+
+    public double normalizeHeading360Degrees(double heading){
+        return (heading + 360) % 360;
     }
 }

@@ -1,5 +1,4 @@
 package org.firstinspires.ftc.teamcode.robotconfigs;
-import static org.apache.commons.math3.util.FastMath.atan2;
 import static org.firstinspires.ftc.teamcode.base.Components.getHardwareMap;
 import static org.firstinspires.ftc.teamcode.base.Components.timer;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
@@ -366,7 +365,7 @@ public class Inferno implements RobotConfig{
             turret[1] = Math.toDegrees(turret[1]);
         }
         else{
-            turret = new double[]{(turretPitch.get("turretPitchLeft").getTarget()-TURRET_PITCH_OFFSET)/TURRET_PITCH_RATIO, Math.toDegrees(atan2(targetPoint[1] - pos.getY(),targetPoint[0] - pos.getX()))};
+            turret = new double[]{(turretPitch.get("turretPitchLeft").getTarget()-TURRET_PITCH_OFFSET)/TURRET_PITCH_RATIO, Math.toDegrees(Math.atan2(targetPoint[1] - pos.getY(),targetPoint[0] - pos.getX()))};
         }
         double heading = Math.toDegrees(follower.getHeading());
         turret[1] = turret[1]%360;
@@ -494,6 +493,7 @@ public class Inferno implements RobotConfig{
         }
         return Triple.of(ballPaths,transferDirection,leaveRollersOn);
     }
+<<<<<<< Updated upstream
     public static class AprilTagRelocalize extends Command{
         public static final int LOOPS = 2;
         private int counter = 0;
@@ -522,6 +522,13 @@ public class Inferno implements RobotConfig{
                     follower.setPose(new Pose(x / LOOPS, y / LOOPS, heading / LOOPS));
                     counter = 0;
                     poseList.clear();
+=======
+    public static final Command aprilTagRelocalize = new LambdaCommand(
+            ()->{
+                Pose pose = vision.getBotPoseMT1(Math.toDegrees(follower.getPose().getHeading()));
+                if (!Objects.isNull(pose)){
+                    follower.setPose(pose);
+>>>>>>> Stashed changes
                     return false;
                 }
             }
@@ -744,7 +751,7 @@ public class Inferno implements RobotConfig{
         isSpinningUp = true;
         if (alliance == Alliance.RED) autoGateIntake = new ParallelCommand(setState(RobotState.STOPPED),
                 new PedroCommand(
-                        (PathBuilder b)->{RobotState intakeDirection = RobotState.INTAKE_FRONT; double targetHeading = 0; double tangentHeading = atan2(64-follower.getPose().getY(),128-follower.getPose().getX());
+                        (PathBuilder b)->{RobotState intakeDirection = RobotState.INTAKE_FRONT; double targetHeading = 0; double tangentHeading = Math.atan2(64-follower.getPose().getY(),128-follower.getPose().getX());
                             if (Math.toDegrees(follower.getHeading())>90 || Math.toDegrees(follower.getHeading())<-90) {intakeDirection = RobotState.INTAKE_BACK; targetHeading = 180; tangentHeading+=180;}
                             final double finalTargetHeading = targetHeading;
                             return b.addPath(new BezierLine(follower::getPose,new Pose(128,64)))
@@ -768,7 +775,7 @@ public class Inferno implements RobotConfig{
         );
         else autoGateIntake = new ParallelCommand(setState(RobotState.STOPPED),
                 new PedroCommand(
-                        (PathBuilder b)->{RobotState intakeDirection = RobotState.INTAKE_FRONT; double targetHeading = 180; double tangentHeading = atan2(64-follower.getPose().getY(),16-follower.getPose().getX());
+                        (PathBuilder b)->{RobotState intakeDirection = RobotState.INTAKE_FRONT; double targetHeading = 180; double tangentHeading = Math.atan2(64-follower.getPose().getY(),16-follower.getPose().getX());
                             if (Math.toDegrees(follower.getHeading())<90 && Math.toDegrees(follower.getHeading())>-90) {intakeDirection = RobotState.INTAKE_BACK; targetHeading = 0; tangentHeading += 180;}
                             final double finalTargetHeading = targetHeading;
                             return b.addPath(new BezierLine(follower::getPose,new Pose(16,64)))

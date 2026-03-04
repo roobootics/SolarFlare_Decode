@@ -3,7 +3,9 @@ package org.firstinspires.ftc.teamcode.vision.testing;
 import static org.firstinspires.ftc.teamcode.base.Components.initialize;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
 
+import com.bylazar.field.CanvasRotation;
 import com.bylazar.field.FieldManager;
+import com.bylazar.field.FieldPresetParams;
 import com.bylazar.field.PanelsField;
 import com.bylazar.telemetry.PanelsTelemetry;
 import com.bylazar.telemetry.TelemetryManager;
@@ -28,7 +30,9 @@ import java.util.List;
 public class TestArtifactsWithPanels extends OpMode {
     Vision vision;
     Pose3D cameraPose = new Pose3D(new Position(DistanceUnit.METER, 0.182, 0, 0.2225, 0), new YawPitchRollAngles(AngleUnit.DEGREES, 0, 0, 0, 0));
-    Pose initPosePedro = new Pose(72,144,Math.toRadians(270));
+    double robotWidth = 15;
+    double robotLength = 18;
+    Pose initPosePedro = new Pose(72, 144 - (robotLength / 2), Math.toRadians(270));
     FieldManager panelsField = PanelsField.INSTANCE.getField();
     TelemetryManager panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
     List<String> acceptedClasses = new ArrayList<>();
@@ -53,17 +57,19 @@ public class TestArtifactsWithPanels extends OpMode {
 
         telemetry.addData("botPose x", botPose.getX());
         telemetry.addData("botPose y", botPose.getY());
-        telemetry.addData("botPose Heading", Math.toDegrees(botPose.getHeading()));
+        telemetry.addData("botPose Heading", vision.normalizeHeading360Degrees(Math.toDegrees(botPose.getHeading())));
 
-        panelsField.setStyle("black", "black", 0);
-        panelsField.moveCursor(botPose.getX(), botPose.getY());
-        panelsField.rect(14, 13);
+        panelsTelemetry.addData("botPose x", botPose.getX());
+        panelsTelemetry.addData("botPose y", botPose.getY());
+        panelsTelemetry.addData("botPose Heading", vision.normalizeHeading360Degrees(Math.toDegrees(botPose.getHeading())));
+
+        vision.drawPoseOnPanels(panelsField, botPose, "blue");
 
         List<ArtifactDescriptor> artifacts = vision.getArtifactDescriptors(botPose, acceptedClasses);
 
         if (!artifacts.isEmpty()) {
 
-            Double intakingAngle = vision.intakingAngleArtifacts(artifacts, botPose);
+            Double intakingAngle = vision.intakingAngleArtifacts2(artifacts, botPose, 1);
             telemetry.addData("intaking angle", intakingAngle);
             panelsTelemetry.addData("intaking angle", intakingAngle);
 

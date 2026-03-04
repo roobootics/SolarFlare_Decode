@@ -28,7 +28,9 @@ import java.util.List;
 public class TestVisionWithPanels extends OpMode {
     Vision vision;
     Pose3D cameraPose = new Pose3D(new Position(DistanceUnit.METER, 0.182, 0, 0.2225, 0), new YawPitchRollAngles(AngleUnit.DEGREES, 0, 0, 0, 0));
-    Pose initPosePedro = new Pose(72,144,Math.toRadians(270));
+    double robotWidth = 15;
+    double robotLength = 18;
+    Pose initPosePedro = new Pose(72, 144 - (robotLength / 2), Math.toRadians(270));
     FieldManager panelsField = PanelsField.INSTANCE.getField();
     TelemetryManager panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
     List<String> acceptedClasses = new ArrayList<>();
