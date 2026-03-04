@@ -333,13 +333,16 @@ public abstract class Commands { //Command-based system
         public boolean runProcedure() {
             if (isStart()) {
                 index = 0;
-                for (Command command : commands){
-                    command.reset();
+                if (commands.length>0){
+                    commands[index].reset();
                 }
             }
             while (index!=commands.length){
                 commands[index].run();
-                if (commands[index].isFinished()) index+=1;
+                if (commands[index].isFinished()) {
+                    index+=1;
+                    if (index!=commands.length) commands[index].reset();
+                }
                 else break;
             }
             return index!=commands.length;
