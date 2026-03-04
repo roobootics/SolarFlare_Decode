@@ -493,48 +493,61 @@ public class Inferno implements RobotConfig{
         }
         return Triple.of(ballPaths,transferDirection,leaveRollersOn);
     }
-<<<<<<< Updated upstream
-    public static class AprilTagRelocalize extends Command{
+    public static class AprilTagRelocalize extends Command {
+
         public static final int LOOPS = 2;
         private int counter = 0;
         private final ArrayList<Pose> poseList = new ArrayList<>();
         private double startTime;
+
         @Override
         protected boolean runProcedure() {
-            if (isStart()){
-                counter=0;
+
+            if (isStart()) {
+                counter = 0;
                 poseList.clear();
                 startTime = timer.time();
             }
-            Pose pose = vision.getBotPoseMT1();
-            if (!Objects.isNull(pose)){
+
+            Pose pose = vision.getBotPoseMT1(Math.toDegrees(follower.getHeading()));
+
+            if (!Objects.isNull(pose)) {
+
                 poseList.add(pose);
-                counter+=1;
-                if (counter>=LOOPS) {
+                counter++;
+
+                if (counter >= LOOPS) {
+
                     double x = 0;
                     double y = 0;
                     double heading = 0;
+
                     for (Pose pos : poseList) {
                         x += pos.getX();
                         y += pos.getY();
                         heading += pos.getHeading();
                     }
-                    follower.setPose(new Pose(x / LOOPS, y / LOOPS, heading / LOOPS));
+
+                    follower.setPose(new Pose(
+                            x / LOOPS,
+                            y / LOOPS,
+                            heading / LOOPS
+                    ));
+
                     counter = 0;
                     poseList.clear();
-=======
-    public static final Command aprilTagRelocalize = new LambdaCommand(
-            ()->{
-                Pose pose = vision.getBotPoseMT1(Math.toDegrees(follower.getPose().getHeading()));
-                if (!Objects.isNull(pose)){
-                    follower.setPose(pose);
->>>>>>> Stashed changes
-                    return false;
+
+                    return false; // finished
                 }
+
+                return true; // keep collecting frames
             }
-            return timer.time()-startTime<=0.5;
+
+            // timeout safeguard (0.5s)
+            return timer.time() - startTime <= 0.5;
         }
     }
+
     public static final Command findMotif = new LambdaCommand(
             ()->{
                 Integer id = vision.getObeliskID();
@@ -798,4 +811,4 @@ public class Inferno implements RobotConfig{
                 )
         );
     }
-}
+        }
