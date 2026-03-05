@@ -128,8 +128,8 @@ public class FarPrimeSigmaConstants {
             telemetry.addLine("");
             telemetry.addLine("Please, Speed, we need this.");
         });
+        turretYaw.call(servo->servo.setTarget(180));
         executor.setCommands(
-                new InstantCommand(setShooter::run),
                 turretYaw.command((Components.CRBotServo servo)->servo.triggeredDynamicOffsetCommand(()->gamepad1.right_trigger>0.4,()->gamepad2.left_trigger>0.4,0.05))
         );
         executor.runLoop(opMode::opModeInInit);
