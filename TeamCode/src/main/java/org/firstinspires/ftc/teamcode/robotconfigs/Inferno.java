@@ -493,6 +493,14 @@ public class Inferno implements RobotConfig{
         }
         return Triple.of(ballPaths,transferDirection,leaveRollersOn);
     }
+    public static Command panic = new ContinuousCommand(
+            ()->{
+                Pose pos = vision.getBotPoseMT1(Math.toDegrees(follower.getHeading()));
+                if (Objects.nonNull(pos)){
+                    follower.setPose(pos);
+                }
+            }
+    );
     public static class AprilTagRelocalize extends Command {
 
         public static final int LOOPS = 2;
@@ -509,7 +517,7 @@ public class Inferno implements RobotConfig{
                 startTime = timer.time();
             }
 
-            Pose pose = vision.getBotPoseMT1(Math.toDegrees(follower.getHeading()));
+            Pose pose = vision.getBotPoseMT2(Math.toDegrees(follower.getHeading()));
 
             if (!Objects.isNull(pose)) {
 

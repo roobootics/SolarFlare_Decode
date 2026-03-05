@@ -16,6 +16,7 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.hoodDesired;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftFront;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftRear;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.loopFSM;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.panic;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.physicsTime;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.rightFront;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.rightRear;
@@ -54,6 +55,7 @@ public class DecodeTeleOp extends LinearOpMode {
     private boolean holdingPosition = false;
     private double lastTime = 0;
     private double previousBallCount = -1;
+    private boolean panicMode = false;
     private void breakFollowing(){
         holdingPosition = false;
         follower.breakFollowing();
@@ -103,6 +105,7 @@ public class DecodeTeleOp extends LinearOpMode {
                                 new IfThen(()->gamepad2.back,setState(RobotState.EXPEL)),
                                 new IfThen(()->gamepad2.left_bumper,new AprilTagRelocalize())
                         ),
+                        Commands.triggeredToggleCommand(()->gamepad2.left_stick_button,new ContinuousCommand(()->{}),panic),
                         turretYaw.command((CRBotServo servo)->servo.triggeredDynamicOffsetCommand(()->gamepad2.left_trigger>0.4,()->gamepad2.right_trigger>0.4,0.5)),
                         new PressCommand(
                                 new IfThen(()->robotState==RobotState.SHOOTING && !(Math.sqrt(gamepad1.left_stick_x*gamepad1.left_stick_x + gamepad1.left_stick_y*gamepad1.left_stick_y)>0.1 || Math.abs(gamepad1.right_stick_x)>0.1),
