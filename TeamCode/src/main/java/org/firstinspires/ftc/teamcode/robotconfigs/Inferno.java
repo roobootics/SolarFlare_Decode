@@ -191,7 +191,7 @@ public class Inferno implements RobotConfig{
                     frontIntakeGate.instantSetTargetCommand("open"),
                     backIntakeGate.instantSetTargetCommand("open")
             ),
-            new SleepCommand(0.7),
+            new SleepCommand(1.5),
             new ParallelCommand(
                     frontIntakeGate.instantSetTargetCommand("backoff"),
                     backIntakeGate.instantSetTargetCommand("backoff"),
@@ -219,7 +219,7 @@ public class Inferno implements RobotConfig{
                     frontIntakeGate.instantSetTargetCommand("open"),
                     backIntakeGate.instantSetTargetCommand("open")
             ),
-            new SleepCommand(0.7),
+            new SleepCommand(1.5),
             new ParallelCommand(
                     frontIntakeGate.instantSetTargetCommand("backoff"),
                     backIntakeGate.instantSetTargetCommand("backoff"),
@@ -704,7 +704,7 @@ public class Inferno implements RobotConfig{
         }
     }
     public abstract static class VelRegression {
-        private static final double M_1 = 5.28;
+        private static final double M_1 = 5.05;
         private static final double B = 606;
         private static double regressFormula(double dist){
             return M_1*dist+B;
