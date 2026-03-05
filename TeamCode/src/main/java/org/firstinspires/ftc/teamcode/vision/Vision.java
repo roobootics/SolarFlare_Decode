@@ -349,26 +349,13 @@ public class Vision {
         limelight.stop();
     }
 
-    public String getCurrentPipelineType() {
-        if (!limelight.isRunning()) {
-            limelight.start();
-        }
-        String pipelineName = limelight.getStatus().getPipelineType();
-
-        if (pipelineName.isEmpty()) return null;
-        else return pipelineName;
-    }
-
     public Integer getObeliskID(){
-        if (!limelight.isRunning()) {
-            limelight.start();
-        }
+        if (!limelight.isRunning()) limelight.start();
+        if (limelight.getStatus().getPipelineIndex() != APRIL_TAGS_PIPELINE_INDEX) limelight.pipelineSwitch(APRIL_TAGS_PIPELINE_INDEX);
 
         LLResult result = limelight.getLatestResult();
 
         if (result != null && result.isValid()){
-            if (result.getPipelineIndex() != APRIL_TAGS_PIPELINE_INDEX) limelight.pipelineSwitch(APRIL_TAGS_PIPELINE_INDEX);
-
             List<LLResultTypes.FiducialResult> aprilTags = result.getFiducialResults();
 
             for (LLResultTypes.FiducialResult aprilTag : aprilTags){

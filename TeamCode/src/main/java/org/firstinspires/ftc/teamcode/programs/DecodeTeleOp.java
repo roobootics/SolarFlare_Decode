@@ -115,8 +115,7 @@ public class DecodeTeleOp extends LinearOpMode {
                                                 new InstantCommand(()->{follower.holdPoint(follower.getPose()); setMotorsToBrake();})
                                         )
                                 ),
-                                new IfThen(()->!(robotState==RobotState.SHOOTING), new InstantCommand(()->{if (!follower.isBusy()){this.breakFollowing();}})),
-                                new IfThen(()->Math.sqrt(gamepad1.left_stick_x*gamepad1.left_stick_x + gamepad1.left_stick_y*gamepad1.left_stick_y)>0.1 || Math.abs(gamepad1.right_stick_x)>0.1, new InstantCommand(()->{if (!follower.isBusy()){this.breakFollowing();}}))
+                                new IfThen(()->true, new InstantCommand(()->{if (!follower.isBusy()){this.breakFollowing();}}))
                         ),
                         new ConditionalCommand(
                                 new IfThen(

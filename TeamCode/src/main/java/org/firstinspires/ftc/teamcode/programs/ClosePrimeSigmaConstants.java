@@ -207,7 +207,7 @@ public class ClosePrimeSigmaConstants {
         Pedro.createFollower(getPose("start"));
         turretYaw.call((Components.CRBotServo servo)->servo.switchControl("PID"));
         executor.setWriteToTelemetry(()->{
-                telemetry.addData("offset",turretYaw.get("turretYawFront").getOffset());
+                telemetry.addData("offset",turretYaw.get("turretYawTop").getOffset());
                 telemetry.addLine("");
                 for (int i=0;i<pathListDisplay.size();i++){
                     if (i==selectionIndex && isInserting){
@@ -222,7 +222,7 @@ public class ClosePrimeSigmaConstants {
         });
         executor.setCommands(
                 new InstantCommand(setShooter::run),
-                turretYaw.command((Components.CRBotServo servo)->servo.triggeredDynamicOffsetCommand(()->gamepad1.right_trigger>0.4,()->gamepad2.left_trigger>0.4,0.05)),
+                turretYaw.command((Components.CRBotServo servo)->servo.triggeredDynamicOffsetCommand(()->gamepad1.left_trigger>0.4,()->gamepad1.right_trigger>0.4,0.05)),
                 new RunResettingLoop(new PressCommand(
                         new IfThen(()->gamepad1.dpad_up,new InstantCommand(()->{
                                 if (!isInserting){

@@ -43,8 +43,8 @@ public class Inferno implements RobotConfig{
     private static final double ENCODER_OFFSET = 180;
     public static SyncedActuators<CRBotServo> turretYaw;
     public static SyncedActuators<BotServo> turretPitch = new SyncedActuators<>(
-            new BotServo("turretPitchLeft", Servo.Direction.FORWARD, 422,5,180,130),
-            new BotServo("turretPitchRight", Servo.Direction.REVERSE, 422,5,180,130)
+            new BotServo("turretPitchLeft", Servo.Direction.FORWARD, 422,5,180,102),
+            new BotServo("turretPitchRight", Servo.Direction.REVERSE, 422,5,180,102)
     );
     public static final double TURRET_PITCH_RATIO = (double) 48/30;
     public static final double TURRET_PITCH_OFFSET = 47;
@@ -59,7 +59,6 @@ public class Inferno implements RobotConfig{
     public static Vision vision;
 
     public static Command autoGateIntake;
-    private static boolean isSpinningUp = true;
     public static final ArrayList<Supplier<Double[]>> colorSensorReads = new ArrayList<>();
     public static double turretOffsetFromAuto = 0;
     public static Color[] ballStorage = new Color[3];
@@ -107,7 +106,7 @@ public class Inferno implements RobotConfig{
                 new BotMotor("flywheelLeft", DcMotorSimple.Direction.REVERSE, 0, 0, new String[]{"VelocityPIDF"},
                         new ControlSystem<>(new String[]{"targetVelocity"}, List.of(() -> targetFlywheelVelocity), leftVelocityPID, new CustomFeedforward(1, ()->targetFlywheelVelocity/(2300)), new Clamp(),
                                 new CustomFeedforward(1, ()->{
-                                    if (isSpinningUp || ((robotState==RobotState.SHOOTING || robotState==RobotState.INTAKE_FRONT_AND_SHOOT || robotState==RobotState.INTAKE_BACK_AND_SHOOT)&&flywheel.get("flywheelLeft").getVelocity()<targetFlywheelVelocity)) {return 1.0;}
+                                    if (((robotState==RobotState.SHOOTING || robotState==RobotState.INTAKE_FRONT_AND_SHOOT || robotState==RobotState.INTAKE_BACK_AND_SHOOT)&&flywheel.get("flywheelLeft").getVelocity()<targetFlywheelVelocity)) {return 1.0;}
                                     if ((robotState==RobotState.SHOOTING || robotState==RobotState.INTAKE_FRONT_AND_SHOOT || robotState==RobotState.INTAKE_BACK_AND_SHOOT)&&flywheel.get("flywheelLeft").getVelocity()>targetFlywheelVelocity+54){return -0.5;}
                                     else if (flywheel.get("flywheelLeft").getVelocity()>targetFlywheelVelocity+85){return -0.5;}
                                     else {return 0.0;}})
@@ -115,7 +114,7 @@ public class Inferno implements RobotConfig{
                 new BotMotor("flywheelRight", DcMotorSimple.Direction.FORWARD, 0, 0, new String[]{"VelocityPIDF"},
                         new ControlSystem<>(new String[]{"targetVelocity"}, List.of(() -> targetFlywheelVelocity), rightVelocityPID, new CustomFeedforward(1, ()->targetFlywheelVelocity/(2300)), new Clamp(),
                                 new CustomFeedforward(1, ()->{
-                                    if (isSpinningUp || ((robotState==RobotState.SHOOTING || robotState==RobotState.INTAKE_FRONT_AND_SHOOT || robotState==RobotState.INTAKE_BACK_AND_SHOOT)&&flywheel.get("flywheelLeft").getVelocity()<targetFlywheelVelocity)) {return 1.0;}
+                                    if (((robotState==RobotState.SHOOTING || robotState==RobotState.INTAKE_FRONT_AND_SHOOT || robotState==RobotState.INTAKE_BACK_AND_SHOOT)&&flywheel.get("flywheelLeft").getVelocity()<targetFlywheelVelocity)) {return 1.0;}
                                     else if ((robotState==RobotState.SHOOTING || robotState==RobotState.INTAKE_FRONT_AND_SHOOT || robotState==RobotState.INTAKE_BACK_AND_SHOOT)&&flywheel.get("flywheelLeft").getVelocity()>targetFlywheelVelocity+54){return -0.5;}
                                     else if (flywheel.get("flywheelLeft").getVelocity()>targetFlywheelVelocity+85){return -0.5;}
                                     else {return 0.0;}})
@@ -126,11 +125,11 @@ public class Inferno implements RobotConfig{
         turretPitch.call((BotServo servo)->servo.setPositionCacheThreshold(0.2));
         frontIntake.setKeyPowers(
                 new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel","frontDrive","otherFrontDrive","sideSelect"},
-                new double[]{1.0,-1.0,1.0,0.9,0,-0.8,1,0.8,-1.0}
+                new double[]{1.0,-1.0,1.0,0.9,0,-0.8,1,0.75,-1.0}
         );
         backIntake.setKeyPowers(
                 new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel","frontDrive","otherFrontDrive","sideSelect"},
-                new double[]{1.0,-1.0,1.0,0.9,0,-1.0,1,0.8,-1.0}
+                new double[]{1.0,-1.0,1.0,0.9,0,-1.0,1,0.75,-1.0}
         );
         frontIntakeGate.setKeyPositions(new String[]{"open", "closed","backoff"}, new double[]{110.7,56.4,69.4});
         backIntakeGate.setKeyPositions(new String[]{"open", "closed","backoff"}, new double[]{133,73.9,86.9});
@@ -191,7 +190,7 @@ public class Inferno implements RobotConfig{
                     frontIntakeGate.instantSetTargetCommand("open"),
                     backIntakeGate.instantSetTargetCommand("open")
             ),
-            new SleepCommand(0.7),
+            new SleepCommand(1.5),
             new ParallelCommand(
                     frontIntakeGate.instantSetTargetCommand("backoff"),
                     backIntakeGate.instantSetTargetCommand("backoff"),
@@ -219,7 +218,7 @@ public class Inferno implements RobotConfig{
                     frontIntakeGate.instantSetTargetCommand("open"),
                     backIntakeGate.instantSetTargetCommand("open")
             ),
-            new SleepCommand(0.7),
+            new SleepCommand(1.5),
             new ParallelCommand(
                     frontIntakeGate.instantSetTargetCommand("backoff"),
                     backIntakeGate.instantSetTargetCommand("backoff"),
@@ -350,16 +349,8 @@ public class Inferno implements RobotConfig{
             turret = Fisiks.runPhysics(currentBallPath, targetPoint, pos, follower.getVelocity(), flywheel.get("flywheelLeft").getVelocity());
             double endTime = timer.time();
             physicsTime = endTime-startTime;
-            if (!success){
+            if (!success) {
                 Components.telemetry.addLine("PHYSICS FAILED TO CONVERGE");
-                Components.telemetry.addData("Dist Error",Fisiks.Error.distError);
-                Components.telemetry.addData("Side Error",Fisiks.Error.sideError);
-                Components.telemetry.addData("Height Error",Fisiks.Error.heightError);
-            } else {
-                Components.telemetry.addLine("");
-                Components.telemetry.addLine("");
-                Components.telemetry.addLine("");
-                Components.telemetry.addLine("");
             }
             turret[0] = Math.toDegrees(turret[0]);
             turret[1] = Math.toDegrees(turret[1]);
@@ -367,6 +358,7 @@ public class Inferno implements RobotConfig{
         else{
             turret = new double[]{(turretPitch.get("turretPitchLeft").getTarget()-TURRET_PITCH_OFFSET)/TURRET_PITCH_RATIO, Math.toDegrees(Math.atan2(targetPoint[1] - pos.getY(),targetPoint[0] - pos.getX()))};
         }
+        if (gamePhase == GamePhase.AUTO) turret[1] = Math.toDegrees(Math.atan2(targetPoint[1] - pos.getY(),targetPoint[0] - pos.getX()));
         double heading = Math.toDegrees(follower.getHeading());
         turret[1] = turret[1]%360;
         if ((turret[1]-heading)<=-150) turret[1] += 360;
@@ -493,6 +485,14 @@ public class Inferno implements RobotConfig{
         }
         return Triple.of(ballPaths,transferDirection,leaveRollersOn);
     }
+    public static Command panic = new ContinuousCommand(
+            ()->{
+                Pose pos = vision.getBotPoseMT1(follower.getPose());
+                if (Objects.nonNull(pos)){
+                    follower.setPose(pos);
+                }
+            }
+    );
     public static class AprilTagRelocalize extends Command {
 
         public static final int LOOPS = 2;
@@ -577,8 +577,8 @@ public class Inferno implements RobotConfig{
         return new InstantCommand(()->{if (Inferno.shotType==ShotType.MOTIF) shotType=ShotType.NORMAL; else shotType=ShotType.MOTIF;});
     }
     public static Command clearIntegralAtPeak = new SequentialCommand(
-            new SleepUntilTrue(()->flywheel.get("flywheelLeft").getVelocity()>=targetFlywheelVelocity-25),
-            new InstantCommand(()->{leftVelocityPID.clearIntegral();rightVelocityPID.clearIntegral();isSpinningUp=false;})
+            new SleepUntilTrue(()->flywheel.get("flywheelLeft").getVelocity()>=targetFlywheelVelocity-170),
+            new InstantCommand(()->{leftVelocityPID.clearIntegral();rightVelocityPID.clearIntegral();})
     );
     private static abstract class MotifShoot{
         private static ArrayList<BallPath> ballPaths; private static boolean leaveRollersOn; private static int transferDirection;
@@ -704,7 +704,7 @@ public class Inferno implements RobotConfig{
         }
     }
     public abstract static class VelRegression {
-        private static final double M_1 = 5.28;
+        private static final double M_1 = 4.88;
         private static final double B = 606;
         private static double regressFormula(double dist){
             return M_1*dist+B;
@@ -761,7 +761,6 @@ public class Inferno implements RobotConfig{
         motifShootAll = true;
         ballStorage = new Color[3];
         classifierBallCount=0;
-        isSpinningUp = true;
         if (alliance == Alliance.RED) autoGateIntake = new ParallelCommand(setState(RobotState.STOPPED),
                 new PedroCommand(
                         (PathBuilder b)->{RobotState intakeDirection = RobotState.INTAKE_FRONT; double targetHeading = 0; double tangentHeading = Math.atan2(64-follower.getPose().getY(),128-follower.getPose().getX());
