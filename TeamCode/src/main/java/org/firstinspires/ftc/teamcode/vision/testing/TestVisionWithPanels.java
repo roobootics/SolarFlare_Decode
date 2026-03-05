@@ -62,9 +62,9 @@ public class TestVisionWithPanels extends OpMode {
         panelsField.rect(14, 13);
 
         Integer id = vision.getObeliskID();
-        Pose botPoseMT1 = vision.getBotPoseMT1();
-        Pose botPoseMT2 = vision.getBotPoseMT2(Math.toDegrees(botPose.getHeading()));
-        Pose botPoseMT2WithMT1 = vision.getBotPoseMT2WithMT1();
+        Pose botPoseMT1 = vision.getBotPoseMT1(botPose);
+        Pose botPoseMT2 = vision.getBotPoseMT2(botPose);
+        Pose botPoseMT2WithMT1 = vision.getBotPoseMT2WithMT1(botPose);
 
         List<ArtifactDescriptor> artifacts = vision.getArtifactDescriptors(botPose, acceptedClasses);
 

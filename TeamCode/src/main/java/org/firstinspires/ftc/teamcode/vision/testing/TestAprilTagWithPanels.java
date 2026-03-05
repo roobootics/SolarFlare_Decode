@@ -60,9 +60,9 @@ public class TestAprilTagWithPanels extends OpMode {
         Pose botPose = follower.getPose();
 
         Integer id = vision.getObeliskID();
-        Pose botPoseMT1 = vision.getBotPoseMT1(Math.toDegrees(botPose.getHeading()));
-        Pose botPoseMT2 = vision.getBotPoseMT2(Math.toDegrees(botPose.getHeading()));
-        Pose botPoseMT2WithMT1 = vision.getBotPoseMT2WithMT1(Math.toDegrees(botPose.getHeading()));
+        Pose botPoseMT1 = vision.getBotPoseMT1(botPose);
+        Pose botPoseMT2 = vision.getBotPoseMT2(botPose);
+        Pose botPoseMT2WithMT1 = vision.getBotPoseMT2WithMT1(botPose);
 
         telemetry.addData("botPose x", botPose.getX());
         telemetry.addData("botPose y", botPose.getY());

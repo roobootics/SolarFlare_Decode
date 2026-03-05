@@ -509,7 +509,7 @@ public class Inferno implements RobotConfig{
                 startTime = timer.time();
             }
 
-            Pose pose = vision.getBotPoseMT1(Math.toDegrees(follower.getHeading()));
+            Pose pose = vision.getBotPoseMT1(follower.getPose());
 
             if (!Objects.isNull(pose)) {
 

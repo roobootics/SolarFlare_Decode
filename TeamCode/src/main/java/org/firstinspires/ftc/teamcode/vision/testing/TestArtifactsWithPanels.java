@@ -3,9 +3,7 @@ package org.firstinspires.ftc.teamcode.vision.testing;
 import static org.firstinspires.ftc.teamcode.base.Components.initialize;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
 
-import com.bylazar.field.CanvasRotation;
 import com.bylazar.field.FieldManager;
-import com.bylazar.field.FieldPresetParams;
 import com.bylazar.field.PanelsField;
 import com.bylazar.telemetry.PanelsTelemetry;
 import com.bylazar.telemetry.TelemetryManager;

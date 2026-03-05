@@ -1,11 +1,8 @@
 package org.firstinspires.ftc.teamcode.vision.testing;
 
-import androidx.annotation.NonNull;
-
 import com.bylazar.field.CanvasRotation;
 import com.bylazar.field.FieldManager;
 import com.bylazar.field.FieldPresetParams;
-import com.bylazar.field.ImagePreset;
 import com.bylazar.field.PanelsField;
 import com.bylazar.telemetry.PanelsTelemetry;
 import com.bylazar.telemetry.TelemetryManager;

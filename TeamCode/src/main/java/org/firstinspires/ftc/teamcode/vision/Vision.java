@@ -62,81 +62,14 @@ public class Vision {
         localizationAprilTags.add(24);
     }
 
-    public List<ArtifactDescriptor> getRelativeArtifactDescriptors(List<String> acceptedClasses){
-        if (!limelight.isRunning()){
-            limelight.start();
-        }
-        limelight.pipelineSwitch(NN_PIPELINE_INDEX);
-
-        List<ArtifactDescriptor> artifactDescriptors = new ArrayList<>(); // Output array
-        LLResult result = limelight.getLatestResult();
-
-        if (result == null || !result.isValid()) {
-            return artifactDescriptors;
-        }
-
-        for (LLResultTypes.DetectorResult detectorResult : result.getDetectorResults()) {
-            String className = detectorResult.getClassName();
-            List<List<Double>> corners = detectorResult.getTargetCorners();
-
-            telemetry.addData("corner 0", corners.get(0));
-            telemetry.addData("corner 1", corners.get(1));
-            telemetry.addData("corner 2", corners.get(2));
-            telemetry.addData("corner 3", corners.get(3));
-
-            if (acceptedClasses.contains(className)) {
-                double targetX = getTargetXPixels(cameraOrientation, corners);
-                double targetY = getTargetYPixels(cameraOrientation, corners);
-
-                double xOffset = targetX - cxNN;
-                double yOffset = cyNN - targetY;
-
-                double tx = Math.toDegrees(Math.atan(xOffset / fxNN));
-                double ty = Math.toDegrees(Math.atan(yOffset / fyNN));
-
-                telemetry.addData("tx", tx);
-                telemetry.addData("ty", ty);
-                telemetry.addData("cx", cxNN);
-                telemetry.addData("cy", cyNN);
-                telemetry.addData("targetX", targetX);
-                telemetry.addData("targetY", targetY);
-                telemetry.addData("xOffset", xOffset);
-                telemetry.addData("yOffset", yOffset);
-
-                double verticalAngleDeg = 90 + ty + cameraPoseOnRobot.getOrientation().getPitch(AngleUnit.DEGREES);
-
-                telemetry.addData("vertical angle", verticalAngleDeg);
-
-                double depth = cameraPoseOnRobot.getPosition().toUnit(DistanceUnit.INCH).z * Math.tan(Math.toRadians(verticalAngleDeg));
-
-                double horizontal = depth * Math.tan(Math.toRadians(tx + cameraPoseOnRobot.getOrientation().getYaw(AngleUnit.DEGREES)));
-
-                depth += cameraPoseOnRobot.getPosition().toUnit(DistanceUnit.INCH).x;
-                horizontal += cameraPoseOnRobot.getPosition().toUnit(DistanceUnit.INCH).y;
-
-                ArtifactDescriptor artifact = new ArtifactDescriptor(horizontal, depth, className);
-
-                artifact.setTargetXPixels(targetX);
-                artifact.setTargetYPixels(targetY);
-
-                artifactDescriptors.add(artifact);
-            }
-        }
-        return artifactDescriptors;
-    }
-
     public List<ArtifactDescriptor> getArtifactDescriptors(Pose botPosePedro, List<String> acceptedClasses){
-        if (!limelight.isRunning()){
-            limelight.start();
-        }
-        limelight.pipelineSwitch(NN_PIPELINE_INDEX);
+        if (!limelight.isRunning()) limelight.start();
+        if (limelight.getStatus().getPipelineIndex() != NN_PIPELINE_INDEX) limelight.pipelineSwitch(NN_PIPELINE_INDEX);
 
         List<ArtifactDescriptor> artifactDescriptors = new ArrayList<>(); // Output array
         LLResult result = limelight.getLatestResult();
 
-        if (result == null || !result.isValid()) {
-            return artifactDescriptors;
-        }
+        if (result == null || !result.isValid()) return artifactDescriptors;
 
         for (LLResultTypes.DetectorResult detectorResult : result.getDetectorResults()) {
             String className = detectorResult.getClassName();
@@ -207,13 +140,11 @@ public class Vision {
         return artifactDescriptors;
     }
 
-    public Pose getBotPoseMT1(double botHeadingDegrees){
-        if (!limelight.isRunning()){
-            limelight.start();
-        }
-        limelight.pipelineSwitch(APRIL_TAGS_PIPELINE_INDEX);
+    public Pose getBotPoseMT1(Pose odometryPose){
+        if (!limelight.isRunning()) limelight.start();
+        if (limelight.getStatus().getPipelineIndex() != APRIL_TAGS_PIPELINE_INDEX) limelight.pipelineSwitch(APRIL_TAGS_PIPELINE_INDEX);
 
-        botHeadingDegrees = normalizeHeading360Degrees(botHeadingDegrees);
+        double odometryHeading = normalizeHeading360Degrees(Math.toDegrees(odometryPose.getHeading()));
 
         Pose out = null;
 
@@ -224,14 +155,17 @@ public class Vision {
 
             for (LLResultTypes.FiducialResult aprilTag : aprilTags){
                 if (localizationAprilTags.contains(aprilTag.getFiducialId())){
-                    Pose botPose = limelightToPedroPose(result.getBotpose());
+                    Pose aprilTagPose = limelightToPedroPose(result.getBotpose());
 
-                    double aprilTagHeading = Math.toDegrees(botPose.getHeading());
+                    double aprilTagHeading = Math.toDegrees(aprilTagPose.getHeading());
 
-                    double diff = Math.abs(aprilTagHeading - botHeadingDegrees);
+                    double diff = (aprilTagHeading - odometryHeading + 540) % 360 - 180;
+                    double headingDiff = Math.abs(diff);
 
-                    if (!(diff > 30)){
-                        out = botPose;
+                    double dist = Math.hypot(aprilTagPose.getX() - odometryPose.getX(), aprilTagPose.getY() - odometryPose.getY());
+
+                    if ((headingDiff < 15) && (dist < 10)){
+                        out = aprilTagPose;
                     }
                 }
             }
@@ -241,15 +175,13 @@ public class Vision {
         return out;
     }
 
-    public Pose getBotPoseMT2(double botHeadingDegrees){
-        if (!limelight.isRunning()){
-            limelight.start();
-        }
-        limelight.pipelineSwitch(APRIL_TAGS_PIPELINE_INDEX);
+    public Pose getBotPoseMT2(Pose odometryPose){
+        if (!limelight.isRunning()) limelight.start();
+        if (limelight.getStatus().getPipelineIndex() != APRIL_TAGS_PIPELINE_INDEX) limelight.pipelineSwitch(APRIL_TAGS_PIPELINE_INDEX);
 
-        botHeadingDegrees = normalizeHeading360Degrees(botHeadingDegrees);
+        double odometryHeading = normalizeHeading360Degrees(Math.toDegrees(odometryPose.getHeading()));
 
-        limelight.updateRobotOrientation(standardToLimelightYaw(botHeadingDegrees));
+        limelight.updateRobotOrientation(standardToLimelightYaw(odometryHeading));
 
         Pose out = null;
 
@@ -260,14 +192,17 @@ public class Vision {
 
             for (LLResultTypes.FiducialResult aprilTag : aprilTags){
                 if (localizationAprilTags.contains(aprilTag.getFiducialId())){
-                    Pose botPose = limelightToPedroPose(result.getBotpose());
+                    Pose aprilTagPose = limelightToPedroPose(result.getBotpose());
 
-                    double aprilTagHeading = Math.toDegrees(botPose.getHeading());
+                    double aprilTagHeading = Math.toDegrees(aprilTagPose.getHeading());
 
-                    double diff = Math.abs(aprilTagHeading - botHeadingDegrees);
+                    double diff = (aprilTagHeading - odometryHeading + 540) % 360 - 180;
+                    double headingDiff = Math.abs(diff);
 
-                    if (!(diff > 30)){
-                        out = botPose;
+                    double dist = Math.hypot(aprilTagPose.getX() - odometryPose.getX(), aprilTagPose.getY() - odometryPose.getY());
+
+                    if ((headingDiff < 15) && (dist < 10)){
+                        out = aprilTagPose;
                     }
                 }
             }
@@ -276,15 +211,13 @@ public class Vision {
 
         return out;
     }
-    public Pose getBotPoseMT2WithMT1(double botHeadingDegrees) {
-        if (!limelight.isRunning()) {
-            limelight.start();
-        }
-        limelight.pipelineSwitch(APRIL_TAGS_PIPELINE_INDEX);
+    public Pose getBotPoseMT2WithMT1(Pose odometryPose) {
+        if (!limelight.isRunning()) limelight.start();
+        if (limelight.getStatus().getPipelineIndex() != APRIL_TAGS_PIPELINE_INDEX) limelight.pipelineSwitch(APRIL_TAGS_PIPELINE_INDEX);
 
-        botHeadingDegrees = normalizeHeading360Degrees(botHeadingDegrees);
+        double odometryHeading = normalizeHeading360Degrees(Math.toDegrees(odometryPose.getHeading()));
 
-        Pose botPoseMT1 = getBotPoseMT1(botHeadingDegrees);
+        Pose botPoseMT1 = getBotPoseMT1(odometryPose);
 
         if (botPoseMT1 != null) {
             double llYaw = standardToLimelightYaw(Math.toDegrees(botPoseMT1.getHeading()));
@@ -300,13 +233,17 @@ public class Vision {
 
                 for (LLResultTypes.FiducialResult aprilTag : aprilTags){
                     if (localizationAprilTags.contains(aprilTag.getFiducialId())){
-                        Pose botPose = limelightToPedroPose(result.getBotpose_MT2());
-                        double aprilTagHeading = Math.toDegrees(botPose.getHeading());
+                        Pose aprilTagPose = limelightToPedroPose(result.getBotpose());
 
-                        double diff = Math.abs(aprilTagHeading - botHeadingDegrees);
+                        double aprilTagHeading = Math.toDegrees(aprilTagPose.getHeading());
 
-                        if (!(diff > 30)){
-                            out = botPose;
+                        double diff = (aprilTagHeading - odometryHeading + 540) % 360 - 180;
+                        double headingDiff = Math.abs(diff);
+
+                        double dist = Math.hypot(aprilTagPose.getX() - odometryPose.getX(), aprilTagPose.getY() - odometryPose.getY());
+
+                        if ((headingDiff < 15) && (dist < 10)){
+                            out = aprilTagPose;
                         }
                     }
                 }
@@ -426,11 +363,12 @@ public class Vision {
         if (!limelight.isRunning()) {
             limelight.start();
         }
-        limelight.pipelineSwitch(APRIL_TAGS_PIPELINE_INDEX);
 
         LLResult result = limelight.getLatestResult();
 
         if (result != null && result.isValid()){
+            if (result.getPipelineIndex() != APRIL_TAGS_PIPELINE_INDEX) limelight.pipelineSwitch(APRIL_TAGS_PIPELINE_INDEX);
+
             List<LLResultTypes.FiducialResult> aprilTags = result.getFiducialResults();
 
             for (LLResultTypes.FiducialResult aprilTag : aprilTags){
