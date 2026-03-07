@@ -62,7 +62,6 @@ public class Inferno implements RobotConfig{
 
     public static Command autoGateIntake;
     public static final ArrayList<Supplier<Double[]>> colorSensorReads = new ArrayList<>();
-    public static double turretOffsetFromAuto = 0;
     public static Color[] ballStorage = new Color[3];
     public static BallPath currentBallPath = BallPath.LOW;
     public static RobotState robotState = RobotState.STOPPED;
