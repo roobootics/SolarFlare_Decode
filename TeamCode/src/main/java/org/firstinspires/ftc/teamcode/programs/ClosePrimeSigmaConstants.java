@@ -79,7 +79,7 @@ public class ClosePrimeSigmaConstants {
     }
     public static double mirrorHeading(double input){return 2*Math.PI - input;}
     static {
-        poses.put("start",new Pose(20, 122.62, Math.toRadians(143.5)));
+        poses.put("start",new Pose(19.68, 121.72, Math.toRadians(144)));
         poses.put("firstShoot",new Pose(53.312,90.398,Math.toRadians(136)));
         poses.put("shoot",new Pose(53.312,90.398,Math.toRadians(0)));
         poses.put("secondSpikeCtrl",new Pose(88.046, 59.413));
