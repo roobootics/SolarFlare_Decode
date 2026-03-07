@@ -15,11 +15,13 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.gamePhase;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftFront;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.loopFSM;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.motif;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.readBallStorage;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.robotState;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.setShooter;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.setState;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.shotType;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.targetFlywheelVelocity;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.transfer;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretOffsetFromAuto;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretYaw;
 
@@ -41,6 +43,7 @@ import java.util.Objects;
 
 public class ClosePrimeSigmaConstants {
     public static final double INITIAL_WAIT = 0.01;
+    public static final double PRE_SHOT_TIME = 0;
     public static final double SHOT_TIME = 1.2;
     public static final double slowDownT = 0.73;
     public static final double speedUpT = 0.13;
@@ -50,7 +53,26 @@ public class ClosePrimeSigmaConstants {
     public static final double gateIntakeTimeout = 1;
     public static final double fourthShootSlowT = 0.73;
     public static final double fourthShootSlowAmount = 0.76;
-    public static Command shoot = new SequentialCommand(setState(Inferno.RobotState.SHOOTING), new SleepCommand(SHOT_TIME), intake());
+    public static Command shoot = new SequentialCommand(new SleepCommand(PRE_SHOT_TIME),
+            setState(Inferno.RobotState.SHOOTING),
+            new SleepCommand(SHOT_TIME),
+            new ConditionalCommand(
+                    new IfThen(
+                            ()->{
+                                readBallStorage();
+                                boolean allNull = true;
+                                for (Inferno.Color color : ballStorage){
+                                    if (!Objects.isNull(color)) allNull = false;
+                                }
+                                return !allNull;
+                            },
+                            new SequentialCommand(
+                                    new InstantCommand(transfer::reset),
+                                    new SleepCommand(SHOT_TIME)
+                            )
+                    )
+            ),
+            intake());
     public static final HashMap<String, Pose> poses = new HashMap<>();
     public static Pose mirrorPose(Pose input){
         return new Pose(144-input.getX(),input.getY(),mirrorHeading(input.getHeading()));
@@ -167,17 +189,17 @@ public class ClosePrimeSigmaConstants {
             preloadShoot,
             secondSpike,
             gate,
+            gate,
             firstSpike,
-            thirdSpike,
-            park
+            thirdSpike
     ));
     public static ArrayList<String> pathListDisplay = new ArrayList<>(Arrays.asList(
             "preloadShoot",
             "secondSpike",
             "gate",
+            "gate",
             "firstSpike",
-            "thirdSpike",
-            "park"
+            "thirdSpike"
     ));
     public static int selectionIndex = 0;
     public static boolean isInserting = true;
@@ -247,7 +269,6 @@ public class ClosePrimeSigmaConstants {
                         new IfThen(()->gamepad1.x,new InstantCommand(()->addAction(thirdSpike,"thirdSpike"))),
                         new IfThen(()->gamepad1.y,new InstantCommand(()->addAction(gate,"gate"))),
                         new IfThen(()->gamepad1.dpad_left,new InstantCommand(()->addAction(preloadShoot,"preloadShoot"))),
-                        new IfThen(()->gamepad1.dpad_right,new InstantCommand(()->addAction(park,"park"))),
                         new IfThen(()->gamepad1.back,new InstantCommand(ClosePrimeSigmaConstants::removeAction))
                 ))
         );
@@ -279,9 +300,19 @@ public class ClosePrimeSigmaConstants {
             telemetry.addData("Flywheel Left Power",flywheel.get("flywheelLeft").getPower());
             telemetry.addData("Flywheel Right Power",flywheel.get("flywheelRight").getPower());
         });
+        SequentialCommand mainPath = new SequentialCommand(pathList.toArray(new Command[0]));
         executor.setCommands(
-                findMotif,
-                new SequentialCommand(pathList.toArray(new Command[0])),
+                new ParallelCommand(findMotif, new SequentialCommand(new SleepCommand(5),new InstantCommand(findMotif::stop))),
+                new SequentialCommand(
+                        new ParallelCommand(
+                                mainPath,
+                                new SequentialCommand(
+                                        new SleepUntilTrue(mainPath::isFinished,29),
+                                        new InstantCommand(mainPath::stop)
+                                )
+                        ),
+                        park
+                ),
                 Pedro.updateCommand(),
                 loopFSM
         );

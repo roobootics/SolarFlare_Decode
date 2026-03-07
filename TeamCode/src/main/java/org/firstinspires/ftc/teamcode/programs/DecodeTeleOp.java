@@ -127,6 +127,7 @@ public class DecodeTeleOp extends LinearOpMode {
                                 ),
                                 new IfThen(()->!(robotState==RobotState.SHOOTING && !(Math.sqrt(gamepad1.left_stick_x*gamepad1.left_stick_x + gamepad1.left_stick_y*gamepad1.left_stick_y)>0.1 || Math.abs(gamepad1.right_stick_x)>0.1)), new InstantCommand(()->{if (!follower.isBusy()){this.breakFollowing();}}))
                         ),
+                        new InstantCommand(this::setMotorsToBrake),
                         new ConditionalCommand(
                                 new IfThen(
                                         ()->!(follower.isBusy() || holdingPosition),
@@ -144,7 +145,6 @@ public class DecodeTeleOp extends LinearOpMode {
                                         Pedro.updateCommand()
                                 )
                         ),
-                        new InstantCommand(this::setMotorsToBrake),
                         Commands.triggeredDynamicCommand(()->gamepad1.dpad_right,()->gamepad1.dpad_left,new InstantCommand(()->targetFlywheelVelocity+=2),new InstantCommand(()->targetFlywheelVelocity-=2))
                         /*new InstantCommand(()->{
                             if (315-turretYaw.get("turretYawFront").getTarget()<15 && !gamepad1.isRumbling()){gamepad1.rumble(1000000000);}
