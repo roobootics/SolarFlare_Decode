@@ -6,6 +6,8 @@ import static org.firstinspires.ftc.teamcode.base.Components.gamepad1;
 import static org.firstinspires.ftc.teamcode.base.Components.initialize;
 import static org.firstinspires.ftc.teamcode.base.Components.telemetry;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.TURRET_PITCH_OFFSET;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.TURRET_PITCH_RATIO;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.alliance;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.ballStorage;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.classifierBallCount;
@@ -13,6 +15,7 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.currentBallPat
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.findMotif;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.flywheel;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.gamePhase;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.hoodDesired;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.initEncoderError;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftFront;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.loopFSM;
@@ -26,8 +29,11 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.shotType;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.targetFlywheelVelocity;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.targetPoint;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.transfer;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretPitch;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretYaw;
 
+import com.acmerobotics.dashboard.FtcDashboard;
+import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.pedropathing.geometry.BezierCurve;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
@@ -46,16 +52,18 @@ import java.util.Objects;
 
 public class ClosePrimeSigmaConstants {
     public static final double INITIAL_WAIT = 0.01;
-    public static final double PRE_SHOT_TIME = 0;
-    public static final double SHOT_TIME = 1.2;
+    public static final double PRE_SHOT_TIME = 0.27;
+    public static final double SHOT_TIME = 1;
     public static final double slowDownT = 0.73;
-    public static final double speedUpT = 0.13;
-    public static final double stopIntakeT = 0.5;
+    public static final double speedUpT = 0.05;
+    public static final double stopIntakeT = 0.15;
     public static final double slowDownAmount = 0.67;
-    public static final double gateWait = 0.4;
+    public static final double gateWait = 0;
     public static final double gateIntakeTimeout = 1;
     public static final double fourthShootSlowT = 0.73;
     public static final double fourthShootSlowAmount = 0.76;
+    public static final double secondShootSlowT = 0.85;
+    public static final double secondShootSlowAmount = 0.76;
     public static Command shoot = new SequentialCommand(new SleepCommand(PRE_SHOT_TIME),
             setState(Inferno.RobotState.SHOOTING),
             new SleepCommand(SHOT_TIME),
@@ -84,13 +92,11 @@ public class ClosePrimeSigmaConstants {
     static {
         poses.put("start",new Pose(19.68, 121.72, Math.toRadians(144)));
         poses.put("firstShoot",new Pose(53.312,90.398,Math.toRadians(136)));
-        poses.put("shoot",new Pose(53.312,90.398,Math.toRadians(0)));
+        poses.put("shoot",new Pose(57.85,77.42,Math.toRadians(0)));
         poses.put("secondSpikeCtrl",new Pose(88.046, 59.413));
         poses.put("secondSpike",new Pose(16.329, 58.805));
-        poses.put("secondShootCtrl",new Pose(54.282, 64.593));
-        poses.put("gateOpenCtrl",new Pose(39.404, 37.087));
-        poses.put("gateOpen",new Pose(17.669, 60.486,Math.toRadians(-25)));
-        poses.put("gateIntake",new Pose(16.201, 52.334,Math.toRadians(-50)));
+        poses.put("gateOpen",new Pose(14.97, 59.12,Math.toRadians(0)));
+        poses.put("gateIntake",new Pose(14.60, 55.86,Math.toRadians(-50)));
         poses.put("thirdShootCtrl",new Pose(44.169, 52.575));
         poses.put("firstSpike",new Pose(22.773, 79.829,Math.toRadians(0)));
         poses.put("fourthShoot",new Pose(53.451, 87.203,Math.toRadians(0)));
@@ -101,7 +107,12 @@ public class ClosePrimeSigmaConstants {
     public static Pose getPose(String input){if (alliance==Inferno.Alliance.BLUE) return poses.get(input); else return mirrorPose(Objects.requireNonNull(poses.get(input)));}
     public static double getHeading(String input){if (alliance==Inferno.Alliance.BLUE) return Objects.requireNonNull(poses.get(input)).getHeading(); else return mirrorHeading(Objects.requireNonNull(poses.get(input)).getHeading());}
     public static Command intake(){return new InstantCommand(()->{if (alliance==Inferno.Alliance.BLUE) setState(Inferno.RobotState.INTAKE_BACK).run(); else setState(Inferno.RobotState.INTAKE_FRONT).run();});}
-    public static Command preloadShoot = new SequentialCommand(new SleepCommand(INITIAL_WAIT), new PedroLinearCommand(getPose("firstShoot"),true), shoot);
+    public static Command preloadShoot = new SequentialCommand(new SleepCommand(INITIAL_WAIT),
+            new PedroCommand(b->
+                    b.addPath(new BezierLine(follower::getPose,getPose("firstShoot")))
+                    .setLinearHeadingInterpolation(getHeading("start"),getHeading("firstShoot")),
+    true),
+    shoot);
     public static Command secondSpike = new SequentialCommand(new PedroCommand(
             (PathBuilder b)->b.addPath(
                     new BezierCurve(
@@ -111,34 +122,30 @@ public class ClosePrimeSigmaConstants {
                     )).setTangentHeadingInterpolation().setReversed()
             .addParametricCallback(slowDownT,()->follower.setMaxPower(slowDownAmount))
             .addPath(
-                    new BezierCurve(
+                    new BezierLine(
                             follower::getPose,
-                            getPose("secondShootCtrl"),
                             getPose("shoot")
                     )
             ).setConstantHeadingInterpolation(getHeading("shoot"))
             .addParametricCallback(speedUpT,()->follower.setMaxPower(1.0))
-            .addParametricCallback(stopIntakeT,()->setState(Inferno.RobotState.STOPPED).run()), true), shoot);
+            .addParametricCallback(stopIntakeT,()->setState(Inferno.RobotState.STOPPED).run())
+            .addParametricCallback(secondShootSlowT,()->follower.setMaxPower(secondShootSlowAmount))
+            .addParametricCallback(0.93,()->follower.setMaxPower(1.0)), true), shoot);
     public static Command gate = new SequentialCommand(new PedroCommand(
             (PathBuilder b)->b.addPath(
-                    new BezierCurve(
+                    new BezierLine(
                             follower::getPose,
-                            getPose("gateOpenCtrl"),
                             getPose("gateOpen")
                     )
-            ).setLinearHeadingInterpolation(follower.getHeading(), getHeading("gateOpen")),
-            true),
-            new SleepCommand(gateWait),
-            new PedroCommand(
-                    (PathBuilder b)->b
-                            .addPath(
-                                    new BezierLine(
-                                            follower::getPose,
-                                            getPose("gateIntake")
-                                    )
+                    ).setLinearHeadingInterpolation(follower.getHeading(), getHeading("gateOpen"))
+                    .addPath(
+                            new BezierLine(
+                                    follower::getPose,
+                                    getPose("gateIntake")
                             )
-                            .setLinearHeadingInterpolation(getHeading("gateOpen"), getHeading("gateIntake")),
-                    true),
+                    )
+                    .setLinearHeadingInterpolation(getHeading("gateOpen"), getHeading("gateIntake")),
+            true),
             new Inferno.CheckFull(gateIntakeTimeout),
             new PedroCommand(
                     (PathBuilder b)->b.addPath(
@@ -187,22 +194,24 @@ public class ClosePrimeSigmaConstants {
                     ).setConstantHeadingInterpolation(getHeading("shoot"))
                     .addParametricCallback(speedUpT,()->follower.setMaxPower(1.0))
                     .addParametricCallback(stopIntakeT,()->setState(Inferno.RobotState.STOPPED).run()),true), shoot);
-    public static Command park = new SequentialCommand(setState(Inferno.RobotState.STOPPED), new PedroLinearCommand(getPose("park"),true));
+    public static Command park = new SequentialCommand(setState(Inferno.RobotState.STOPPED),
+            new PedroCommand(b->
+                    b.addPath(new BezierLine(follower::getPose,getPose("park")))
+                            .setLinearHeadingInterpolation(getHeading("shoot"),getHeading("park")),
+    true));
     public static ArrayList<Command> pathList = new ArrayList<>(Arrays.asList(
             preloadShoot,
             secondSpike,
             gate,
             gate,
-            firstSpike,
-            thirdSpike
+            firstSpike
     ));
     public static ArrayList<String> pathListDisplay = new ArrayList<>(Arrays.asList(
             "preloadShoot",
             "secondSpike",
             "gate",
             "gate",
-            "firstSpike",
-            "thirdSpike"
+            "firstSpike"
     ));
     public static int selectionIndex = 0;
     public static boolean isInserting = true;
@@ -210,6 +219,7 @@ public class ClosePrimeSigmaConstants {
         if (isInserting) {
             pathListDisplay.add(selectionIndex,label);
             pathList.add(selectionIndex,command);
+            selectionIndex+=1;
         } else {
             pathListDisplay.set(selectionIndex,label);
             pathList.set(selectionIndex,command);
@@ -223,13 +233,23 @@ public class ClosePrimeSigmaConstants {
     }
     public static void runOpMode(Inferno.Alliance alliance, LinearOpMode opMode){
         initialize(opMode,new Inferno(),true,true);
+        Components.telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         leftFront.resetEncoder();
         Inferno.alliance = alliance;
         gamePhase = Inferno.GamePhase.AUTO;
         Pedro.createFollower(getPose("start"));
-        turretYaw.call((Components.CRBotServo servo)->servo.switchControl("PID"));
+        initEncoderError = 0;
         executor.setWriteToTelemetry(()->{
                 telemetry.addData("pos",turretYaw.get("turretYawTop").getCurrentPosition());
+                telemetry.addData("Target Flywheel Velocity",targetFlywheelVelocity);
+                telemetry.addData("Flywheel Velocity",0);
+                telemetry.addLine("");
+                telemetry.addLine("A: First Spike");
+                telemetry.addLine("B: Second Spike");
+                telemetry.addLine("X: Third Spike");
+                telemetry.addLine("Y: Gate");
+                telemetry.addLine("DPAD_LEFT: Preload Shoot");
+                telemetry.addLine("BACK: Delete");
                 telemetry.addLine("");
                 for (int i=0;i<pathListDisplay.size();i++){
                     if (i==selectionIndex && isInserting){
@@ -239,6 +259,7 @@ public class ClosePrimeSigmaConstants {
                         telemetry.addLine("> ["+pathListDisplay.get(i)+"]");
                     } else telemetry.addLine(pathListDisplay.get(i));
                 }
+                if (selectionIndex==pathListDisplay.size()) telemetry.addLine("> [    ]");
                 telemetry.addLine("");
                 telemetry.addLine("Please, Speed, we need this.");
         });
@@ -277,7 +298,14 @@ public class ClosePrimeSigmaConstants {
         executor.runLoop(opMode::opModeInInit);
         Components.activateActuatorControl();
         executor.setWriteToTelemetry(()->{
-            telemetry.addData("Motif",motif);
+            telemetry.addData("Motif",Arrays.asList(motif));
+            telemetry.addLine("");
+            telemetry.addData("Target Flywheel Velocity", targetFlywheelVelocity);
+            telemetry.addData("Flywheel Velocity", flywheel.get("flywheelLeft").getVelocity());
+            telemetry.addData("Flywheel Error", targetFlywheelVelocity - flywheel.get("flywheelLeft").getVelocity());
+            telemetry.addLine("");
+            telemetry.addData("Hood Angle",(turretPitch.get("turretPitchLeft").getTarget()-TURRET_PITCH_OFFSET)/TURRET_PITCH_RATIO);
+            telemetry.addData("Hood Desired",hoodDesired);
             telemetry.addLine("");
             telemetry.addData("Ball Storage", Arrays.asList(ballStorage));
             telemetry.addLine("");
@@ -287,12 +315,6 @@ public class ClosePrimeSigmaConstants {
             telemetry.addLine("");
             telemetry.addData("Classifier Count",classifierBallCount);
             telemetry.addData("Current Shot Height",currentBallPath);
-            telemetry.addLine("");
-            telemetry.addData("Target Flywheel Velocity",targetFlywheelVelocity);
-            telemetry.addData("Flywheel Velocity",flywheel.get("flywheelLeft").getVelocity());
-            telemetry.addLine("");
-            telemetry.addData("Yaw Target",turretYaw.get("turretYawTop").getTarget());
-            telemetry.addData("Yaw Desired",-(turretYaw.get("turretYawTop").getTarget()-180)+Math.toDegrees(follower.getHeading()));
             telemetry.addLine("");
             telemetry.addData("PoseX",follower.getPose().getX());
             telemetry.addData("PoseY",follower.getPose().getY());
@@ -315,7 +337,14 @@ public class ClosePrimeSigmaConstants {
                         park
                 ),
                 Pedro.updateCommand(),
-                loopFSM
+                loopFSM,
+                new RunResettingLoop(
+                    new InstantCommand(
+                            ()->targetFlywheelVelocity = Inferno.VelRegression.regressFormula(
+                                    getPose("shoot").distanceFrom(new Pose(targetPoint[0],targetPoint[1]))
+                            )
+                    )
+                )
         );
         executor.runLoop(opMode::opModeIsActive);
     }

@@ -61,9 +61,6 @@ public class DecodeTeleOp extends LinearOpMode {
     private double lastTime = 0;
     private double previousBallCount = -1;
     private boolean panicMode = false;
-    public static double kP = 0.0007;
-    public static double kI = 0.0012;
-    public static double kD = 0.00005;
     private void breakFollowing(){
         holdingPosition = false;
         follower.breakFollowing();
@@ -91,8 +88,6 @@ public class DecodeTeleOp extends LinearOpMode {
                 new RunResettingLoop(new InstantCommand(()->{if (gamepad1.dpad_right) {Inferno.alliance = Alliance.RED;}}))
         );
         executor.runLoop(this::opModeInInit);
-        leftVelocityPID.setPIDCoefficients(kP,kI,kD);
-        rightVelocityPID.setPIDCoefficients(kP,kI,kD);
         Components.activateActuatorControl();
         breakFollowing();
         executor.setCommands(

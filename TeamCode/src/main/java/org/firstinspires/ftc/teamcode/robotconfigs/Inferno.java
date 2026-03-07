@@ -75,8 +75,8 @@ public class Inferno implements RobotConfig{
     public static double classifierBallCount = 0;
     public static Alliance alliance = Alliance.RED;
     public static GamePhase gamePhase = GamePhase.AUTO;
-    public static VelocityPID leftVelocityPID = new VelocityPID(false,BotMotor::getVelocity,0.0008, 0, 0).setIntegralStartThreshold(80);
-    public static VelocityPID rightVelocityPID = new VelocityPID(false,(BotMotor motor)->flywheel.get("flywheelLeft").getVelocity(),0.0008, 0, 0).setIntegralStartThreshold(80);
+    public static VelocityPID leftVelocityPID = new VelocityPID(false,BotMotor::getVelocity,0.0012, 0.0012, 0.00003).setIntegralStartThreshold(80);
+    public static VelocityPID rightVelocityPID = new VelocityPID(false,(BotMotor motor)->flywheel.get("flywheelLeft").getVelocity(),0.0012, 0.0012, 0.00003).setIntegralStartThreshold(80);
     public static double hoodDesired;
     public static double yawDesired;
     public static double physicsTime;
@@ -703,14 +703,14 @@ public class Inferno implements RobotConfig{
         private static final double C = 5727;
         private static final double B = -792;
         private static final double A = 41.1;
-        private static double regressFormula(double voltage){
+        public static double regressFormula(double voltage){
             return A*voltage*voltage+B*voltage+C;
         }
     }
     public abstract static class VelRegression {
         private static final double M_1 = 4.7;
         private static final double B = 606;
-        private static double regressFormula(double dist){
+        public static double regressFormula(double dist){
             return M_1*dist+B;
         }
     }
@@ -721,7 +721,7 @@ public class Inferno implements RobotConfig{
         private static final double D = -0.116957588;
         private static final double E = 0.343627627;
         private static final double F = 153.71021674734098;
-        private static double regressFormula(double dist,double vel){
+        public static double regressFormula(double dist,double vel){
             return F+E*dist+D*vel+C*dist*dist+B*dist*vel+A*vel*vel;
         }
     }

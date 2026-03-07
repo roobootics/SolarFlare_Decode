@@ -132,7 +132,7 @@ public class FarPrimeSigmaConstants {
                             )
                             .addParametricCallback(speedUpT,()->follower.setMaxPower(1.0))
                             .addParametricCallback(stopIntakeT,()->setState(Inferno.RobotState.STOPPED).run())
-                            .addParametricCallback(0.7,()->loadingZoneOverride=true),
+                            .addParametricCallback(0.83,()->loadingZoneOverride=true),
                     true
             ), shoot
     );
@@ -180,6 +180,8 @@ public class FarPrimeSigmaConstants {
         gamePhase = Inferno.GamePhase.AUTO;
         Pedro.createFollower(getPose("start"));
         executor.setWriteToTelemetry(()->{
+            telemetry.addData("Target Flywheel Velocity",0);
+            telemetry.addData("Flywheel Velocity",0);
             telemetry.addData("pos",turretYaw.get("turretYawTop").getCurrentPosition());
             telemetry.addData("botX",follower.getPose().getX());
             telemetry.addData("botY",follower.getPose().getY());
@@ -252,7 +254,13 @@ public class FarPrimeSigmaConstants {
                             if (flag==2 && !shoot.isBusy() && !loadingZoneOverride) turretYaw.call(servo->servo.setTarget(Math.toDegrees(atan2(targetPoint[1]-getPose("shoot").getY(),targetPoint[0]-getPose("shoot").getX())-getHeading("shoot"))));
                             else if (flag==1 && !shoot.isBusy()  && !loadingZoneOverride) turretYaw.call(servo->servo.setTarget(Math.toDegrees(atan2(targetPoint[1]-getPose("firstShoot").getY(),targetPoint[0]-getPose("firstShoot").getX())-getHeading("firstShoot"))));
                         }
-                ))
+                    ),
+                    new InstantCommand(
+                            ()->targetFlywheelVelocity = Inferno.VelRegression.regressFormula(
+                                    getPose("shoot").distanceFrom(new Pose(targetPoint[0],targetPoint[1]))
+                            )
+                    )
+                )
         );
         executor.runLoop(opMode::opModeIsActive);
     }
