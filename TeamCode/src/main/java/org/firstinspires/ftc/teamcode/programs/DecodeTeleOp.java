@@ -8,7 +8,9 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.TURRET_PITCH_O
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.TURRET_PITCH_RATIO;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.ballStorage;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.classifierBallCount;
-import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.clearIntegralAtPeak;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.initEncoderError;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftVelocityPID;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.rightVelocityPID;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.currentBallPath;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.flywheel;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.gamePhase;
@@ -27,11 +29,13 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.targetFlywheel
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.targetPoint;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.toggleShotType;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.transfer;
-import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretOffsetFromAuto;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretPitch;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretYaw;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.yawDesired;
 
+import com.acmerobotics.dashboard.FtcDashboard;
+import com.acmerobotics.dashboard.config.Config;
+import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import org.firstinspires.ftc.teamcode.base.Commands;
 import org.firstinspires.ftc.teamcode.base.Commands.*;
 
@@ -51,11 +55,15 @@ import java.util.Arrays;
 import java.util.Objects;
 
 @TeleOp
+@Config
 public class DecodeTeleOp extends LinearOpMode {
     private boolean holdingPosition = false;
     private double lastTime = 0;
     private double previousBallCount = -1;
     private boolean panicMode = false;
+    public static double kP = 0.0007;
+    public static double kI = 0.0012;
+    public static double kD = 0.00005;
     private void breakFollowing(){
         holdingPosition = false;
         follower.breakFollowing();
@@ -73,16 +81,18 @@ public class DecodeTeleOp extends LinearOpMode {
     public void runOpMode(){
         gamePhase = GamePhase.TELEOP;
         initialize(this,new Inferno(),false,true);
+        Components.telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         //targetFlywheelVelocity=1150;
-        if (Objects.isNull(follower)) {Pedro.createFollower(new Pose(96,7.5,0)); leftFront.resetEncoder(); followerMade = true;}
+        if (Objects.isNull(follower)) {Pedro.createFollower(new Pose(96,7.5,0)); leftFront.resetEncoder(); followerMade = true; initEncoderError = 0;}
         else {Pedro.createFollower(follower.getPose());}
         executor.setCommands(
-                new RunResettingLoop(new InstantCommand(()->{if (gamepad1.back && !followerMade) {follower.setPose(new Pose(96,7.5,0)); leftFront.resetEncoder(); followerMade = true;}})),
+                new RunResettingLoop(new InstantCommand(()->{if (gamepad1.back && !followerMade) {follower.setPose(new Pose(96,7.5,0)); leftFront.resetEncoder(); followerMade = true; initEncoderError = 0;}})),
                 new RunResettingLoop(new InstantCommand(()->{if (gamepad1.dpad_left) {Inferno.alliance = Alliance.BLUE;}})),
                 new RunResettingLoop(new InstantCommand(()->{if (gamepad1.dpad_right) {Inferno.alliance = Alliance.RED;}}))
         );
         executor.runLoop(this::opModeInInit);
-        turretYaw.call((CRBotServo servo)->servo.setOffset(turretOffsetFromAuto));
+        leftVelocityPID.setPIDCoefficients(kP,kI,kD);
+        rightVelocityPID.setPIDCoefficients(kP,kI,kD);
         Components.activateActuatorControl();
         breakFollowing();
         executor.setCommands(
@@ -115,7 +125,7 @@ public class DecodeTeleOp extends LinearOpMode {
                                                 new InstantCommand(()->{follower.holdPoint(follower.getPose()); setMotorsToBrake();})
                                         )
                                 ),
-                                new IfThen(()->true, new InstantCommand(()->{if (!follower.isBusy()){this.breakFollowing();}}))
+                                new IfThen(()->!(robotState==RobotState.SHOOTING && !(Math.sqrt(gamepad1.left_stick_x*gamepad1.left_stick_x + gamepad1.left_stick_y*gamepad1.left_stick_y)>0.1 || Math.abs(gamepad1.right_stick_x)>0.1)), new InstantCommand(()->{if (!follower.isBusy()){this.breakFollowing();}}))
                         ),
                         new ConditionalCommand(
                                 new IfThen(
@@ -135,8 +145,7 @@ public class DecodeTeleOp extends LinearOpMode {
                                 )
                         ),
                         new InstantCommand(this::setMotorsToBrake),
-                        Commands.triggeredDynamicCommand(()->gamepad1.dpad_right,()->gamepad1.dpad_left,new InstantCommand(()->targetFlywheelVelocity+=2),new InstantCommand(()->targetFlywheelVelocity-=2)),
-                        loopFSM
+                        Commands.triggeredDynamicCommand(()->gamepad1.dpad_right,()->gamepad1.dpad_left,new InstantCommand(()->targetFlywheelVelocity+=2),new InstantCommand(()->targetFlywheelVelocity-=2))
                         /*new InstantCommand(()->{
                             if (315-turretYaw.get("turretYawFront").getTarget()<15 && !gamepad1.isRumbling()){gamepad1.rumble(1000000000);}
                             else if (turretYaw.get("turretYawFront").getTarget()-0<15 && !gamepad1.isRumbling()){gamepad1.rumble(1000000000);}
@@ -154,40 +163,42 @@ public class DecodeTeleOp extends LinearOpMode {
                             previousBallCount = count;
                         })*/
                 ),
-                clearIntegralAtPeak
+                loopFSM
+
         );
         executor.setWriteToTelemetry(()->{
-            telemetry.addData("Ball Storage", Arrays.asList(ballStorage));
-            telemetry.addLine("");
-            telemetry.addData("Robot State",robotState);
-            telemetry.addLine("");
-            telemetry.addData("Shot Type",shotType);
-            telemetry.addLine("");
-            telemetry.addData("Classifier Count",classifierBallCount);
-            telemetry.addData("Current Shot Height",currentBallPath);
-            telemetry.addLine("");
-            telemetry.addData("Target Flywheel Velocity",targetFlywheelVelocity);
-            telemetry.addData("Flywheel Velocity",flywheel.get("flywheelLeft").getVelocity());
-            telemetry.addLine("");
-            telemetry.addData("Hood Angle",(turretPitch.get("turretPitchLeft").getTarget()-TURRET_PITCH_OFFSET)/TURRET_PITCH_RATIO);
-            telemetry.addData("Hood Desired",hoodDesired);
-            telemetry.addLine("");
-            telemetry.addData("Yaw Pos",turretYaw.get("turretYawTop").getCurrentPosition());
-            telemetry.addData("Yaw Target",turretYaw.get("turretYawTop").getTarget());
-            telemetry.addData("Yaw Angle",yawDesired);
-            telemetry.addData("Yaw Error", turretYaw.get("turretYawTop").getTarget() - turretYaw.get("turretYawTop").getCurrentPosition());
-            telemetry.addLine("");
+            Components.telemetry.addData("Ball Storage", Arrays.asList(ballStorage));
+            Components.telemetry.addLine("");
+            Components.telemetry.addData("Robot State",robotState);
+            Components.telemetry.addLine("");
+            Components.telemetry.addData("Shot Type",shotType);
+            Components.telemetry.addLine("");
+            Components.telemetry.addData("Classifier Count",classifierBallCount);
+            Components.telemetry.addData("Current Shot Height",currentBallPath);
+            Components.telemetry.addLine("");
+            Components.telemetry.addData("Target Flywheel Velocity",targetFlywheelVelocity);
+            Components.telemetry.addData("Flywheel Velocity",flywheel.get("flywheelLeft").getVelocity());
+            Components.telemetry.addData("Flywheel Error", targetFlywheelVelocity - flywheel.get("flywheelLeft").getVelocity());
+            Components.telemetry.addLine("");
+            Components.telemetry.addData("Hood Angle",(turretPitch.get("turretPitchLeft").getTarget()-TURRET_PITCH_OFFSET)/TURRET_PITCH_RATIO);
+            Components.telemetry.addData("Hood Desired",hoodDesired);
+            Components.telemetry.addLine("");
+            Components.telemetry.addData("Yaw Pos",turretYaw.get("turretYawTop").getCurrentPosition());
+            Components.telemetry.addData("Yaw Target",turretYaw.get("turretYawTop").getTarget());
+            Components.telemetry.addData("Yaw Angle",yawDesired);
+            Components.telemetry.addData("Yaw Error", turretYaw.get("turretYawTop").getTarget() - turretYaw.get("turretYawTop").getCurrentPosition());
+            Components.telemetry.addLine("");
             Pose pos = follower.getPose();
-            telemetry.addData("Distance",Math.sqrt((targetPoint[0]-pos.getX())*(targetPoint[0]-pos.getX()) + (targetPoint[1]-pos.getY())*(targetPoint[1]-pos.getY())));
-            telemetry.addData("PoseX",follower.getPose().getX());
-            telemetry.addData("PoseY",follower.getPose().getY());
-            telemetry.addData("PoseHeading",Math.toDegrees(follower.getHeading()));
-            telemetry.addData("VelX",follower.getVelocity().getXComponent());
-            telemetry.addData("VelY",follower.getVelocity().getYComponent());
-            telemetry.addData("Angular Vel",Math.toDegrees(follower.getAngularVelocity()));
-            telemetry.addLine("");
-            telemetry.addData("Loop Time",timer.time()-lastTime);
-            telemetry.addData("Physics Time", physicsTime);
+            Components.telemetry.addData("Distance",Math.sqrt((targetPoint[0]-pos.getX())*(targetPoint[0]-pos.getX()) + (targetPoint[1]-pos.getY())*(targetPoint[1]-pos.getY())));
+            Components.telemetry.addData("PoseX",follower.getPose().getX());
+            Components.telemetry.addData("PoseY",follower.getPose().getY());
+            Components.telemetry.addData("PoseHeading",Math.toDegrees(follower.getHeading()));
+            Components.telemetry.addData("VelX",follower.getVelocity().getXComponent());
+            Components.telemetry.addData("VelY",follower.getVelocity().getYComponent());
+            Components.telemetry.addData("Angular Vel",Math.toDegrees(follower.getAngularVelocity()));
+            Components.telemetry.addLine("");
+            Components.telemetry.addData("Loop Time",timer.time()-lastTime);
+            Components.telemetry.addData("Physics Time", physicsTime);
             lastTime = timer.time();
         });
         executor.runLoop(this::opModeIsActive);

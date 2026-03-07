@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.robotconfigs;
 import static org.firstinspires.ftc.teamcode.base.Components.getHardwareMap;
+import static org.firstinspires.ftc.teamcode.base.Components.telemetry;
 import static org.firstinspires.ftc.teamcode.base.Components.timer;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Fisiks.success;
@@ -40,7 +41,8 @@ public class Inferno implements RobotConfig{
     public static SyncedActuators<BotMotor> flywheel;
     public static double targetFlywheelVelocity;
     private static final double ENCODER_RATIO = -(360*39.0/83.0)/4096;
-    private static final double ENCODER_OFFSET = 180;
+    private static final double ENCODER_OFFSET = 0;
+    public static double initEncoderError = 0;
     public static SyncedActuators<CRBotServo> turretYaw;
     public static SyncedActuators<BotServo> turretPitch = new SyncedActuators<>(
             new BotServo("turretPitchLeft", Servo.Direction.FORWARD, 422,5,180,102),
@@ -74,8 +76,8 @@ public class Inferno implements RobotConfig{
     public static double classifierBallCount = 0;
     public static Alliance alliance = Alliance.RED;
     public static GamePhase gamePhase = GamePhase.AUTO;
-    public static VelocityPID leftVelocityPID = new VelocityPID(false,BotMotor::getVelocity,0.0012, 0.0012, 0.00003);
-    public static VelocityPID rightVelocityPID = new VelocityPID(false,(BotMotor motor)->flywheel.get("flywheelLeft").getVelocity(),0.0012, 0.0012 , 0.00003);
+    public static VelocityPID leftVelocityPID = new VelocityPID(false,BotMotor::getVelocity,0.0008, 0, 0).setIntegralStartThreshold(80);
+    public static VelocityPID rightVelocityPID = new VelocityPID(false,(BotMotor motor)->flywheel.get("flywheelLeft").getVelocity(),0.0008, 0, 0).setIntegralStartThreshold(80);
     public static double hoodDesired;
     public static double yawDesired;
     public static double physicsTime;
@@ -95,16 +97,16 @@ public class Inferno implements RobotConfig{
             )::cachedRead);
         }
         turretYaw = new SyncedActuators<>(
-                new CRBotServo("turretYawTop", DcMotorSimple.Direction.REVERSE, (CRServo servo)->leftFront.getCurrentPosition()*ENCODER_RATIO+ENCODER_OFFSET,1,5, 5, new String[]{"PID"},
+                new CRBotServo("turretYawTop", DcMotorSimple.Direction.REVERSE, (CRServo servo)->leftFront.getCurrentPosition()*ENCODER_RATIO+ENCODER_OFFSET+initEncoderError,1,5, 5, new String[]{"PID"},
                         new ControlSystem<>(new PositionPID(0.0106,0.055,0.00036,false).setIntegralStartThreshold(10).setClearIntegralWindup(true),
-                                new PositionLowerLimit(1,0.067), new CustomFeedforward(0.11,()->{if (Math.abs(turretYaw.get("turretYawTop").getTarget() - turretYaw.get("turretYawTop").getCurrentPosition())>2.5) return -follower.getAngularVelocity(); else return 0.0;}))),
-                new CRBotServo("turretYawBottom", DcMotorSimple.Direction.FORWARD, (CRServo servo)->leftFront.getCurrentPosition()*ENCODER_RATIO+ENCODER_OFFSET, 1, 5,5, new String[]{"PID"},
+                                new PositionLowerLimit(1,0.067)/*, new CustomFeedforward(0.11,()->{if (Math.abs(turretYaw.get("turretYawTop").getTarget() - turretYaw.get("turretYawTop").getCurrentPosition())>2.5) return -follower.getAngularVelocity(); else return 0.0;})*/)),
+                new CRBotServo("turretYawBottom", DcMotorSimple.Direction.FORWARD, (CRServo servo)->leftFront.getCurrentPosition()*ENCODER_RATIO+ENCODER_OFFSET+initEncoderError, 1, 5,5, new String[]{"PID"},
                         new ControlSystem<>(new PositionPID(0.0106,0.055,0.00036,false).setIntegralStartThreshold(10).setClearIntegralWindup(true),
-                                new PositionLowerLimit(1,0.067), new CustomFeedforward(0.11,()->{if (Math.abs(turretYaw.get("turretYawTop").getTarget() - turretYaw.get("turretYawTop").getCurrentPosition())>2.5) return -follower.getAngularVelocity(); else return 0.0;})))
+                                new PositionLowerLimit(1,0.067)/*, new CustomFeedforward(0.11,()->{if (Math.abs(turretYaw.get("turretYawTop").getTarget() - turretYaw.get("turretYawTop").getCurrentPosition())>2.5) return -follower.getAngularVelocity(); else return 0.0;})*/))
         );
         flywheel = new SyncedActuators<>(
                 new BotMotor("flywheelLeft", DcMotorSimple.Direction.REVERSE, 0, 0, new String[]{"VelocityPIDF"},
-                        new ControlSystem<>(new String[]{"targetVelocity"}, List.of(() -> targetFlywheelVelocity), leftVelocityPID, new CustomFeedforward(1, ()->targetFlywheelVelocity/(2300)), new Clamp(),
+                        new ControlSystem<>(new String[]{"targetVelocity"}, List.of(() -> targetFlywheelVelocity), leftVelocityPID, new CustomFeedforward(1.06, ()->targetFlywheelVelocity/MaxVelRegression.regressFormula(voltageSensorRead.get())), new Clamp(),
                                 new CustomFeedforward(1, ()->{
                                     if (((robotState==RobotState.SHOOTING || robotState==RobotState.INTAKE_FRONT_AND_SHOOT || robotState==RobotState.INTAKE_BACK_AND_SHOOT)&&flywheel.get("flywheelLeft").getVelocity()<targetFlywheelVelocity)) {return 1.0;}
                                     if ((robotState==RobotState.SHOOTING || robotState==RobotState.INTAKE_FRONT_AND_SHOOT || robotState==RobotState.INTAKE_BACK_AND_SHOOT)&&flywheel.get("flywheelLeft").getVelocity()>targetFlywheelVelocity+54){return -0.5;}
@@ -112,7 +114,7 @@ public class Inferno implements RobotConfig{
                                     else {return 0.0;}})
                         )),
                 new BotMotor("flywheelRight", DcMotorSimple.Direction.FORWARD, 0, 0, new String[]{"VelocityPIDF"},
-                        new ControlSystem<>(new String[]{"targetVelocity"}, List.of(() -> targetFlywheelVelocity), rightVelocityPID, new CustomFeedforward(1, ()->targetFlywheelVelocity/(2300)), new Clamp(),
+                        new ControlSystem<>(new String[]{"targetVelocity"}, List.of(() -> targetFlywheelVelocity), rightVelocityPID, new CustomFeedforward(1.06, ()->targetFlywheelVelocity/MaxVelRegression.regressFormula(voltageSensorRead.get())), new Clamp(),
                                 new CustomFeedforward(1, ()->{
                                     if (((robotState==RobotState.SHOOTING || robotState==RobotState.INTAKE_FRONT_AND_SHOOT || robotState==RobotState.INTAKE_BACK_AND_SHOOT)&&flywheel.get("flywheelLeft").getVelocity()<targetFlywheelVelocity)) {return 1.0;}
                                     else if ((robotState==RobotState.SHOOTING || robotState==RobotState.INTAKE_FRONT_AND_SHOOT || robotState==RobotState.INTAKE_BACK_AND_SHOOT)&&flywheel.get("flywheelLeft").getVelocity()>targetFlywheelVelocity+54){return -0.5;}
@@ -265,7 +267,6 @@ public class Inferno implements RobotConfig{
             )
     );
     public static final SequentialCommand stopIntake = new SequentialCommand(
-            new InstantCommand(()->{if (shotType==ShotType.MOTIF) currentBallPath = findMotifShotPlan(motifShootAll).getLeft().get(0);}),
             new ConditionalCommand(
                     new IfThen(
                             ()->prevState==RobotState.INTAKE_BACK,
@@ -333,7 +334,7 @@ public class Inferno implements RobotConfig{
                     ),
                     new IfThen(
                             () -> shotType == ShotType.MOTIF,
-                            MotifShoot.getFullMotifCommand()
+                            new SemiSort()
                     )
             ),
             new ContinuousCommand(()->{})
@@ -386,7 +387,7 @@ public class Inferno implements RobotConfig{
                     new IfThen(()->robotState==RobotState.SHOOTING, transfer),
                     new IfThen(()->Objects.isNull(robotState), stopAll)
             ),
-            new InstantCommand(()->{if ((robotState!=RobotState.SHOOTING && robotState!=RobotState.STOPPED) || shotType==ShotType.NORMAL){currentBallPath=BallPath.LOW;}}),
+            //new InstantCommand(()->{if ((robotState!=RobotState.SHOOTING && robotState!=RobotState.STOPPED) || shotType==ShotType.NORMAL){currentBallPath=BallPath.LOW;}}),
             setShooter
     );
     private static void colorSensorRead(int index){
@@ -576,10 +577,6 @@ public class Inferno implements RobotConfig{
     public static Command toggleShotType(){
         return new InstantCommand(()->{if (Inferno.shotType==ShotType.MOTIF) shotType=ShotType.NORMAL; else shotType=ShotType.MOTIF;});
     }
-    public static Command clearIntegralAtPeak = new SequentialCommand(
-            new SleepUntilTrue(()->flywheel.get("flywheelLeft").getVelocity()>=targetFlywheelVelocity-170),
-            new InstantCommand(()->{leftVelocityPID.clearIntegral();rightVelocityPID.clearIntegral();})
-    );
     private static abstract class MotifShoot{
         private static ArrayList<BallPath> ballPaths; private static boolean leaveRollersOn; private static int transferDirection;
         public static void getMotifShotPlan(){
@@ -703,8 +700,16 @@ public class Inferno implements RobotConfig{
             }
         }
     }
+    public abstract static class MaxVelRegression{
+        private static final double C = 5727;
+        private static final double B = -792;
+        private static final double A = 41.1;
+        private static double regressFormula(double voltage){
+            return A*voltage*voltage+B*voltage+C;
+        }
+    }
     public abstract static class VelRegression {
-        private static final double M_1 = 4.88;
+        private static final double M_1 = 4.7;
         private static final double B = 606;
         private static double regressFormula(double dist){
             return M_1*dist+B;
@@ -724,11 +729,11 @@ public class Inferno implements RobotConfig{
     public static void setTargetPoint(){
         if (alliance==Alliance.RED){
             if (follower.getPose().getY()>=108) {targetPoint[0] = 141.5; targetPoint[1] = 139.5; targetPoint[2] = 45;}
-            else if (follower.getPose().getX()>=120) {targetPoint[0] = 139.5; targetPoint[1] = 141.5; targetPoint[2] = 45;}
+            //else if (follower.getPose().getX()>=120) {targetPoint[0] = 139.5; targetPoint[1] = 141.5; targetPoint[2] = 45;}
             else {targetPoint[0] = 141.5; targetPoint[1] = 141.5; targetPoint[2] = 45;}
         } else {
             if (follower.getPose().getY()>=108) {targetPoint[0] = 2.5; targetPoint[1] = 139.5; targetPoint[2] = 45;}
-            else if (follower.getPose().getX()<=24) {targetPoint[0] = 4.5; targetPoint[1] = 144.5; targetPoint[2] = 45;}
+            //else if (follower.getPose().getX()<=24) {targetPoint[0] = 4.5; targetPoint[1] = 144.5; targetPoint[2] = 45;}
             else {targetPoint[0] = 2.5; targetPoint[1] = 141.5; targetPoint[2] = 45;}
         }
     }
@@ -810,4 +815,4 @@ public class Inferno implements RobotConfig{
                 )
         );
     }
-        }
+}
