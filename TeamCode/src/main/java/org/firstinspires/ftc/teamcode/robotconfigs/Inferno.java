@@ -81,6 +81,7 @@ public class Inferno implements RobotConfig{
     public static double yawDesired;
     public static double physicsTime;
     public static RobotState prevState = null;
+    public static boolean motifDetected = false;
 
     static {
         for (int i=0;i<3;i++){
@@ -550,6 +551,7 @@ public class Inferno implements RobotConfig{
 
     public static final Command findMotif = new LambdaCommand(
             ()->{
+                if (motifDetected) return false;
                 Integer id = vision.getObeliskID();
                 if (!Objects.isNull(id)){
                     if (id == 23){
@@ -559,6 +561,7 @@ public class Inferno implements RobotConfig{
                     } else if (id==21){
                         motif = new Color[]{Color.GREEN,Color.PURPLE,Color.PURPLE};
                     }
+                    motifDetected = true;
                     return false;
                 } else {
                     return true;

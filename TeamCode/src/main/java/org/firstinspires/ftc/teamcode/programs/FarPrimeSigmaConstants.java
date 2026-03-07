@@ -170,6 +170,7 @@ public class FarPrimeSigmaConstants {
     );
     public static void runOpMode(Inferno.Alliance alliance, LinearOpMode opMode){
         initialize(opMode,new Inferno(),true,true);
+        Inferno.motifDetected = false;
         Components.telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         flag = 0;
         leftFront.resetEncoder();
@@ -256,9 +257,8 @@ public class FarPrimeSigmaConstants {
                         }
                     ),
                     new InstantCommand(
-                            ()->targetFlywheelVelocity = Inferno.VelRegression.regressFormula(
-                                    getPose("shoot").distanceFrom(new Pose(targetPoint[0],targetPoint[1]))
-                            )
+                            ()->{if (flag==0) targetFlywheelVelocity = Inferno.VelRegression.regressFormula(getPose("start").distanceFrom(new Pose(targetPoint[0],targetPoint[1])));
+                                else targetFlywheelVelocity = Inferno.VelRegression.regressFormula(getPose("shoot").distanceFrom(new Pose(targetPoint[0],targetPoint[1])));}
                     )
                 )
         );

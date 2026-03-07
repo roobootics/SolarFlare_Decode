@@ -22,7 +22,6 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.loopFSM;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.motif;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.readBallStorage;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.robotState;
-import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.setShooter;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.setState;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.setTargetPoint;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.shotType;
@@ -37,6 +36,7 @@ import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.pedropathing.geometry.BezierCurve;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
+import com.pedropathing.paths.HeadingInterpolator;
 import com.pedropathing.paths.PathBuilder;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import org.firstinspires.ftc.teamcode.base.Commands.*;
@@ -52,7 +52,7 @@ import java.util.Objects;
 
 public class ClosePrimeSigmaConstants {
     public static final double INITIAL_WAIT = 0.01;
-    public static final double PRE_SHOT_TIME = 0.27;
+    public static final double PRE_SHOT_TIME = 0.3;
     public static final double SHOT_TIME = 1;
     public static final double slowDownT = 0.73;
     public static final double speedUpT = 0.05;
@@ -91,7 +91,7 @@ public class ClosePrimeSigmaConstants {
     public static double mirrorHeading(double input){return 2*Math.PI - input;}
     static {
         poses.put("start",new Pose(19.68, 121.72, Math.toRadians(144)));
-        poses.put("firstShoot",new Pose(53.312,90.398,Math.toRadians(136)));
+        poses.put("firstShoot",new Pose(53.312,90.398,Math.toRadians(144)));
         poses.put("shoot",new Pose(57.85,77.42,Math.toRadians(0)));
         poses.put("secondSpikeCtrl",new Pose(88.046, 59.413));
         poses.put("secondSpike",new Pose(16.329, 58.805));
@@ -110,7 +110,7 @@ public class ClosePrimeSigmaConstants {
     public static Command preloadShoot = new SequentialCommand(new SleepCommand(INITIAL_WAIT),
             new PedroCommand(b->
                     b.addPath(new BezierLine(follower::getPose,getPose("firstShoot")))
-                    .setLinearHeadingInterpolation(getHeading("start"),getHeading("firstShoot")),
+                    .setConstantHeadingInterpolation(getHeading("firstShoot")),
     true),
     shoot);
     public static Command secondSpike = new SequentialCommand(new PedroCommand(
@@ -154,7 +154,7 @@ public class ClosePrimeSigmaConstants {
                                             getPose("thirdShootCtrl"),
                                             getPose("shoot")
                                     )
-                            ).setLinearHeadingInterpolation(getHeading("gateIntake"), getHeading("shoot"))
+                            ).setHeadingInterpolation(HeadingInterpolator.linear(getHeading("gateIntake"), getHeading("shoot"),0.7))
                             .addParametricCallback(stopIntakeT,()->setState(Inferno.RobotState.STOPPED).run()),
                     true), shoot);
     public static Command firstSpike = new SequentialCommand(
@@ -233,8 +233,10 @@ public class ClosePrimeSigmaConstants {
     }
     public static void runOpMode(Inferno.Alliance alliance, LinearOpMode opMode){
         initialize(opMode,new Inferno(),true,true);
+        Inferno.motifDetected = false;
         Components.telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         leftFront.resetEncoder();
+        preloadShoot.reset();
         Inferno.alliance = alliance;
         gamePhase = Inferno.GamePhase.AUTO;
         Pedro.createFollower(getPose("start"));
@@ -325,7 +327,6 @@ public class ClosePrimeSigmaConstants {
         });
         SequentialCommand mainPath = new SequentialCommand(pathList.toArray(new Command[0]));
         executor.setCommands(
-                new ParallelCommand(findMotif, new SequentialCommand(new SleepCommand(5),new InstantCommand(findMotif::stop))),
                 new SequentialCommand(
                         new ParallelCommand(
                                 mainPath,
@@ -340,9 +341,8 @@ public class ClosePrimeSigmaConstants {
                 loopFSM,
                 new RunResettingLoop(
                     new InstantCommand(
-                            ()->targetFlywheelVelocity = Inferno.VelRegression.regressFormula(
-                                    getPose("shoot").distanceFrom(new Pose(targetPoint[0],targetPoint[1]))
-                            )
+                            ()->{if (preloadShoot.isBusy()) targetFlywheelVelocity = Inferno.VelRegression.regressFormula(getPose("firstShoot").distanceFrom(new Pose(targetPoint[0],targetPoint[1])));
+                                else targetFlywheelVelocity = Inferno.VelRegression.regressFormula(getPose("shoot").distanceFrom(new Pose(targetPoint[0],targetPoint[1])));}
                     )
                 )
         );

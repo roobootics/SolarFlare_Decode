@@ -2,14 +2,17 @@ package org.firstinspires.ftc.teamcode.programs;
 
 import static org.firstinspires.ftc.teamcode.base.Commands.executor;
 import static org.firstinspires.ftc.teamcode.base.Components.initialize;
+import static org.firstinspires.ftc.teamcode.base.Components.telemetry;
 import static org.firstinspires.ftc.teamcode.base.Components.timer;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.TURRET_PITCH_OFFSET;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.TURRET_PITCH_RATIO;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.ballStorage;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.classifierBallCount;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.findMotif;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.initEncoderError;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftVelocityPID;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.motif;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.rightVelocityPID;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.currentBallPath;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.flywheel;
@@ -80,10 +83,10 @@ public class DecodeTeleOp extends LinearOpMode {
         initialize(this,new Inferno(),false,true);
         Components.telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         //targetFlywheelVelocity=1150;
-        if (Objects.isNull(follower)) {Pedro.createFollower(new Pose(96,7.5,0)); leftFront.resetEncoder(); followerMade = true; initEncoderError = 0;}
+        if (Objects.isNull(follower)) {Pedro.createFollower(new Pose(96,7.5,0)); leftFront.resetEncoder(); followerMade = true; initEncoderError = 0; Inferno.motifDetected = false;}
         else {Pedro.createFollower(follower.getPose());}
         executor.setCommands(
-                new RunResettingLoop(new InstantCommand(()->{if (gamepad1.back && !followerMade) {follower.setPose(new Pose(96,7.5,0)); leftFront.resetEncoder(); followerMade = true; initEncoderError = 0;}})),
+                new RunResettingLoop(new InstantCommand(()->{if (gamepad1.back && !followerMade) {follower.setPose(new Pose(96,7.5,0)); leftFront.resetEncoder(); followerMade = true; initEncoderError = 0; Inferno.motifDetected = false;}})),
                 new RunResettingLoop(new InstantCommand(()->{if (gamepad1.dpad_left) {Inferno.alliance = Alliance.BLUE;}})),
                 new RunResettingLoop(new InstantCommand(()->{if (gamepad1.dpad_right) {Inferno.alliance = Alliance.RED;}}))
         );
@@ -91,6 +94,7 @@ public class DecodeTeleOp extends LinearOpMode {
         Components.activateActuatorControl();
         breakFollowing();
         executor.setCommands(
+                findMotif,
                 //Commands.triggeredDynamicCommand(()->gamepad1.dpad_right,()->gamepad1.dpad_left,new InstantCommand(()->targetFlywheelVelocity+=2),new InstantCommand(()->targetFlywheelVelocity-=2)),
                 new RunResettingLoop(
                         new PressCommand(
@@ -162,14 +166,15 @@ public class DecodeTeleOp extends LinearOpMode {
 
         );
         executor.setWriteToTelemetry(()->{
-            Components.telemetry.addData("Ball Storage", Arrays.asList(ballStorage));
-            Components.telemetry.addLine("");
-            Components.telemetry.addData("Robot State",robotState);
+            Components.telemetry.addData("Classifier Count",classifierBallCount);
             Components.telemetry.addLine("");
             Components.telemetry.addData("Shot Type",shotType);
             Components.telemetry.addLine("");
-            Components.telemetry.addData("Classifier Count",classifierBallCount);
-            Components.telemetry.addData("Current Shot Height",currentBallPath);
+            Components.telemetry.addData("Motif",Arrays.asList(motif));
+            Components.telemetry.addLine("");
+            Components.telemetry.addData("Ball Storage", Arrays.asList(ballStorage));
+            Components.telemetry.addLine("");
+            Components.telemetry.addData("Robot State",robotState);
             Components.telemetry.addLine("");
             Components.telemetry.addData("Target Flywheel Velocity",targetFlywheelVelocity);
             Components.telemetry.addData("Flywheel Velocity",flywheel.get("flywheelLeft").getVelocity());
