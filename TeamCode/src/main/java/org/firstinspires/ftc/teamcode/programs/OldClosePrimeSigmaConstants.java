@@ -93,7 +93,7 @@ public class OldClosePrimeSigmaConstants {
         poses.put("start",new Pose(19.68, 121.72, Math.toRadians(144)));
         poses.put("firstShoot",new Pose(53.312,90.398,Math.toRadians(144)));
         poses.put("shoot",new Pose(57.85,77.42,Math.toRadians(0)));
-        poses.put("secondSpikeCtrl",new Pose(41.07, 58.06));
+        poses.put("secondSpikeCtrl",new Pose(88.046, 59.413));
         poses.put("secondSpike",new Pose(16.329, 58.805));
         poses.put("gateOpen",new Pose(14.97, 58.72,Math.toRadians(0)));
         poses.put("gateIntake",new Pose(14.97, 56.16,Math.toRadians(-50)));
