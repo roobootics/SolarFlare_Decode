@@ -75,8 +75,8 @@ public class Inferno implements RobotConfig{
     public static double classifierBallCount = 0;
     public static Alliance alliance = Alliance.RED;
     public static GamePhase gamePhase = GamePhase.AUTO;
-    public static VelocityPID leftVelocityPID = new VelocityPID(false,BotMotor::getVelocity,0.0012, 0.0012, 0.00003).setIntegralStartThreshold(100);
-    public static VelocityPID rightVelocityPID = new VelocityPID(false,(BotMotor motor)->flywheel.get("flywheelLeft").getVelocity(),0.0012, 0.0012, 0.00003).setIntegralStartThreshold(100);
+    public static VelocityPID leftVelocityPID = new VelocityPID(false,BotMotor::getVelocity,0.0012, 0.0012, 0.000065).setIntegralStartThreshold(100).setDerivativeStartThreshold(80);
+    public static VelocityPID rightVelocityPID = new VelocityPID(false,(BotMotor motor)->flywheel.get("flywheelLeft").getVelocity(),0.0012, 0.0012, 0.000065).setIntegralStartThreshold(100).setDerivativeStartThreshold(80);
     public static double hoodDesired;
     public static double yawDesired;
     public static double physicsTime;

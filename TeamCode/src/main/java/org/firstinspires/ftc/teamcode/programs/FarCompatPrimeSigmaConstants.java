@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.programs;
 
 import static org.apache.commons.math3.util.FastMath.atan2;
+import static org.apache.commons.math3.util.FastMath.tan;
 import static org.firstinspires.ftc.teamcode.base.Commands.executor;
 import static org.firstinspires.ftc.teamcode.base.Components.initialize;
 import static org.firstinspires.ftc.teamcode.base.Components.telemetry;
@@ -10,12 +11,12 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.TURRET_PITCH_R
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.alliance;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.ballStorage;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.classifierBallCount;
-import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.initEncoderError;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.currentBallPath;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.findMotif;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.flywheel;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.gamePhase;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.hoodDesired;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.initEncoderError;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftFront;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.loopFSM;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.motif;
@@ -33,17 +34,25 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.vision;
 
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
-
 import com.pedropathing.geometry.BezierCurve;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.HeadingInterpolator;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
-import org.firstinspires.ftc.teamcode.base.Commands.*;
+import org.firstinspires.ftc.teamcode.base.Commands.Command;
+import org.firstinspires.ftc.teamcode.base.Commands.ConditionalCommand;
+import org.firstinspires.ftc.teamcode.base.Commands.ContinuousCommand;
+import org.firstinspires.ftc.teamcode.base.Commands.IfThen;
+import org.firstinspires.ftc.teamcode.base.Commands.InstantCommand;
+import org.firstinspires.ftc.teamcode.base.Commands.ParallelCommand;
+import org.firstinspires.ftc.teamcode.base.Commands.RunResettingLoop;
+import org.firstinspires.ftc.teamcode.base.Commands.SequentialCommand;
+import org.firstinspires.ftc.teamcode.base.Commands.SleepCommand;
+import org.firstinspires.ftc.teamcode.base.Commands.SleepUntilTrue;
 import org.firstinspires.ftc.teamcode.base.Components;
 import org.firstinspires.ftc.teamcode.pedroPathing.Pedro;
-import org.firstinspires.ftc.teamcode.pedroPathing.Pedro.*;
+import org.firstinspires.ftc.teamcode.pedroPathing.Pedro.PedroCommand;
 import org.firstinspires.ftc.teamcode.robotconfigs.Inferno;
 
 import java.util.Arrays;
@@ -51,9 +60,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 
-import static org.apache.commons.math3.util.FastMath.tan;
-
-public class FarPrimeSigmaConstants {
+public class FarCompatPrimeSigmaConstants {
     public static final double INITIAL_WAIT = 1;
     public static final double SHOT_TIME = 1;
     public static final double PRE_SHOT_TIME = 0.3;
@@ -83,7 +90,6 @@ public class FarPrimeSigmaConstants {
             ),
             setState(Inferno.RobotState.INTAKE_FRONT));
     public static final HashMap<String, Pose> poses = new HashMap<>();
-    public static double visionHeading;
     public static Pose mirrorPose(Pose input){
         return new Pose(144-input.getX(),input.getY(),mirrorHeading(input.getHeading()));
     }
@@ -140,8 +146,8 @@ public class FarPrimeSigmaConstants {
     public static Pose getClusterPose(double x, double xOffset){
         Pose pos = follower.getPose();
         Double angle = vision.intakingAngleArtifacts2(vision.getArtifactDescriptors(pos,classNames),pos,1);
-        FarPrimeSigmaConstants.angle = angle;
-        if (Objects.isNull(angle)) angle = visionHeading;
+        FarCompatPrimeSigmaConstants.angle = angle;
+        if (Objects.isNull(angle)) angle = Math.toRadians(185);
         else angle = Math.toRadians(angle);
         double y = Math.max(7.5,tan(angle)*(x-pos.getX()) + pos.getY());
         return new Pose(x+xOffset,y);
@@ -151,11 +157,11 @@ public class FarPrimeSigmaConstants {
                     b->{
                         Pose pos1 = getClusterPose(middleX,0);
                         return b.addPath(new BezierLine(getPose("shoot"),pos1))
-                            .setConstantHeadingInterpolation(visionHeading)
+                            .setConstantHeadingInterpolation(Math.toRadians(180))
                         .addPath(new BezierLine(()->pos1,()->getClusterPose(wallX,wallXOffset)))
                             .addParametricCallback(slowDownT,()->follower.setMaxPower(slowDownAmount))
                         .addPath(new BezierLine(follower::getPose, getPose("shoot")))
-                            .setConstantHeadingInterpolation(visionHeading)
+                            .setConstantHeadingInterpolation(Math.toRadians(180))
                             .addParametricCallback(speedUpT,()->follower.setMaxPower(1.0))
                             .addParametricCallback(stopIntakeT,()->setState(Inferno.RobotState.STOPPED).run());},
                     true
@@ -176,7 +182,7 @@ public class FarPrimeSigmaConstants {
         flag = 0;
         leftFront.resetEncoder();
         Inferno.alliance = alliance;
-        if (alliance == Inferno.Alliance.BLUE) {wallX = 9; wallXOffset = 2; visionHeading = Math.toRadians(180);} else {wallX = 135; wallXOffset = -2; visionHeading = Math.toRadians(0);}
+        if (alliance == Inferno.Alliance.BLUE) {wallX = 9; wallXOffset = 2;} else {wallX = 135; wallXOffset = -2;}
         middleX = (getPose("shoot").getX()+wallX)/2;
         initEncoderError = 0;
         gamePhase = Inferno.GamePhase.AUTO;
@@ -230,8 +236,7 @@ public class FarPrimeSigmaConstants {
                 new InstantCommand(()->flag=1),
                 firstSpike,
                 new InstantCommand(()->flag=2),
-                loadingZone,
-                new InstantCommand(()->loadingZoneOverride = false),
+                visionIntake,
                 visionIntake,
                 visionIntake,
                 visionIntake,
