@@ -9,6 +9,7 @@ import org.apache.commons.lang3.tuple.Triple;
 import com.pedropathing.geometry.BezierCurve;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
+import com.pedropathing.math.Vector;
 import com.pedropathing.paths.HeadingInterpolator;
 import com.pedropathing.paths.PathBuilder;
 import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
@@ -38,8 +39,6 @@ public class Inferno implements RobotConfig{
     public static BotMotor rightRear = new BotMotor("rightRear", DcMotorSimple.Direction.FORWARD);
     public static SyncedActuators<BotMotor> flywheel;
     public static double targetFlywheelVelocity;
-    private static final double ENCODER_RATIO = -(360*39.0/83.0)/4096;
-    private static final double ENCODER_OFFSET = 0;
     public static SyncedActuators<BotServo> turretYaw = new SyncedActuators<>(
             new BotServo("turretYawTop", Servo.Direction.REVERSE,422,5,320,0),
             new BotServo("turretYawBottom", Servo.Direction.FORWARD,422,5,320,0)
@@ -85,6 +84,15 @@ public class Inferno implements RobotConfig{
     public static RobotState prevState = null;
     public static boolean motifDetected = false;
     public static double turretOffsetFromAuto;
+    public static double getVelProjectedFiring(){
+        setTargetPoint();
+        Pose pos = follower.getPose();
+        double distance = pos.distanceFrom(new Pose(targetPoint[0],targetPoint[1]));
+        Vector vel = follower.getVelocity();
+        double normX = -1/distance * (targetPoint[0]-pos.getX());
+        double normY = -1/distance * (targetPoint[1]-pos.getY());
+        return normX*vel.getXComponent() + normY*vel.getYComponent();
+    }
 
     static {
         for (int i=0;i<3;i++){
@@ -101,16 +109,18 @@ public class Inferno implements RobotConfig{
         }
         flywheel = new SyncedActuators<>(
                 new BotMotor("flywheelLeft", DcMotorSimple.Direction.REVERSE, 0, 0, new String[]{"VelocityPIDF"},
-                        new ControlSystem<>(new String[]{"targetVelocity"}, List.of(() -> targetFlywheelVelocity), leftVelocityPID, new CustomFeedforward(1.06, ()->targetFlywheelVelocity/MaxVelRegression.regressFormula(voltageSensorRead.get())), new Clamp(),
-                                new CustomFeedforward(1, ()->{
+                        new ControlSystem<>(new String[]{"targetVelocity"}, List.of(() -> targetFlywheelVelocity), leftVelocityPID, new CustomFeedforward(1.057, ()->targetFlywheelVelocity/MaxVelRegression.regressFormula(voltageSensorRead.get())),
+                                new CustomFeedforward(0.1, Inferno::getVelProjectedFiring),
+                                new Clamp(), new CustomFeedforward(1, ()->{
                                     if (((robotState==RobotState.SHOOTING || robotState==RobotState.INTAKE_FRONT_AND_SHOOT || robotState==RobotState.INTAKE_BACK_AND_SHOOT)&&flywheel.get("flywheelLeft").getVelocity()<targetFlywheelVelocity)) {return 1.0;}
                                     if ((robotState==RobotState.SHOOTING || robotState==RobotState.INTAKE_FRONT_AND_SHOOT || robotState==RobotState.INTAKE_BACK_AND_SHOOT)&&flywheel.get("flywheelLeft").getVelocity()>targetFlywheelVelocity+54){return -0.5;}
                                     else if (flywheel.get("flywheelLeft").getVelocity()>targetFlywheelVelocity+85){return -0.5;}
                                     else {return 0.0;}})
                         )),
                 new BotMotor("flywheelRight", DcMotorSimple.Direction.FORWARD, 0, 0, new String[]{"VelocityPIDF"},
-                        new ControlSystem<>(new String[]{"targetVelocity"}, List.of(() -> targetFlywheelVelocity), rightVelocityPID, new CustomFeedforward(1.06, ()->targetFlywheelVelocity/MaxVelRegression.regressFormula(voltageSensorRead.get())), new Clamp(),
-                                new CustomFeedforward(1, ()->{
+                        new ControlSystem<>(new String[]{"targetVelocity"}, List.of(() -> targetFlywheelVelocity), rightVelocityPID, new CustomFeedforward(1.057, ()->targetFlywheelVelocity/MaxVelRegression.regressFormula(voltageSensorRead.get())),
+                                new CustomFeedforward(0.1, Inferno::getVelProjectedFiring),
+                                new Clamp(), new CustomFeedforward(1, ()->{
                                     if (((robotState==RobotState.SHOOTING || robotState==RobotState.INTAKE_FRONT_AND_SHOOT || robotState==RobotState.INTAKE_BACK_AND_SHOOT)&&flywheel.get("flywheelLeft").getVelocity()<targetFlywheelVelocity)) {return 1.0;}
                                     else if ((robotState==RobotState.SHOOTING || robotState==RobotState.INTAKE_FRONT_AND_SHOOT || robotState==RobotState.INTAKE_BACK_AND_SHOOT)&&flywheel.get("flywheelLeft").getVelocity()>targetFlywheelVelocity+54){return -0.5;}
                                     else if (flywheel.get("flywheelLeft").getVelocity()>targetFlywheelVelocity+85){return -0.5;}
@@ -564,8 +574,6 @@ public class Inferno implements RobotConfig{
                 }
             }
     );
-    public static void findBalls(){}
-    public static void countClassifier(){}
     public static Command setState(RobotState robotState){
         return new InstantCommand(()->{prevState = Inferno.robotState; Inferno.robotState=robotState;});
     }
@@ -699,41 +707,23 @@ public class Inferno implements RobotConfig{
         }
     }
     public abstract static class MaxVelRegression{
-        private static final double C = 5727;
-        private static final double B = -792;
-        private static final double A = 41.1;
+        private static final double M = 163;
+        private static final double B = 199;
         public static double regressFormula(double voltage){
-            return A*voltage*voltage+B*voltage+C;
+            return M*voltage+B;
         }
     }
     public abstract static class VelRegression {
-        private static final double M_1 = 4.7;
+        private static final double M = 4.7;
         private static final double B = 606;
         public static double regressFormula(double dist){
-            return M_1*dist+B;
-        }
-    }
-    public abstract static class HoodRegression {
-        private static final double A = 0.00002359858;
-        private static final double B = -0.00001730411;
-        private static final double C = -0.00061919547;
-        private static final double D = -0.116957588;
-        private static final double E = 0.343627627;
-        private static final double F = 153.71021674734098;
-        public static double regressFormula(double dist,double vel){
-            return F+E*dist+D*vel+C*dist*dist+B*dist*vel+A*vel*vel;
+            return M*dist+B;
         }
     }
     public static void setTargetPoint(){
-        if (alliance==Alliance.RED){
-            if (follower.getPose().getY()>=108) {targetPoint[0] = 141.5; targetPoint[1] = 139.5; targetPoint[2] = 45;}
-            //else if (follower.getPose().getX()>=120) {targetPoint[0] = 139.5; targetPoint[1] = 141.5; targetPoint[2] = 45;}
-            else {targetPoint[0] = 141.5; targetPoint[1] = 141.5; targetPoint[2] = 45;}
-        } else {
-            if (follower.getPose().getY()>=108) {targetPoint[0] = 2.5; targetPoint[1] = 139.5; targetPoint[2] = 45;}
-            //else if (follower.getPose().getX()<=24) {targetPoint[0] = 4.5; targetPoint[1] = 144.5; targetPoint[2] = 45;}
-            else {targetPoint[0] = 2.5; targetPoint[1] = 141.5; targetPoint[2] = 45;}
-        }
+        if (alliance==Alliance.RED) targetPoint[0] = 141.5; else targetPoint[0] = 2.5;
+        if (follower.getPose().getY()>=108) targetPoint[1] = 140; else targetPoint[1] = 141.5;
+        if (follower.getPose().distanceFrom(new Pose(targetPoint[0],targetPoint[1]))>122) targetPoint[2] = 44; else targetPoint[2] = 46;
     }
     public static class Clamp extends ControlFunc<BotMotor>{
         @Override

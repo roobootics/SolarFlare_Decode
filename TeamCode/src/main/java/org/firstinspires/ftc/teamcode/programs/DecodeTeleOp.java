@@ -60,7 +60,6 @@ public class DecodeTeleOp extends LinearOpMode {
     private boolean holdingPosition = false;
     private double lastTime = 0;
     private double previousBallCount = -1;
-    private boolean panicMode = false;
     private void breakFollowing(){
         holdingPosition = false;
         follower.breakFollowing();
@@ -72,7 +71,6 @@ public class DecodeTeleOp extends LinearOpMode {
         rightFront.getDevice().setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         rightRear.getDevice().setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
     }
-    private void stopDrivetrain(){leftFront.setPower(0); leftRear.setPower(0); rightFront.setPower(0); rightRear.setPower(0);}
     boolean followerMade = false;
     @Override
     public void runOpMode(){

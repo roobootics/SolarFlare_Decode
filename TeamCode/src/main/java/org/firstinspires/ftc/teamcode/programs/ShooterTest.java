@@ -5,11 +5,9 @@ import static org.firstinspires.ftc.teamcode.base.Components.initialize;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.TURRET_YAW_OFFSET;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.TURRET_YAW_RATIO;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.flywheel;
-import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftFront;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretPitch;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretYaw;
 
-import com.pedropathing.geometry.Pose;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 

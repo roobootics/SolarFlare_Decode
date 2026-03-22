@@ -65,7 +65,6 @@ public class ClosePrimeSigmaConstants {
     public static final double speedUpT = 0.05;
     public static final double stopIntakeT = 0.17;
     public static final double slowDownAmount = 0.67;
-    public static final double gateWait = 0;
     public static final double gateIntakeTimeout = 1;
     public static final double secondShootSlowT = 0.75;
     public static final double fourthShootSlowT = 0.75;
@@ -354,7 +353,7 @@ public class ClosePrimeSigmaConstants {
                 loopFSM,
                 new RunResettingLoop(
                     new InstantCommand(
-                            ()->{targetFlywheelVelocity = Inferno.VelRegression.regressFormula(getPose("shoot").distanceFrom(new Pose(targetPoint[0],targetPoint[1])));}
+                            ()->targetFlywheelVelocity = Inferno.VelRegression.regressFormula(getPose("shoot").distanceFrom(new Pose(targetPoint[0],targetPoint[1])))
                     )
                 )
         );
