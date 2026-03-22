@@ -2,21 +2,21 @@ package org.firstinspires.ftc.teamcode.programs;
 
 import static org.apache.commons.math3.util.FastMath.atan2;
 import static org.firstinspires.ftc.teamcode.base.Commands.executor;
+import static org.firstinspires.ftc.teamcode.base.Components.gamepad1;
 import static org.firstinspires.ftc.teamcode.base.Components.initialize;
 import static org.firstinspires.ftc.teamcode.base.Components.telemetry;
+import static org.firstinspires.ftc.teamcode.base.Components.timer;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.TURRET_PITCH_OFFSET;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.TURRET_PITCH_RATIO;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.alliance;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.ballStorage;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.classifierBallCount;
-import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.initEncoderError;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.currentBallPath;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.findMotif;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.flywheel;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.gamePhase;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.hoodDesired;
-import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftFront;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.loopFSM;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.motif;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.readBallStorage;
@@ -27,6 +27,7 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.shotType;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.targetFlywheelVelocity;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.targetPoint;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.transfer;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretOffsetFromAuto;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretPitch;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretYaw;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.vision;
@@ -65,7 +66,6 @@ public class FarPrimeSigmaConstants {
     public static final double stopIntakeT = 0.17;
     public static final double slowDownAmount = 1.0;
     public static Double angle;
-
     public static Command shoot = new SequentialCommand(new SleepCommand(PRE_SHOT_TIME),
             setState(Inferno.RobotState.SHOOTING),
             new SleepCommand(SHOT_TIME),
@@ -155,24 +155,45 @@ public class FarPrimeSigmaConstants {
         double y = Math.max(7.5,tan(angle)*(x-pos.getX()) + pos.getY());
         return new Pose(x+xOffset,y);
     }
-    public static Command visionIntake = new SequentialCommand(
-            new PedroCommand(
-                    b->{
-                        Pose pos1 = getClusterPose(middleX,0);
-                        return b.addPath(new BezierLine(getPose("shoot"),pos1))
-                            .setConstantHeadingInterpolation(visionHeading)
-                        .addPath(new BezierLine(()->pos1,()->getClusterPose(wallX,wallXOffset)))
-                            .addParametricCallback(slowDownT,()->follower.setMaxPower(slowDownAmount))
-                        .addPath(new BezierLine(follower::getPose, getPose("shoot")))
-                            .setConstantHeadingInterpolation(visionHeading)
-                            .addParametricCallback(speedUpT,()->follower.setMaxPower(1.0))
-                            .addParametricCallback(stopIntakeT,()->setState(Inferno.RobotState.STOPPED).run())
-                            .addParametricCallback(shootSlowT,()->follower.setMaxPower(shootSlowAmount))
-                            .addParametricCallback(0.94,()->follower.setMaxPower(1.0));},
-                    true
-            ),
-            shoot
-    );
+    public static class VisionIntake extends CompoundCommand{
+        public static double firstPathStartTime;
+        public static boolean failsafe = false;
+        public VisionIntake(){
+            setGroup(
+                    new SequentialCommand(
+                            new InstantCommand(()->{firstPathStartTime=timer.time(); failsafe = false;}),
+                            new ConditionalCommand(
+                                    new IfThen(()->!failsafe, new PedroCommand(
+                                            b->{
+                                                Pose pos1 = getClusterPose(middleX,0);
+                                                return b.addPath(new BezierLine(getPose("shoot"),pos1))
+                                                            .setConstantHeadingInterpolation(visionHeading)
+                                                        .addPath(new BezierLine(()->pos1,()->getClusterPose(wallX,wallXOffset)))
+                                                            .addParametricCallback(slowDownT,()->follower.setMaxPower(slowDownAmount))
+                                                            .addCallback(()->(follower.getChainIndex()==1&&timer.time()-firstPathStartTime>5),()->failsafe=true)
+                                                        .addPath(new BezierLine(follower::getPose, getPose("shoot")))
+                                                            .setConstantHeadingInterpolation(visionHeading)
+                                                            .addParametricCallback(speedUpT,()->follower.setMaxPower(1.0))
+                                                            .addParametricCallback(stopIntakeT,()->setState(Inferno.RobotState.STOPPED).run())
+                                                            .addParametricCallback(shootSlowT,()->follower.setMaxPower(shootSlowAmount))
+                                                            .addParametricCallback(0.94,()->follower.setMaxPower(1.0));},
+                                            true
+                                    )),
+                                    new IfThen(()->failsafe,new PedroCommand(
+                                            b->b.addPath(new BezierLine(follower::getPose, getPose("shoot")))
+                                                    .setConstantHeadingInterpolation(visionHeading)
+                                                    .addParametricCallback(speedUpT,()->follower.setMaxPower(1.0))
+                                                    .addParametricCallback(stopIntakeT,()->setState(Inferno.RobotState.STOPPED).run())
+                                                    .addParametricCallback(shootSlowT,()->follower.setMaxPower(shootSlowAmount))
+                                                    .addParametricCallback(0.94,()->follower.setMaxPower(1.0)),true
+                                    ))
+                            ),
+                            shoot
+                    )
+            );
+        }
+    }
+    public static Command visionIntake = new VisionIntake();
     public static Command park = new ParallelCommand(
             setState(null),
             new PedroCommand(
@@ -183,14 +204,13 @@ public class FarPrimeSigmaConstants {
     public static void runOpMode(Inferno.Alliance alliance, LinearOpMode opMode){
         initialize(opMode,new Inferno(),true,true);
         findMotif.reset();
+        turretOffsetFromAuto = 0;
         Inferno.motifDetected = false;
         Components.telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         flag = 0;
-        leftFront.resetEncoder();
         Inferno.alliance = alliance;
         if (alliance == Inferno.Alliance.BLUE) {wallX = 9; wallXOffset = 2; visionHeading = Math.toRadians(180);} else {wallX = 135; wallXOffset = -2; visionHeading = Math.toRadians(0);}
         middleX = (getPose("shoot").getX()+wallX)/2;
-        initEncoderError = 0;
         gamePhase = Inferno.GamePhase.AUTO;
         Pedro.createFollower(getPose("start"));
         executor.setWriteToTelemetry(()->{
@@ -204,12 +224,12 @@ public class FarPrimeSigmaConstants {
             telemetry.addLine("Please, Speed, we need this.");
         });
         executor.setCommands(
-                new ContinuousCommand(()->{})
+                turretYaw.command((Components.BotServo servo)->servo.triggeredDynamicOffsetCommand(()->gamepad1.left_trigger>0.2,()->gamepad1.right_trigger>0.2,0.05))
         );
         loadingZoneOverride = false;
         setTargetPoint();
-        //initEncoderError = Math.toDegrees(atan2(targetPoint[1]-getPose("start").getY(),targetPoint[0]-getPose("start").getX())-getHeading("start")) - turretYaw.get("turretYawTop").getCurrentPosition();
         executor.runLoop(opMode::opModeInInit);
+        turretOffsetFromAuto = turretYaw.get("turretYawTop").getOffset();
         Components.activateActuatorControl();
         executor.setWriteToTelemetry(()->{
             telemetry.addData("Motif",Arrays.asList(motif));

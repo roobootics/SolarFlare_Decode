@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode.pedroPathing;
 
+import static org.firstinspires.ftc.teamcode.base.Components.timer;
+
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
@@ -34,18 +36,22 @@ public abstract class Pedro {
     }
     public static class PedroCommand extends Commands.PathCommand<PathChain>{
         private final boolean holdEnd;
+        private double startTime;
+        private double timeout = Double.POSITIVE_INFINITY;
         public PedroCommand(Function<PathBuilder,PathBuilder> buildPath, boolean holdEnd) {
             super(()->buildPath.apply(follower.pathBuilder()).build());
             this.holdEnd=holdEnd;
         }
+        public PedroCommand setTimeout(double timeout){this.timeout=timeout; return this;}
         @Override
         public boolean followPath(){
             if (isStart()){
+                startTime = timer.time();
                 follower.followPath(getPath(),holdEnd);
                 return true;
             }
             Drawing.drawDebug(follower);
-            return follower.isBusy();
+            return follower.isBusy() && (timer.time()-startTime<timeout);
         }
         @Override
         public void stopProcedure(){

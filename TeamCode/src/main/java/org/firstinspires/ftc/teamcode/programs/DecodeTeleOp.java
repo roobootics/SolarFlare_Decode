@@ -2,19 +2,15 @@ package org.firstinspires.ftc.teamcode.programs;
 
 import static org.firstinspires.ftc.teamcode.base.Commands.executor;
 import static org.firstinspires.ftc.teamcode.base.Components.initialize;
-import static org.firstinspires.ftc.teamcode.base.Components.telemetry;
 import static org.firstinspires.ftc.teamcode.base.Components.timer;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.TURRET_PITCH_OFFSET;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.TURRET_PITCH_RATIO;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.autoGateIntake;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.ballStorage;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.classifierBallCount;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.findMotif;
-import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.initEncoderError;
-import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftVelocityPID;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.motif;
-import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.rightVelocityPID;
-import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.currentBallPath;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.flywheel;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.gamePhase;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.hoodDesired;
@@ -32,6 +28,7 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.targetFlywheel
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.targetPoint;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.toggleShotType;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.transfer;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretOffsetFromAuto;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretPitch;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretYaw;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.yawDesired;
@@ -82,40 +79,39 @@ public class DecodeTeleOp extends LinearOpMode {
         gamePhase = GamePhase.TELEOP;
         initialize(this,new Inferno(),false,true);
         Components.telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
-        //targetFlywheelVelocity=1150;
-        if (Objects.isNull(follower)) {Pedro.createFollower(new Pose(96,7.5,0)); leftFront.resetEncoder(); followerMade = true; initEncoderError = 0; Inferno.motifDetected = false;}
+        if (Objects.isNull(follower)) {Pedro.createFollower(new Pose(96,7.5,0)); followerMade = true; Inferno.motifDetected = false; turretOffsetFromAuto = 0;}
         else {Pedro.createFollower(follower.getPose());}
         executor.setCommands(
-                new RunResettingLoop(new InstantCommand(()->{if (gamepad1.back && !followerMade) {follower.setPose(new Pose(96,7.5,0)); leftFront.resetEncoder(); followerMade = true; initEncoderError = 0; Inferno.motifDetected = false;}})),
+                new RunResettingLoop(new InstantCommand(()->{if (gamepad1.back && !followerMade) {follower.setPose(new Pose(96,7.5,0)); followerMade = true; Inferno.motifDetected = false;  turretOffsetFromAuto = 0;}})),
                 new RunResettingLoop(new InstantCommand(()->{if (gamepad1.dpad_left) {Inferno.alliance = Alliance.BLUE;}})),
                 new RunResettingLoop(new InstantCommand(()->{if (gamepad1.dpad_right) {Inferno.alliance = Alliance.RED;}}))
         );
+        turretYaw.call(servo->servo.setOffset(turretOffsetFromAuto));
         executor.runLoop(this::opModeInInit);
         Components.activateActuatorControl();
         breakFollowing();
         executor.setCommands(
                 findMotif,
-                //Commands.triggeredDynamicCommand(()->gamepad1.dpad_right,()->gamepad1.dpad_left,new InstantCommand(()->targetFlywheelVelocity+=2),new InstantCommand(()->targetFlywheelVelocity-=2)),
                 new RunResettingLoop(
                         new PressCommand(
                                 new IfThen(()->gamepad1.right_bumper, setState(RobotState.INTAKE_FRONT)),
                                 new IfThen(()->gamepad1.left_bumper, setState(RobotState.INTAKE_BACK)),
                                 new IfThen(()->gamepad1.right_trigger>0.5, new InstantCommand(()->{transfer.reset(); setState(RobotState.SHOOTING).run();})),
-                                new IfThen(()->gamepad1.y, setState(RobotState.STOPPED))
-                                //new IfThen(()->gamepad1.a, autoGateIntake)
+                                new IfThen(()->gamepad1.left_trigger>0.3, setState(RobotState.STOPPED)),
+                                new IfThen(()->gamepad2.b, setState(RobotState.INTAKE_FRONT_AND_SHOOT)),
+                                new IfThen(()->gamepad2.x, setState(RobotState.INTAKE_BACK_AND_SHOOT)),
+                                new IfThen(()->gamepad1.a, autoGateIntake),
+                                new IfThen(()->gamepad1.y, setState(RobotState.EXPEL))
                         ),
                         new PressCommand(
                                 new IfThen(()->gamepad2.y,toggleShotType()),
                                 new IfThen(()->gamepad2.x,new InstantCommand(()->classifierBallCount=0)),
                                 new IfThen(()->gamepad2.a,new InstantCommand(()->{if (classifierBallCount<9) {classifierBallCount+=1;}})),
                                 new IfThen(()->gamepad2.b,new InstantCommand(()->{if (classifierBallCount>0){classifierBallCount-=1;}})),
-                                new IfThen(()->gamepad2.dpad_up, setState(RobotState.INTAKE_FRONT_AND_SHOOT)),
-                                new IfThen(()->gamepad2.dpad_down, setState(RobotState.INTAKE_BACK_AND_SHOOT)),
-                                new IfThen(()->gamepad2.back,setState(RobotState.EXPEL)),
                                 new IfThen(()->gamepad2.left_bumper,new AprilTagRelocalize())
                         ),
                         Commands.triggeredToggleCommand(()->gamepad2.left_stick_button,new ContinuousCommand(()->{}),panic),
-                        turretYaw.command((CRBotServo servo)->servo.triggeredDynamicOffsetCommand(()->gamepad2.left_trigger>0.4,()->gamepad2.right_trigger>0.4,0.5)),
+                        turretYaw.command((BotServo servo)->servo.triggeredDynamicOffsetCommand(()->gamepad2.left_trigger>0.2,()->gamepad2.right_trigger>0.2,0.5)),
                         new PressCommand(
                                 new IfThen(()->robotState==RobotState.SHOOTING && !(Math.sqrt(gamepad1.left_stick_x*gamepad1.left_stick_x + gamepad1.left_stick_y*gamepad1.left_stick_y)>0.1 || Math.abs(gamepad1.right_stick_x)>0.1),
                                         new SequentialCommand(
@@ -133,8 +129,7 @@ public class DecodeTeleOp extends LinearOpMode {
                                         new ParallelCommand(
                                                 new RobotCentricMecanumCommand(
                                                         new BotMotor[]{leftFront,leftRear,rightFront,rightRear},
-                                                        ()-> (double) gamepad1.left_stick_x, ()-> (double) gamepad1.left_stick_y, ()-> (double) gamepad1.right_stick_x,
-                                                        ()->{if (gamepad1.left_trigger > 0.3) return 0.75; else return 1.0;}
+                                                        ()-> (double) gamepad1.left_stick_x, ()-> (double) gamepad1.left_stick_y, ()-> (double) gamepad1.right_stick_x
                                                 ),
                                                 Pedro.updatePoseCommand()
                                         )
@@ -143,8 +138,7 @@ public class DecodeTeleOp extends LinearOpMode {
                                         ()->(follower.isBusy() || holdingPosition),
                                         Pedro.updateCommand()
                                 )
-                        ),
-                        Commands.triggeredDynamicCommand(()->gamepad1.dpad_right,()->gamepad1.dpad_left,new InstantCommand(()->targetFlywheelVelocity+=2),new InstantCommand(()->targetFlywheelVelocity-=2))
+                        )
                         /*new InstantCommand(()->{
                             if (315-turretYaw.get("turretYawFront").getTarget()<15 && !gamepad1.isRumbling()){gamepad1.rumble(1000000000);}
                             else if (turretYaw.get("turretYawFront").getTarget()-0<15 && !gamepad1.isRumbling()){gamepad1.rumble(1000000000);}

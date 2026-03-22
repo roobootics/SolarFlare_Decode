@@ -2,8 +2,8 @@ package org.firstinspires.ftc.teamcode.programs;
 
 import static org.firstinspires.ftc.teamcode.base.Commands.executor;
 import static org.firstinspires.ftc.teamcode.base.Components.initialize;
-import static org.firstinspires.ftc.teamcode.base.Components.timer;
-import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.TURRET_YAW_OFFSET;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.TURRET_YAW_RATIO;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.flywheel;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftFront;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretPitch;
@@ -15,19 +15,15 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.base.Commands;
 import org.firstinspires.ftc.teamcode.base.Components;
-import org.firstinspires.ftc.teamcode.pedroPathing.Pedro;
 import org.firstinspires.ftc.teamcode.robotconfigs.Inferno;
 
 @TeleOp
 public class ShooterTest extends LinearOpMode {
     public double targetYaw = 180;
-    public double lastTime;
 
     @Override
     public void runOpMode(){
         initialize(this,new Inferno(),true,true);
-        leftFront.resetEncoder();
-        Pedro.createFollower(new Pose(0,0,0));
         executor.setCommands(
                 turretPitch.command((Components.BotServo servo)->servo.triggeredDynamicTargetCommand(()->gamepad1.right_bumper,()->gamepad1.left_bumper,0.1)),
                 Commands.triggeredDynamicCommand(()->gamepad1.right_trigger>0.3,()->gamepad1.left_trigger>0.3,new Commands.InstantCommand(()->targetYaw-=0.12),new Commands.InstantCommand(()->targetYaw+=0.12)),
@@ -42,20 +38,13 @@ public class ShooterTest extends LinearOpMode {
                             if (targetYaw>180) targetYaw=180;
                             else if (targetYaw<-111) targetYaw = -111;
                         }),
-                        turretYaw.command(servo->servo.instantSetTargetCommand(()->targetYaw))
-                ),
-                Pedro.updatePoseCommand()
+                        turretYaw.command(servo->servo.instantSetTargetCommand(()->targetYaw*TURRET_YAW_RATIO+TURRET_YAW_OFFSET))
+                )
         );
         executor.setWriteToTelemetry(()->{
             telemetry.addData("hood",turretPitch.get("turretPitchLeft").getTarget());
-            telemetry.addData("yaw pos",turretYaw.get("turretYawTop").getCurrentPosition());
             telemetry.addData("yaw angle",targetYaw);
-            telemetry.addData("top yaw power",turretYaw.get("turretYawTop").getPower());
-            telemetry.addData("bottom yaw power",turretYaw.get("turretYawBottom").getPower());
-            telemetry.addData("heading", Math.toDegrees(follower.getHeading()));
-            telemetry.addData("angular velocity", Math.toDegrees(follower.getAngularVelocity()));
-            telemetry.addData("looptime",timer.time()-lastTime);
-            lastTime = timer.time();
+            telemetry.addData("yaw target",turretYaw.get("turretYawTop").getTarget());
         });
         waitForStart();
         Components.activateActuatorControl();

@@ -3,6 +3,7 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.gamePhase;
 
 import com.pedropathing.control.FilteredPIDFCoefficients;
 import com.pedropathing.control.PIDFCoefficients;
+import com.pedropathing.control.PredictiveBrakingCoefficients;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.follower.FollowerConstants;
 import com.pedropathing.ftc.FollowerBuilder;
@@ -22,15 +23,12 @@ public class Constants {
             .mass(15.05927)
             .forwardZeroPowerAcceleration(-31.9940432459363933)
             .lateralZeroPowerAcceleration(-68.69912366702141)
-            .centripetalScaling(0.001)
-            .translationalPIDFCoefficients(new PIDFCoefficients(0.2, 0.0003, 0.001, 0.015))
             .headingPIDFCoefficients(new PIDFCoefficients(1.35,0.001,0,0.01))
-            .drivePIDFCoefficients(new FilteredPIDFCoefficients(0.01, 0, 0.00003, 0.6, 0.01))
-            .centripetalScaling(0.0004)
-            .secondaryDrivePIDFCoefficients(new FilteredPIDFCoefficients(0.0033, 0, 0.00085, 0.6, 0.01))
-            .secondaryTranslationalPIDFCoefficients(new PIDFCoefficients(0.065, 0.0007, 0.00085, 0.015))
-            .secondaryHeadingPIDFCoefficients(new PIDFCoefficients(1.25,0.001,0,0.01))
-            .drivePIDFSwitch(8.5);
+            //.translationalPIDFCoefficients(new PIDFCoefficients(0.2, 0.0003, 0.001, 0.015))
+            //.drivePIDFCoefficients(new FilteredPIDFCoefficients(0.01, 0, 0.00003, 0.6, 0.01))
+            //.centripetalScaling(0.0004)
+            .centripetalScaling(0)
+            .predictiveBrakingCoefficients(new PredictiveBrakingCoefficients(0,0,0));
 
     public static MecanumConstants driveConstants = new MecanumConstants()
             .leftFrontMotorName("leftFront")
@@ -67,16 +65,9 @@ public class Constants {
     );
 
     public static Follower createFollower(HardwareMap hardwareMap) {
-        if (gamePhase== Inferno.GamePhase.AUTO){
-            followerConstants.setUseSecondaryDrivePIDF(true);
-            followerConstants.setUseSecondaryTranslationalPIDF(true);
-            followerConstants.setUseSecondaryHeadingPIDF(true);
-        } else {
+        if (gamePhase== Inferno.GamePhase.TELEOP){
             followerConstants.setHoldPointTranslationalScaling(1.4);
             followerConstants.setHoldPointHeadingScaling(0.4);
-            followerConstants.setUseSecondaryDrivePIDF(false);
-            followerConstants.setUseSecondaryTranslationalPIDF(false);
-            followerConstants.setUseSecondaryHeadingPIDF(false);
         }
         Follower follower = new FollowerBuilder(followerConstants, hardwareMap)
                 .mecanumDrivetrain(driveConstants)

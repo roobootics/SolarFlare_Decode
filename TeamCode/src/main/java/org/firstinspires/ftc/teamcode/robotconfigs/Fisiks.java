@@ -149,12 +149,34 @@ public abstract class Fisiks {
         private static final double STAGE2MAXITR = 6;
         private static final double DISTERR = 0.15;
         private static final double HEIGHTERR = 0.15;
-        private static final double YAWERR = 0.15;
+        private static final double YAWERR = 0.2;
         private static double a,b,c,dj;
         public static boolean resetJacobian = true;
         public static boolean stage1Solve(double initialPitchGuess, double initialTimeGuess, double yaw){
             if (resetJacobian) {
                 resetJacobian = false;
+
+                // Drag-corrected analytical Jacobian (1 RK4 call vs 3 for FD)
+                double dragFactor  = K_DRAG * initSpeed * initialTimeGuess; // negative
+                double drag_pos    = 1.0 + dragFactor / 2.0;
+                double drag_vel    = 1.0 + dragFactor;
+                double vPar        = targetNorm[0] * botVelX + targetNorm[1] * botVelY;
+
+                double topLeft     = -initSpeed * sin(initialPitchGuess) * initialTimeGuess * drag_pos;
+                double topRight    =  initSpeed * cos(initialPitchGuess) * drag_vel + vPar;
+                double bottomLeft  =  initSpeed * cos(initialPitchGuess) * initialTimeGuess * drag_pos;
+                double bottomRight =  initSpeed * sin(initialPitchGuess) * drag_vel + GRAVITY * initialTimeGuess;
+
+                double determinant = topLeft * bottomRight - topRight * bottomLeft;
+                a  =  bottomRight / determinant;
+                b  = -topRight    / determinant;
+                c  = -bottomLeft  / determinant;
+                dj =  topLeft     / determinant;
+
+                Error.findError(initialPitchGuess, yaw, initialTimeGuess);
+
+                /*
+                // Original FD Jacobian (3 RK4 calls)
                 double timeOffset = 0.01;
                 double angleOffset = Math.toRadians(1);
 
@@ -178,6 +200,7 @@ public abstract class Fisiks {
                 b = -topRight / determinant;
                 c = -bottomLeft / determinant;
                 dj = topLeft / determinant;
+                */
             }
             else{
                 Error.findError(initialPitchGuess, yaw, initialTimeGuess);
@@ -284,6 +307,7 @@ public abstract class Fisiks {
             stage1Solve(initialPitchGuess,initialTimeGuess,yawTopBracket); fHi = Error.sideError;
             for (int i=0;i<5;i++){
                 if (fLo*fHi<=0) break;
+               //System.out.println("faliure");
                 if (fHi<0){
                     yawTopBracket += yawBracketIncrement;
                     stage1Solve(initialPitchGuess,initialTimeGuess,yawTopBracket); fHi = Error.sideError;

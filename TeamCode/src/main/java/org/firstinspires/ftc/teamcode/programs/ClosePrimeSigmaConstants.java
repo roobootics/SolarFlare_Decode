@@ -14,8 +14,6 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.currentBallPat
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.flywheel;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.gamePhase;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.hoodDesired;
-import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.initEncoderError;
-import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftFront;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.loopFSM;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.motif;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.readBallStorage;
@@ -26,6 +24,7 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.shotType;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.targetFlywheelVelocity;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.targetPoint;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.transfer;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretOffsetFromAuto;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretPitch;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretYaw;
 
@@ -245,13 +244,12 @@ public class ClosePrimeSigmaConstants {
     public static void runOpMode(Inferno.Alliance alliance, LinearOpMode opMode){
         initialize(opMode,new Inferno(),true,true);
         Inferno.motifDetected = false;
+        turretOffsetFromAuto = 0;
         Components.telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
-        leftFront.resetEncoder();
         preloadShoot.reset();
         Inferno.alliance = alliance;
         gamePhase = Inferno.GamePhase.AUTO;
         Pedro.createFollower(getPose("start"));
-        initEncoderError = 0;
         executor.setWriteToTelemetry(()->{
                 telemetry.addData("pos",turretYaw.get("turretYawTop").getCurrentPosition());
                 telemetry.addData("Target Flywheel Velocity",targetFlywheelVelocity);
@@ -277,6 +275,7 @@ public class ClosePrimeSigmaConstants {
                 telemetry.addLine("Please, Speed, we need this.");
         });
         executor.setCommands(
+                turretYaw.command((Components.BotServo servo)->servo.triggeredDynamicOffsetCommand(()->gamepad1.left_trigger>0.2,()->gamepad1.right_trigger>0.2,0.05)),
                 new RunResettingLoop(new PressCommand(
                         new IfThen(()->gamepad1.dpad_up,new InstantCommand(()->{
                                 if (!isInserting){
@@ -307,8 +306,8 @@ public class ClosePrimeSigmaConstants {
                 ))
         );
         setTargetPoint();
-        //initEncoderError = Math.toDegrees(atan2(targetPoint[1]-getPose("start").getY(),targetPoint[0]-getPose("start").getX())-getHeading("start")) - turretYaw.get("turretYawTop").getCurrentPosition();
         executor.runLoop(opMode::opModeInInit);
+        turretOffsetFromAuto = turretYaw.get("turretYawTop").getOffset();
         Components.activateActuatorControl();
         executor.setWriteToTelemetry(()->{
             telemetry.addData("Yaw Target", turretYaw.get("turretYawTop").getTarget());
