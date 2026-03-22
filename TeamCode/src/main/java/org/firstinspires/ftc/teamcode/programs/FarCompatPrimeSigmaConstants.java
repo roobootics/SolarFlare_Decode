@@ -63,10 +63,10 @@ import java.util.Objects;
 public class FarCompatPrimeSigmaConstants {
     public static final double INITIAL_WAIT = 1;
     public static final double SHOT_TIME = 1;
-    public static final double PRE_SHOT_TIME = 0.3;
+    public static final double PRE_SHOT_TIME = 0.33;
     public static final double slowDownT = 0.73;
     public static final double speedUpT = 0.13;
-    public static final double stopIntakeT = 0.1;
+    public static final double stopIntakeT = 0.17;
     public static final double slowDownAmount = 1.0;
     public static Double angle;
     public static Command shoot = new SequentialCommand(new SleepCommand(PRE_SHOT_TIME),
@@ -169,7 +169,7 @@ public class FarCompatPrimeSigmaConstants {
             shoot
     );
     public static Command park = new ParallelCommand(
-            setState(Inferno.RobotState.STOPPED),
+            setState(null),
             new PedroCommand(
                     b->b.addPath(new BezierLine(getPose("shoot"),getPose("park")))
                             .setConstantHeadingInterpolation(getHeading("park")),true
@@ -202,7 +202,7 @@ public class FarCompatPrimeSigmaConstants {
         );
         loadingZoneOverride = false;
         setTargetPoint();
-        initEncoderError = Math.toDegrees(atan2(targetPoint[1]-getPose("start").getY(),targetPoint[0]-getPose("start").getX())-getHeading("start")) - turretYaw.get("turretYawTop").getCurrentPosition();
+        //initEncoderError = Math.toDegrees(atan2(targetPoint[1]-getPose("start").getY(),targetPoint[0]-getPose("start").getX())-getHeading("start")) - turretYaw.get("turretYawTop").getCurrentPosition();
         executor.runLoop(opMode::opModeInInit);
         Components.activateActuatorControl();
         executor.setWriteToTelemetry(()->{

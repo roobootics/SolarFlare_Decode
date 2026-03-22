@@ -52,16 +52,20 @@ import java.util.List;
 import java.util.Objects;
 
 import static org.apache.commons.math3.util.FastMath.tan;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.yawDesired;
 
 public class FarPrimeSigmaConstants {
-    public static final double INITIAL_WAIT = 1;
+    public static final double INITIAL_WAIT = 0.7;
     public static final double SHOT_TIME = 1;
-    public static final double PRE_SHOT_TIME = 0.3;
+    public static final double PRE_SHOT_TIME = 0.35;
     public static final double slowDownT = 0.73;
     public static final double speedUpT = 0.13;
-    public static final double stopIntakeT = 0.1;
+    public static double shootSlowT = 0.77;
+    public static double shootSlowAmount = 0.75;
+    public static final double stopIntakeT = 0.17;
     public static final double slowDownAmount = 1.0;
     public static Double angle;
+
     public static Command shoot = new SequentialCommand(new SleepCommand(PRE_SHOT_TIME),
             setState(Inferno.RobotState.SHOOTING),
             new SleepCommand(SHOT_TIME),
@@ -69,11 +73,12 @@ public class FarPrimeSigmaConstants {
                     new IfThen(
                         ()->{
                             readBallStorage();
-                            boolean allNull = true;
+                            int ballsPresent = 0;
+
                             for (Inferno.Color color : ballStorage){
-                                if (!Objects.isNull(color)) allNull = false;
+                                if (!Objects.isNull(color)) ballsPresent+=1;
                             }
-                            return !allNull;
+                            return ballsPresent!=0;
                         },
                         new SequentialCommand(
                                 new InstantCommand(transfer::reset),
@@ -118,7 +123,9 @@ public class FarPrimeSigmaConstants {
                         .addPath(new BezierLine(getPose("firstSpike"), getPose("firstShoot")))
                             .setTangentHeadingInterpolation().setReversed()
                             .addParametricCallback(speedUpT,()->follower.setMaxPower(1.0))
-                            .addParametricCallback(stopIntakeT,()->setState(Inferno.RobotState.STOPPED).run()),
+                            .addParametricCallback(stopIntakeT,()->setState(Inferno.RobotState.STOPPED).run())
+                            .addParametricCallback(shootSlowT,()->follower.setMaxPower(shootSlowAmount))
+                            .addParametricCallback(0.94,()->follower.setMaxPower(1.0)),
                     true
             ), shoot
     );
@@ -133,7 +140,9 @@ public class FarPrimeSigmaConstants {
                             )
                             .addParametricCallback(speedUpT,()->follower.setMaxPower(1.0))
                             .addParametricCallback(stopIntakeT,()->setState(Inferno.RobotState.STOPPED).run())
-                            .addParametricCallback(0.83,()->loadingZoneOverride=true),
+                            .addParametricCallback(0.83,()->loadingZoneOverride=true)
+                            .addParametricCallback(shootSlowT,()->follower.setMaxPower(shootSlowAmount))
+                            .addParametricCallback(0.94,()->follower.setMaxPower(1.0)),
                     true
             ), shoot
     );
@@ -157,13 +166,15 @@ public class FarPrimeSigmaConstants {
                         .addPath(new BezierLine(follower::getPose, getPose("shoot")))
                             .setConstantHeadingInterpolation(visionHeading)
                             .addParametricCallback(speedUpT,()->follower.setMaxPower(1.0))
-                            .addParametricCallback(stopIntakeT,()->setState(Inferno.RobotState.STOPPED).run());},
+                            .addParametricCallback(stopIntakeT,()->setState(Inferno.RobotState.STOPPED).run())
+                            .addParametricCallback(shootSlowT,()->follower.setMaxPower(shootSlowAmount))
+                            .addParametricCallback(0.94,()->follower.setMaxPower(1.0));},
                     true
             ),
             shoot
     );
     public static Command park = new ParallelCommand(
-            setState(Inferno.RobotState.STOPPED),
+            setState(null),
             new PedroCommand(
                     b->b.addPath(new BezierLine(getPose("shoot"),getPose("park")))
                             .setConstantHeadingInterpolation(getHeading("park")),true
@@ -171,6 +182,7 @@ public class FarPrimeSigmaConstants {
     );
     public static void runOpMode(Inferno.Alliance alliance, LinearOpMode opMode){
         initialize(opMode,new Inferno(),true,true);
+        findMotif.reset();
         Inferno.motifDetected = false;
         Components.telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
         flag = 0;
@@ -196,7 +208,7 @@ public class FarPrimeSigmaConstants {
         );
         loadingZoneOverride = false;
         setTargetPoint();
-        initEncoderError = Math.toDegrees(atan2(targetPoint[1]-getPose("start").getY(),targetPoint[0]-getPose("start").getX())-getHeading("start")) - turretYaw.get("turretYawTop").getCurrentPosition();
+        //initEncoderError = Math.toDegrees(atan2(targetPoint[1]-getPose("start").getY(),targetPoint[0]-getPose("start").getX())-getHeading("start")) - turretYaw.get("turretYawTop").getCurrentPosition();
         executor.runLoop(opMode::opModeInInit);
         Components.activateActuatorControl();
         executor.setWriteToTelemetry(()->{
@@ -205,6 +217,11 @@ public class FarPrimeSigmaConstants {
             telemetry.addData("Target Flywheel Velocity", targetFlywheelVelocity);
             telemetry.addData("Flywheel Velocity", flywheel.get("flywheelLeft").getVelocity());
             telemetry.addData("Flywheel Error", targetFlywheelVelocity - flywheel.get("flywheelLeft").getVelocity());
+            telemetry.addLine("");
+            Components.telemetry.addData("Yaw Pos",turretYaw.get("turretYawTop").getCurrentPosition());
+            Components.telemetry.addData("Yaw Target",turretYaw.get("turretYawTop").getTarget());
+            Components.telemetry.addData("Yaw Angle",yawDesired);
+            Components.telemetry.addData("Yaw Error", turretYaw.get("turretYawTop").getTarget() - turretYaw.get("turretYawTop").getCurrentPosition());
             telemetry.addLine("");
             telemetry.addData("Hood Angle",(turretPitch.get("turretPitchLeft").getTarget()-TURRET_PITCH_OFFSET)/TURRET_PITCH_RATIO);
             telemetry.addData("Hood Desired",hoodDesired);

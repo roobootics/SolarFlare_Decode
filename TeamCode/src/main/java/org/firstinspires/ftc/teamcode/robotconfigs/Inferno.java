@@ -75,8 +75,8 @@ public class Inferno implements RobotConfig{
     public static double classifierBallCount = 0;
     public static Alliance alliance = Alliance.RED;
     public static GamePhase gamePhase = GamePhase.AUTO;
-    public static VelocityPID leftVelocityPID = new VelocityPID(false,BotMotor::getVelocity,0.0012, 0.0012, 0.000065).setIntegralStartThreshold(100).setDerivativeStartThreshold(80);
-    public static VelocityPID rightVelocityPID = new VelocityPID(false,(BotMotor motor)->flywheel.get("flywheelLeft").getVelocity(),0.0012, 0.0012, 0.000065).setIntegralStartThreshold(100).setDerivativeStartThreshold(80);
+    public static VelocityPID leftVelocityPID = new VelocityPID(false,BotMotor::getVelocity,0.0014, 0.0012, 0.000067).setIntegralStartThreshold(100).setDerivativeStartThreshold(80);
+    public static VelocityPID rightVelocityPID = new VelocityPID(false,(BotMotor motor)->flywheel.get("flywheelLeft").getVelocity(),0.0014, 0.0012, 0.000067).setIntegralStartThreshold(100).setDerivativeStartThreshold(80);
     public static double hoodDesired;
     public static double yawDesired;
     public static double physicsTime;
@@ -123,7 +123,7 @@ public class Inferno implements RobotConfig{
                         ))
         );
         turretYaw.call((CRBotServo servo) -> servo.setTargetBounds(() -> 210.0, () -> -111.0));
-        turretPitch.call((BotServo servo) -> servo.setTargetBounds(() -> 159.8, () -> 98.5));
+        turretPitch.call((BotServo servo) -> servo.setTargetBounds(() -> 159.8, () -> 90.5));
         turretPitch.call((BotServo servo)->servo.setPositionCacheThreshold(0.2));
         frontIntake.setKeyPowers(
                 new String[]{"intake","otherSideIntake","transfer","otherSideTransfer","stopped","expel","frontDrive","otherFrontDrive","sideSelect"},
@@ -267,6 +267,7 @@ public class Inferno implements RobotConfig{
             )
     );
     public static final SequentialCommand stopIntake = new SequentialCommand(
+            transferGate.instantSetTargetCommand("closed"),
             new ConditionalCommand(
                     new IfThen(
                             ()->prevState==RobotState.INTAKE_BACK,
