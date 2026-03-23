@@ -36,13 +36,15 @@ public class ShooterTest extends LinearOpMode {
                             if (targetYaw>180) targetYaw=180;
                             else if (targetYaw<-111) targetYaw = -111;
                         }),
-                        turretYaw.command(servo->servo.instantSetTargetCommand(()->targetYaw*TURRET_YAW_RATIO+TURRET_YAW_OFFSET))
+                        //turretYaw.command(servo->servo.instantSetTargetCommand(()->targetYaw*TURRET_YAW_RATIO+TURRET_YAW_OFFSET))
+                        turretYaw.command(servo->servo.instantSetTargetCommand(()->targetYaw))
                 )
         );
         executor.setWriteToTelemetry(()->{
             telemetry.addData("hood",turretPitch.get("turretPitchLeft").getTarget());
             telemetry.addData("yaw angle",targetYaw);
             telemetry.addData("yaw target",turretYaw.get("turretYawTop").getTarget());
+            telemetry.addData("yaw pos",turretYaw.get("turretYawTop").getCurrentPosition());
         });
         waitForStart();
         Components.activateActuatorControl();

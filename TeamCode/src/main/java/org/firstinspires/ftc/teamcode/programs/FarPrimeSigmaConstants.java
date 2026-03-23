@@ -17,6 +17,7 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.findMotif;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.flywheel;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.gamePhase;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.hoodDesired;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftFront;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.loopFSM;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.motif;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.readBallStorage;
@@ -30,6 +31,7 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.transfer;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretOffsetFromAuto;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretPitch;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretYaw;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.useVelFeedforward;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.vision;
 
 import com.acmerobotics.dashboard.FtcDashboard;
@@ -56,12 +58,12 @@ import static org.apache.commons.math3.util.FastMath.tan;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.yawDesired;
 
 public class FarPrimeSigmaConstants {
-    public static final double INITIAL_WAIT = 0.7;
-    public static final double SHOT_TIME = 1;
-    public static final double PRE_SHOT_TIME = 0.35;
+    public static final double INITIAL_WAIT = 0.9;
+    public static final double SHOT_TIME = 0.7;
+    public static final double PRE_SHOT_TIME = 0;
     public static final double slowDownT = 0.73;
     public static final double speedUpT = 0.13;
-    public static double shootSlowT = 0.77;
+    public static double shootSlowT = 1.0;
     public static double shootSlowAmount = 0.75;
     public static final double stopIntakeT = 0.17;
     public static final double slowDownAmount = 1.0;
@@ -203,6 +205,7 @@ public class FarPrimeSigmaConstants {
     );
     public static void runOpMode(Inferno.Alliance alliance, LinearOpMode opMode){
         initialize(opMode,new Inferno(),true,true);
+        useVelFeedforward = false;
         findMotif.reset();
         turretOffsetFromAuto = 0;
         Inferno.motifDetected = false;
@@ -214,9 +217,9 @@ public class FarPrimeSigmaConstants {
         gamePhase = Inferno.GamePhase.AUTO;
         Pedro.createFollower(getPose("start"));
         executor.setWriteToTelemetry(()->{
+            telemetry.addData("offset",turretYaw.get("turretYawTop").getOffset());
             telemetry.addData("Target Flywheel Velocity",0);
             telemetry.addData("Flywheel Velocity",0);
-            telemetry.addData("pos",turretYaw.get("turretYawTop").getCurrentPosition());
             telemetry.addData("botX",follower.getPose().getX());
             telemetry.addData("botY",follower.getPose().getY());
             telemetry.addData("botHeading",follower.getPose().getHeading());
@@ -224,10 +227,11 @@ public class FarPrimeSigmaConstants {
             telemetry.addLine("Please, Speed, we need this.");
         });
         executor.setCommands(
-                turretYaw.command((Components.BotServo servo)->servo.triggeredDynamicOffsetCommand(()->gamepad1.left_trigger>0.2,()->gamepad1.right_trigger>0.2,0.05))
+                turretYaw.command(servo->servo.triggeredDynamicOffsetCommand(()->gamepad1.left_trigger>0.2,()->gamepad1.right_trigger>0.2,0.05))
         );
         loadingZoneOverride = false;
         setTargetPoint();
+        leftFront.resetEncoder();
         executor.runLoop(opMode::opModeInInit);
         turretOffsetFromAuto = turretYaw.get("turretYawTop").getOffset();
         Components.activateActuatorControl();
@@ -272,6 +276,8 @@ public class FarPrimeSigmaConstants {
                 visionIntake,
                 visionIntake,
                 visionIntake,
+                visionIntake,
+                visionIntake,
                 visionIntake
         );
         executor.setCommands(
@@ -280,7 +286,7 @@ public class FarPrimeSigmaConstants {
                         new ParallelCommand(
                                 mainPath,
                                 new SequentialCommand(
-                                        new SleepUntilTrue(mainPath::isFinished,29),
+                                        new SleepUntilTrue(mainPath::isFinished,29.3),
                                         new InstantCommand(mainPath::stop)
                                 )
                         ),

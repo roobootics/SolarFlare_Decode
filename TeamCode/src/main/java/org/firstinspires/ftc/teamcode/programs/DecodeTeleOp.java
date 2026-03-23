@@ -31,6 +31,7 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.transfer;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretOffsetFromAuto;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretPitch;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretYaw;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.useVelFeedforward;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.yawDesired;
 
 import com.acmerobotics.dashboard.FtcDashboard;
@@ -75,12 +76,13 @@ public class DecodeTeleOp extends LinearOpMode {
     @Override
     public void runOpMode(){
         gamePhase = GamePhase.TELEOP;
+        useVelFeedforward = true;
         initialize(this,new Inferno(),false,true);
         Components.telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
-        if (Objects.isNull(follower)) {Pedro.createFollower(new Pose(96,7.5,0)); followerMade = true; Inferno.motifDetected = false; turretOffsetFromAuto = 0;}
+        if (Objects.isNull(follower)) {Pedro.createFollower(new Pose(96,7.5,0)); followerMade = true; Inferno.motifDetected = false; turretOffsetFromAuto = 0; leftFront.resetEncoder();}
         else {Pedro.createFollower(follower.getPose());}
         executor.setCommands(
-                new RunResettingLoop(new InstantCommand(()->{if (gamepad1.back && !followerMade) {follower.setPose(new Pose(96,7.5,0)); followerMade = true; Inferno.motifDetected = false;  turretOffsetFromAuto = 0;}})),
+                new RunResettingLoop(new InstantCommand(()->{if (gamepad1.back && !followerMade) {follower.setPose(new Pose(96,7.5,0)); followerMade = true; Inferno.motifDetected = false;  turretOffsetFromAuto = 0; leftFront.resetEncoder();}})),
                 new RunResettingLoop(new InstantCommand(()->{if (gamepad1.dpad_left) {Inferno.alliance = Alliance.BLUE;}})),
                 new RunResettingLoop(new InstantCommand(()->{if (gamepad1.dpad_right) {Inferno.alliance = Alliance.RED;}}))
         );
@@ -109,7 +111,7 @@ public class DecodeTeleOp extends LinearOpMode {
                                 new IfThen(()->gamepad2.left_bumper,new AprilTagRelocalize())
                         ),
                         Commands.triggeredToggleCommand(()->gamepad2.left_stick_button,new ContinuousCommand(()->{}),panic),
-                        turretYaw.command((BotServo servo)->servo.triggeredDynamicOffsetCommand(()->gamepad2.left_trigger>0.2,()->gamepad2.right_trigger>0.2,0.5)),
+                        turretYaw.command(servo->servo.triggeredDynamicOffsetCommand(()->gamepad2.left_trigger>0.2,()->gamepad2.right_trigger>0.2,0.5)),
                         new PressCommand(
                                 new IfThen(()->robotState==RobotState.SHOOTING && !(Math.sqrt(gamepad1.left_stick_x*gamepad1.left_stick_x + gamepad1.left_stick_y*gamepad1.left_stick_y)>0.1 || Math.abs(gamepad1.right_stick_x)>0.1),
                                         new SequentialCommand(

@@ -14,6 +14,7 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.currentBallPat
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.flywheel;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.gamePhase;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.hoodDesired;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.leftFront;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.loopFSM;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.motif;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.readBallStorage;
@@ -27,6 +28,7 @@ import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.transfer;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretOffsetFromAuto;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretPitch;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.turretYaw;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Inferno.useVelFeedforward;
 
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
@@ -55,21 +57,22 @@ import org.firstinspires.ftc.teamcode.robotconfigs.Inferno;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Objects;
 
 public class ClosePrimeSigmaConstants {
     public static final double INITIAL_WAIT = 0.01;
-    public static final double PRE_SHOT_TIME = 0.3;
-    public static final double SHOT_TIME = 1;
+    public static final double PRE_SHOT_TIME = 0;
+    public static final double SHOT_TIME = 0.7;
     public static final double slowDownT = 0.73;
     public static final double speedUpT = 0.05;
     public static final double stopIntakeT = 0.17;
-    public static final double slowDownAmount = 0.67;
-    public static final double gateIntakeTimeout = 1;
+    public static final double slowDownAmount = 1.0;
+    public static final double gateIntakeTimeout = 0.7;
     public static final double secondShootSlowT = 0.75;
     public static final double fourthShootSlowT = 0.75;
     public static final double shootSlowT = 0.8;
-    public static final double shootSlowAmount = 0.7;
+    public static final double shootSlowAmount = 1.0;
     public static Command shoot = new SequentialCommand(new SleepCommand(PRE_SHOT_TIME),
             setState(Inferno.RobotState.SHOOTING),
             new SleepCommand(SHOT_TIME),
@@ -98,10 +101,10 @@ public class ClosePrimeSigmaConstants {
     public static double mirrorHeading(double input){return Math.PI - input;}
     static {
         poses.put("start",new Pose(19.68, 121.72, Math.toRadians(144)));
-        poses.put("shoot",new Pose(57.85,77.42,Math.toRadians(180)));
+        poses.put("shoot",new Pose(59.85,79.42,Math.toRadians(180)));
         poses.put("secondSpikeCtrl",new Pose(41.07, 58.06));
         poses.put("secondSpike",new Pose(14.829, 58.805));
-        poses.put("gateOpen",new Pose(14.97, 59.02,Math.toRadians(180)));
+        poses.put("gateOpen",new Pose(14.97, 61.02,Math.toRadians(180)));
         poses.put("gateIntake",new Pose(14.97, 56.16,Math.toRadians(130)));
         poses.put("firstSpike",new Pose(22.773, 79.829,Math.toRadians(180)));
         poses.put("thirdSpikeCtrl",new Pose(80.067, 27.483));
@@ -242,6 +245,7 @@ public class ClosePrimeSigmaConstants {
     }
     public static void runOpMode(Inferno.Alliance alliance, LinearOpMode opMode){
         initialize(opMode,new Inferno(),true,true);
+        useVelFeedforward = false;
         Inferno.motifDetected = false;
         turretOffsetFromAuto = 0;
         Components.telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
@@ -250,7 +254,7 @@ public class ClosePrimeSigmaConstants {
         gamePhase = Inferno.GamePhase.AUTO;
         Pedro.createFollower(getPose("start"));
         executor.setWriteToTelemetry(()->{
-                telemetry.addData("pos",turretYaw.get("turretYawTop").getCurrentPosition());
+            telemetry.addData("offset", turretYaw.get("turretYawTop").getOffset());
                 telemetry.addData("Target Flywheel Velocity",targetFlywheelVelocity);
                 telemetry.addData("Flywheel Velocity",0);
                 telemetry.addLine("");
@@ -274,7 +278,7 @@ public class ClosePrimeSigmaConstants {
                 telemetry.addLine("Please, Speed, we need this.");
         });
         executor.setCommands(
-                turretYaw.command((Components.BotServo servo)->servo.triggeredDynamicOffsetCommand(()->gamepad1.left_trigger>0.2,()->gamepad1.right_trigger>0.2,0.05)),
+                turretYaw.command(servo->servo.triggeredDynamicOffsetCommand(()->gamepad1.left_trigger>0.2,()->gamepad1.right_trigger>0.2,0.05)),
                 new RunResettingLoop(new PressCommand(
                         new IfThen(()->gamepad1.dpad_up,new InstantCommand(()->{
                                 if (!isInserting){
@@ -305,12 +309,13 @@ public class ClosePrimeSigmaConstants {
                 ))
         );
         setTargetPoint();
+        leftFront.resetEncoder();
         executor.runLoop(opMode::opModeInInit);
         turretOffsetFromAuto = turretYaw.get("turretYawTop").getOffset();
         Components.activateActuatorControl();
         executor.setWriteToTelemetry(()->{
             telemetry.addData("Yaw Target", turretYaw.get("turretYawTop").getTarget());
-            telemetry.addData("Target Point", Arrays.asList(targetPoint));
+            telemetry.addData("Target Point", List.of(targetPoint));
             telemetry.addData("Pose Heading", follower.getHeading());
             telemetry.addData("Motif",Arrays.asList(motif));
             telemetry.addLine("");
@@ -343,7 +348,7 @@ public class ClosePrimeSigmaConstants {
                         new ParallelCommand(
                                 mainPath,
                                 new SequentialCommand(
-                                        new SleepUntilTrue(mainPath::isFinished,29),
+                                        new SleepUntilTrue(mainPath::isFinished,29.3),
                                         new InstantCommand(mainPath::stop)
                                 )
                         ),
