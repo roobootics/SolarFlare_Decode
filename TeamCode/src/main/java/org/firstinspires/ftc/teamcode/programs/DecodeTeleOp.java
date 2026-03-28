@@ -79,10 +79,10 @@ public class DecodeTeleOp extends LinearOpMode {
         useVelFeedforward = true;
         initialize(this,new Inferno(),false,true);
         Components.telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
-        if (Objects.isNull(follower)) {Pedro.createFollower(new Pose(96,7.5,0)); followerMade = true; Inferno.motifDetected = false; turretOffsetFromAuto = 0; leftFront.resetEncoder();}
+        if (Objects.isNull(follower)) {Pedro.createFollower(new Pose(72,72,0)); followerMade = true; Inferno.motifDetected = false; turretOffsetFromAuto = 0; leftFront.resetEncoder();}
         else {Pedro.createFollower(follower.getPose());}
         executor.setCommands(
-                new RunResettingLoop(new InstantCommand(()->{if (gamepad1.back && !followerMade) {follower.setPose(new Pose(96,7.5,0)); followerMade = true; Inferno.motifDetected = false;  turretOffsetFromAuto = 0; leftFront.resetEncoder();}})),
+                new RunResettingLoop(new InstantCommand(()->{if (gamepad1.back && !followerMade) {follower.setPose(new Pose(72,72,0)); followerMade = true; Inferno.motifDetected = false;  turretOffsetFromAuto = 0; leftFront.resetEncoder();}})),
                 new RunResettingLoop(new InstantCommand(()->{if (gamepad1.dpad_left) {Inferno.alliance = Alliance.BLUE;}})),
                 new RunResettingLoop(new InstantCommand(()->{if (gamepad1.dpad_right) {Inferno.alliance = Alliance.RED;}}))
         );

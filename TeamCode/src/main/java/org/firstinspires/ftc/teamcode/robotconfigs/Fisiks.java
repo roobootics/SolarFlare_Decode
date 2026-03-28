@@ -360,7 +360,7 @@ public abstract class Fisiks {
     }
     public static final double[] yawBrackets = new double[2];
     public static final double[] pitchTimeGuesses = new double[4];
-    public static void yawBrackets(double pitchGuess, double timeGuess){
+    public static void yawGuesses(double pitchGuess, double timeGuess){
         double baseYaw = atan2(targetPoint[1], targetPoint[0]);
         double vPerp = sidewaysNorm[0] * botVelX + sidewaysNorm[1] * botVelY;
         double arg = Math.max(-1, Math.min(1, -vPerp / (initSpeed * cos(pitchGuess))));
@@ -384,7 +384,7 @@ public abstract class Fisiks {
         yawBrackets[0] = Math.min(bracketOvercorrect, bracketUndercorrect);
         yawBrackets[1] = Math.max(bracketOvercorrect, bracketUndercorrect);
     }
-    public static void estimateInitialGuesses() {
+    public static void pitchTimeGuesses() {
         pitchTimeGuesses[0] = Math.toRadians(45); pitchTimeGuesses[1] = 0.7; pitchTimeGuesses[2] = Math.toRadians(65); pitchTimeGuesses[3] = 1.1;
         double vPar = targetNorm[0] * botVelX + targetNorm[1] * botVelY;
         double kL = 0.86; // tunable
@@ -450,11 +450,11 @@ public abstract class Fisiks {
         Fisiks.currentBallPath = currentBallPath;
         Solver.resetJacobian = true;
         buildPhysics(targetPoint,pos,botVel,flywheelVel);
-        estimateInitialGuesses();
+        pitchTimeGuesses();
         double initialPitchGuess;
         double initialTimeGuess;
         if (currentBallPath == Inferno.BallPath.HIGH) {initialPitchGuess = pitchTimeGuesses[2]; initialTimeGuess = pitchTimeGuesses[3];} else {initialPitchGuess = pitchTimeGuesses[0]; initialTimeGuess = pitchTimeGuesses[1];}
-        yawBrackets(initialPitchGuess, initialTimeGuess);
+        yawGuesses(initialPitchGuess, initialTimeGuess);
         success = Solver.solve(initialPitchGuess,initialTimeGuess,yawBrackets[1],yawBrackets[0]);
         //System.out.println(success);
         return Solver.out;

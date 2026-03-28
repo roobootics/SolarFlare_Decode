@@ -1,9 +1,9 @@
 package org.firstinspires.ftc.teamcode.robotconfigs;
 import static org.firstinspires.ftc.teamcode.base.Components.getHardwareMap;
-import static org.firstinspires.ftc.teamcode.base.Components.telemetry;
 import static org.firstinspires.ftc.teamcode.base.Components.timer;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
-import static org.firstinspires.ftc.teamcode.robotconfigs.Fisiks.success;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Fisiks.pitchTimeGuesses;
+import static org.firstinspires.ftc.teamcode.robotconfigs.Fisiks.yawBrackets;
 
 import org.apache.commons.lang3.tuple.Triple;
 
@@ -30,6 +30,7 @@ import org.firstinspires.ftc.teamcode.vision.Vision;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
@@ -92,6 +93,7 @@ public class Inferno implements RobotConfig{
     public static boolean motifDetected = false;
     public static double turretOffsetFromAuto;
     public static boolean useVelFeedforward = true;
+    public final static double[] turret = new double[2];
     public static double getVelProjectedFiring(){
         setTargetPoint();
         Pose pos = follower.getPose();
@@ -161,6 +163,7 @@ public class Inferno implements RobotConfig{
         backIntake.setZeroPowerFloat();
         //turretYaw.call(servo->servo.setPositionCacheThreshold(0.001));
         turretYaw.call(servo->servo.setPowerCacheThreshold(0.001));
+        turretPitch.call(servo->servo.setPositionCacheThreshold(0.001));
     }
     public enum Color{
         PURPLE,
@@ -215,12 +218,7 @@ public class Inferno implements RobotConfig{
                     backIntakeGate.instantSetTargetCommand("open")
             ),
             new SleepCommand(1.5),
-            new ParallelCommand(
-                    frontIntakeGate.instantSetTargetCommand("closed"),
-                    backIntakeGate.instantSetTargetCommand("closed"),
-                    frontIntake.setPowerCommand(-1.0),
-                    backIntake.setPowerCommand(-1.0)
-            )
+            setState(null)
     );
     private static final SequentialCommand backTransfer = new SequentialCommand(
             new ParallelCommand(
@@ -243,12 +241,7 @@ public class Inferno implements RobotConfig{
                     backIntakeGate.instantSetTargetCommand("open")
             ),
             new SleepCommand(1.5),
-            new ParallelCommand(
-                    frontIntakeGate.instantSetTargetCommand("closed"),
-                    backIntakeGate.instantSetTargetCommand("closed"),
-                    frontIntake.setPowerCommand(-1.0),
-                    backIntake.setPowerCommand(-1.0)
-            )
+            setState(null)
     );
     public static final Command frontIntakeAction = new SequentialCommand(
             new ParallelCommand(
@@ -366,21 +359,30 @@ public class Inferno implements RobotConfig{
         setTargetPoint();
         Pose pos = follower.getPose();
         targetFlywheelVelocity = VelRegression.regressFormula(Math.sqrt((targetPoint[0]-pos.getX())*(targetPoint[0]-pos.getX()) + (targetPoint[1]-pos.getY())*(targetPoint[1]-pos.getY())));
-        targetFlywheelVelocity = Math.min(Math.max(targetFlywheelVelocity,835),1400);
-        double[] turret;
-        if (robotState == RobotState.SHOOTING || robotState == RobotState.STOPPED || robotState==RobotState.INTAKE_FRONT_AND_SHOOT || robotState==RobotState.INTAKE_BACK_AND_SHOOT) {
+        targetFlywheelVelocity = Math.min(Math.max(targetFlywheelVelocity,800),1425);
+        if (robotState == RobotState.SHOOTING || robotState==RobotState.INTAKE_FRONT_AND_SHOOT || robotState==RobotState.INTAKE_BACK_AND_SHOOT) {
             double startTime = timer.time();
-            turret = Fisiks.runPhysics(currentBallPath, targetPoint, pos, follower.getVelocity(), flywheel.get("flywheelLeft").getVelocity());
-            double endTime = timer.time();
-            physicsTime = endTime-startTime;
-            if (!success) {
-                Components.telemetry.addLine("PHYSICS FAILED TO CONVERGE");
+            FisiksCache.runCachedPhysics();
+            turret[0] = FisiksCache.output[0];
+            turret[1] = FisiksCache.output[1];
+            double endTime = timer.time(); physicsTime = endTime-startTime;
+        }
+        else if (robotState == RobotState.STOPPED){
+            FisiksCache.clearCache(); physicsTime = 0;
+            Fisiks.buildPhysics(targetPoint, pos, follower.getVelocity(), flywheel.get("flywheelLeft").getVelocity()); Fisiks.pitchTimeGuesses();
+            if (currentBallPath==BallPath.LOW){
+                Fisiks.yawGuesses(Fisiks.pitchTimeGuesses[0],Fisiks.pitchTimeGuesses[1]);
+                turret[0] = pitchTimeGuesses[0];
+            } else{
+                Fisiks.yawGuesses(Fisiks.pitchTimeGuesses[2],Fisiks.pitchTimeGuesses[3]);
+                turret[0] = pitchTimeGuesses[2];
             }
-            turret[0] = Math.toDegrees(turret[0]);
-            turret[1] = Math.toDegrees(turret[1]);
+            turret[1] = (yawBrackets[1] + yawBrackets[0])/2;
         }
         else{
-            turret = new double[]{(turretPitch.get("turretPitchLeft").getTarget()-TURRET_PITCH_OFFSET)/TURRET_PITCH_RATIO, Math.toDegrees(Math.atan2(targetPoint[1] - pos.getY(),targetPoint[0] - pos.getX()))};
+            FisiksCache.clearCache(); physicsTime = 0;
+            turret[0] = (turretPitch.get("turretPitchLeft").getTarget()-TURRET_PITCH_OFFSET)/TURRET_PITCH_RATIO;
+            turret[1] = Math.toDegrees(Math.atan2(targetPoint[1] - pos.getY(),targetPoint[0] - pos.getX()));
         }
         if (gamePhase == GamePhase.AUTO) turret[1] = Math.toDegrees(Math.atan2(targetPoint[1] - pos.getY(),targetPoint[0] - pos.getX()));
         double heading = Math.toDegrees(follower.getHeading());
@@ -621,8 +623,6 @@ public class Inferno implements RobotConfig{
             protected boolean runProcedure() {
                 if (isStart()) {
                     startTime = -9999;
-                    frontIntakeGate.setTarget(frontIntakeGate.getPos("closed"));
-                    backIntakeGate.setTarget(backIntakeGate.getPos("closed"));
                 }
                 if (timer.time() - startTime > BALL_SHOT_TIMING && !ballPaths.isEmpty()) {
                     startTime = timer.time();
@@ -750,6 +750,28 @@ public class Inferno implements RobotConfig{
             if (output>1) output=1; else if (output<-1) output=-1;
             system.setOutput(output);
         }
+    }
+    public static class FisiksCache{
+        public static final double[] output = new double[2];
+        public static Pose previousPos = new Pose(-90,-90);
+        public static final double CACHE_CLEAR_THRESHOLD = 0.3;
+        public static final HashMap<Integer,Double[]> cache = new HashMap<>();
+        public static void runCachedPhysics(){
+            if (follower.getPose().distanceFrom(previousPos)>CACHE_CLEAR_THRESHOLD){
+                previousPos = follower.getPose();
+                clearCache();
+            }
+            if (cache.containsKey((int) flywheel.get("flywheelLeft").getVelocity())){
+                output[0] = Objects.requireNonNull(cache.get((int) flywheel.get("flywheelLeft").getVelocity()))[0];
+                output[1] = Objects.requireNonNull(cache.get((int) flywheel.get("flywheelLeft").getVelocity()))[1];
+            } else {
+                Fisiks.runPhysics(currentBallPath, targetPoint, follower.getPose(), follower.getVelocity(), flywheel.get("flywheelLeft").getVelocity());
+                output[0] = Math.toDegrees(Fisiks.Solver.out[0]);
+                output[1] = Math.toDegrees(Fisiks.Solver.out[1]);
+                cache.put((int) flywheel.get("flywheelLeft").getVelocity(), new Double[]{output[0],output[1]});
+            }
+        }
+        public static void clearCache() {cache.clear();}
     }
 
     @Override
