@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.robotconfigs;
 import static org.firstinspires.ftc.teamcode.base.Components.getHardwareMap;
+import static org.firstinspires.ftc.teamcode.base.Components.telemetry;
 import static org.firstinspires.ftc.teamcode.base.Components.timer;
 import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Fisiks.pitchTimeGuesses;
@@ -282,6 +283,7 @@ public class Inferno implements RobotConfig{
             )
     );
     public static final SequentialCommand stopIntake = new SequentialCommand(
+            new InstantCommand(()->{if (shotType == ShotType.MOTIF) {ArrayList<BallPath> ballPaths = Inferno.findMotifShotPlan(motifShootAll).getLeft(); if (!ballPaths.isEmpty()) currentBallPath = ballPaths.get(0);}}),
             transferGate.instantSetTargetCommand("closed"),
             new ConditionalCommand(
                     new IfThen(
@@ -350,7 +352,7 @@ public class Inferno implements RobotConfig{
                     ),
                     new IfThen(
                             () -> shotType == ShotType.MOTIF,
-                            new SemiSort()
+                            MotifShoot.getFullMotifCommand()
                     )
             ),
             new ContinuousCommand(()->{})
@@ -413,7 +415,7 @@ public class Inferno implements RobotConfig{
                     new IfThen(()->robotState==RobotState.SHOOTING, transfer),
                     new IfThen(()->Objects.isNull(robotState), stopAll)
             ),
-            //new InstantCommand(()->{if ((robotState!=RobotState.SHOOTING && robotState!=RobotState.STOPPED) || shotType==ShotType.NORMAL){currentBallPath=BallPath.LOW;}}),
+            new InstantCommand(()->{if ((robotState!=RobotState.SHOOTING && robotState!=RobotState.STOPPED && Objects.nonNull(robotState)) || shotType==ShotType.NORMAL){currentBallPath=BallPath.LOW;}}),
             setShooter
     );
     private static void colorSensorRead(int index){
@@ -473,7 +475,7 @@ public class Inferno implements RobotConfig{
         }
 
         if (shotLength>0 && Objects.isNull(ballStorage[1])){shotLength+=1;}
-        leaveRollersOn=!(shotLength==0 || balls.contains(Color.PURPLE)||balls.contains(Color.GREEN));
+        leaveRollersOn=!(shotLength==0 || balls.contains(Color.PURPLE)||balls.contains(Color.GREEN)) || shootAll;
 
         ArrayList<Color> shotChecklist = new ArrayList<>(Arrays.asList(shotSequence));
         if (shotLength>=1){
@@ -529,48 +531,36 @@ public class Inferno implements RobotConfig{
 
         @Override
         protected boolean runProcedure() {
-
+            telemetry.addLine("Relocalizing...");
             if (isStart()) {
                 counter = 0;
                 poseList.clear();
                 startTime = timer.time();
             }
-
             Pose pose = vision.getBotPoseMT1(follower.getPose());
-
             if (!Objects.isNull(pose)) {
-
                 poseList.add(pose);
                 counter++;
-
                 if (counter >= LOOPS) {
-
                     double x = 0;
                     double y = 0;
                     double heading = 0;
-
                     for (Pose pos : poseList) {
                         x += pos.getX();
                         y += pos.getY();
                         heading += pos.getHeading();
                     }
-
                     follower.setPose(new Pose(
                             x / LOOPS,
                             y / LOOPS,
                             heading / LOOPS
                     ));
-
                     counter = 0;
                     poseList.clear();
-
-                    return false; // finished
+                    return false;
                 }
-
-                return true; // keep collecting frames
+                return true;
             }
-
-            // timeout safeguard (0.5s)
             return timer.time() - startTime <= 0.5;
         }
     }
