@@ -123,7 +123,6 @@ public abstract class Components {
     }
     @Target(ElementType.METHOD)
     public @interface Actuate{} //Used to denote methods that actually move a part, like setPower or setPosition
-    protected static final List<LynxModule> allHubs = new ArrayList<>();
     public static void initialize(OpMode opMode, RobotConfig config, boolean autoSpecificInit, boolean teleOpSpecificInit){ //Method to initialize hardwareMap, telemetry, and a RobotConfig.
         Components.gamepad1 = opMode.gamepad1;
         Components.gamepad2 = opMode.gamepad2;
@@ -140,11 +139,6 @@ public abstract class Components {
         if (teleOpSpecificInit) config.teleOpSpecificInit();
         for (Actuator<?> actuator : actuators.values()){
             actuator.initDevice();
-        }
-        allHubs.clear();
-        allHubs.addAll(hardwareMap.getAll(LynxModule.class));
-        for (LynxModule hub : allHubs) {
-            hub.setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL);
         }
         timer.reset(); //Static variables are preserved between runs, so timer needs to be reset
     }

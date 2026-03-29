@@ -49,6 +49,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import org.firstinspires.ftc.teamcode.base.Components;
 import org.firstinspires.ftc.teamcode.base.Components.*;
 import org.firstinspires.ftc.teamcode.pedroPathing.Pedro;
+import org.firstinspires.ftc.teamcode.photon.PhotonCore;
 import org.firstinspires.ftc.teamcode.robotconfigs.Inferno;
 import org.firstinspires.ftc.teamcode.robotconfigs.Inferno.*;
 
@@ -91,6 +92,7 @@ public class DecodeTeleOp extends LinearOpMode {
         Components.activateActuatorControl();
         breakFollowing();
         executor.setCommands(
+                PhotonCore.clearBulkCacheCommand,
                 findMotif,
                 new RunResettingLoop(
                         new PressCommand(

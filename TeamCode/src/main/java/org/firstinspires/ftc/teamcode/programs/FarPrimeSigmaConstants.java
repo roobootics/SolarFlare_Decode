@@ -47,6 +47,7 @@ import org.firstinspires.ftc.teamcode.base.Commands.*;
 import org.firstinspires.ftc.teamcode.base.Components;
 import org.firstinspires.ftc.teamcode.pedroPathing.Pedro;
 import org.firstinspires.ftc.teamcode.pedroPathing.Pedro.*;
+import org.firstinspires.ftc.teamcode.photon.PhotonCore;
 import org.firstinspires.ftc.teamcode.robotconfigs.Inferno;
 
 import java.util.Arrays;
@@ -281,6 +282,7 @@ public class FarPrimeSigmaConstants {
                 visionIntake
         );
         executor.setCommands(
+                PhotonCore.clearBulkCacheCommand,
                 new ParallelCommand(findMotif, new SequentialCommand(new SleepCommand(5),new InstantCommand(findMotif::stop))),
                 new SequentialCommand(
                         new ParallelCommand(

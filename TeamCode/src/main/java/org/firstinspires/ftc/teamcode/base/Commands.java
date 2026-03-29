@@ -2,11 +2,8 @@ package org.firstinspires.ftc.teamcode.base;
 
 import static org.firstinspires.ftc.teamcode.base.Components.BotMotor;
 import static org.firstinspires.ftc.teamcode.base.Components.actuators;
-import static org.firstinspires.ftc.teamcode.base.Components.allHubs;
 import static org.firstinspires.ftc.teamcode.base.Components.timer;
 import static org.firstinspires.ftc.teamcode.base.Components.updateTelemetry;
-
-import com.qualcomm.hardware.lynx.LynxModule;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -1051,9 +1048,6 @@ public abstract class Commands { //Command-based system
             this.writeToTelemetry=procedure;
         }
         public void runOnce(){
-            for (LynxModule hub : allHubs) {
-                hub.clearBulkCache();
-            }
             this.commands.addAll(commandsToAdd);
             this.commands.removeAll(commandsToRemove);
             commandsToAdd.clear();

@@ -14,6 +14,7 @@ import com.pedropathing.geometry.Pose;
 import com.pedropathing.math.Vector;
 import com.pedropathing.paths.HeadingInterpolator;
 import com.pedropathing.paths.PathBuilder;
+import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
@@ -26,6 +27,7 @@ import org.firstinspires.ftc.teamcode.base.Commands.*;
 import org.firstinspires.ftc.teamcode.base.Components;
 import org.firstinspires.ftc.teamcode.base.Components.*;
 import org.firstinspires.ftc.teamcode.pedroPathing.Pedro.*;
+import org.firstinspires.ftc.teamcode.photon.PhotonCore;
 import org.firstinspires.ftc.teamcode.presets.PresetControl.*;
 import org.firstinspires.ftc.teamcode.vision.Vision;
 
@@ -772,6 +774,7 @@ public class Inferno implements RobotConfig{
 
     @Override
     public void generalInit() {
+        PhotonCore.photonInit(8, LynxModule.BulkCachingMode.MANUAL,false);
         targetFlywheelVelocity = 0;
         sensors[0] = getHardwareMap().get(NormalizedColorSensor.class, "sensor1");
         sensors[1] = getHardwareMap().get(NormalizedColorSensor.class, "sensor2");

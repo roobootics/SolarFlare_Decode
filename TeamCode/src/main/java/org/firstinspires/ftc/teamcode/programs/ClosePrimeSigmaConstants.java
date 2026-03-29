@@ -48,10 +48,10 @@ import org.firstinspires.ftc.teamcode.base.Commands.PressCommand;
 import org.firstinspires.ftc.teamcode.base.Commands.RunResettingLoop;
 import org.firstinspires.ftc.teamcode.base.Commands.SequentialCommand;
 import org.firstinspires.ftc.teamcode.base.Commands.SleepCommand;
-import org.firstinspires.ftc.teamcode.base.Commands.SleepUntilTrue;
 import org.firstinspires.ftc.teamcode.base.Components;
 import org.firstinspires.ftc.teamcode.pedroPathing.Pedro;
 import org.firstinspires.ftc.teamcode.pedroPathing.Pedro.PedroCommand;
+import org.firstinspires.ftc.teamcode.photon.PhotonCore;
 import org.firstinspires.ftc.teamcode.robotconfigs.Inferno;
 
 import java.util.ArrayList;
@@ -99,9 +99,11 @@ public class ClosePrimeSigmaConstants {
         return new Pose(144-input.getX(),input.getY(),mirrorHeading(input.getHeading()));
     }
     public static double mirrorHeading(double input){return Math.PI - input;}
+    public static final double[] SHOOT = new double[]{59.85,79.42,Math.toRadians(180)};
+    public static final double[] FINAL_SHOOT = new double[]{79.85,99.42,Math.toRadians(180)};
     static {
         poses.put("start",new Pose(19.68, 121.72, Math.toRadians(144)));
-        poses.put("shoot",new Pose(59.85,79.42,Math.toRadians(180)));
+        poses.put("shoot",new Pose(SHOOT[0],SHOOT[1],SHOOT[2]));
         poses.put("secondSpikeCtrl",new Pose(41.07, 58.06));
         poses.put("secondSpike",new Pose(14.829, 58.805));
         poses.put("gateOpen",new Pose(14.97, 61.02,Math.toRadians(180)));
@@ -154,7 +156,7 @@ public class ClosePrimeSigmaConstants {
                     )
                     .setHeadingInterpolation(HeadingInterpolator.linear(getHeading("gateOpen"),getHeading("gateIntake"),0.5))
                     .addParametricCallback(0.15,setState(Inferno.RobotState.INTAKE_FRONT)::run),
-            true),
+            true).setTimeout(4),
             new Inferno.CheckFull(gateIntakeTimeout),
             new PedroCommand(
                     (PathBuilder b)->b.addPath(
@@ -244,6 +246,7 @@ public class ClosePrimeSigmaConstants {
         }
     }
     public static void runOpMode(Inferno.Alliance alliance, LinearOpMode opMode){
+        poses.put("shoot",new Pose(SHOOT[0],SHOOT[1],SHOOT[2]));
         initialize(opMode,new Inferno(),true,true);
         useVelFeedforward = false;
         Inferno.motifDetected = false;
@@ -342,17 +345,26 @@ public class ClosePrimeSigmaConstants {
             telemetry.addData("Flywheel Left Power",flywheel.get("flywheelLeft").getPower());
             telemetry.addData("Flywheel Right Power",flywheel.get("flywheelRight").getPower());
         });
+        if (!pathList.isEmpty()) pathList.add(pathList.size()-1,new InstantCommand(()->poses.put("shoot",new Pose(FINAL_SHOOT[0], FINAL_SHOOT[1], FINAL_SHOOT[2]))));
         SequentialCommand mainPath = new SequentialCommand(pathList.toArray(new Command[0]));
         executor.setCommands(
+                PhotonCore.clearBulkCacheCommand,
                 new SequentialCommand(
                         new ParallelCommand(
                                 mainPath,
                                 new SequentialCommand(
-                                        new SleepUntilTrue(mainPath::isFinished,29.3),
-                                        new InstantCommand(mainPath::stop)
+                                        new SleepCommand(29.3),
+                                        new ConditionalCommand(
+                                                new IfThen(
+                                                        ()->follower.getPose().distanceFrom(getPose("shoot"))>5,
+                                                        new SequentialCommand(
+                                                                new InstantCommand(mainPath::stop),
+                                                                park
+                                                        )
+                                                )
+                                        )
                                 )
-                        ),
-                        park
+                        )
                 ),
                 Pedro.updateCommand(),
                 loopFSM,
