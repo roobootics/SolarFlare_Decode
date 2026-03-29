@@ -771,9 +771,11 @@ public class Inferno implements RobotConfig{
         public static final double[] output = new double[2];
         public static Pose previousPos = new Pose(-90,-90);
         public static final double CACHE_CLEAR_THRESHOLD = 0.3;
+        public static final double VEL_CACHE_CLEAR_THRESHOLD = 0.2;
         public static final HashMap<Integer,Double[]> cache = new HashMap<>();
         public static void runCachedPhysics(){
-            if (follower.getPose().distanceFrom(previousPos)>CACHE_CLEAR_THRESHOLD){
+            Pose pos = follower.getPose();
+            if (follower.getPose().distanceFrom(previousPos)>CACHE_CLEAR_THRESHOLD || follower.getVelocity().getMagnitude()>VEL_CACHE_CLEAR_THRESHOLD){
                 previousPos = follower.getPose();
                 clearCache();
             }
@@ -785,6 +787,9 @@ public class Inferno implements RobotConfig{
                 output[0] = Math.toDegrees(Fisiks.Solver.out[0]);
                 output[1] = Math.toDegrees(Fisiks.Solver.out[1]);
                 cache.put((int) flywheel.get("flywheelLeft").getVelocity(), new Double[]{output[0],output[1]});
+            }
+            if (follower.getVelocity().getMagnitude()<VEL_CACHE_CLEAR_THRESHOLD){
+                output[1] = Math.toDegrees(Math.atan2(targetPoint[1] - pos.getY(),targetPoint[0] - pos.getX()));
             }
         }
         public static void clearCache() {cache.clear();}

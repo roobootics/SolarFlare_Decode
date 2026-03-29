@@ -19,12 +19,13 @@ import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.pedropathing.geometry.Pose;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.base.Commands;
 import org.firstinspires.ftc.teamcode.base.Components;
 import org.firstinspires.ftc.teamcode.pedroPathing.Pedro;
 import org.firstinspires.ftc.teamcode.robotconfigs.Inferno;
-
+@TeleOp
 public class AlsoShooterTest extends LinearOpMode {
     @Override
     public void runOpMode() throws InterruptedException {
