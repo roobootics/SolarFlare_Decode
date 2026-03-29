@@ -6,6 +6,8 @@ import static org.firstinspires.ftc.teamcode.pedroPathing.Pedro.follower;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Fisiks.pitchTimeGuesses;
 import static org.firstinspires.ftc.teamcode.robotconfigs.Fisiks.yawBrackets;
 
+import static java.lang.Math.floor;
+
 import org.apache.commons.lang3.tuple.Triple;
 
 import com.pedropathing.geometry.BezierCurve;
@@ -80,7 +82,6 @@ public class Inferno implements RobotConfig{
     public static ShotType shotType = ShotType.NORMAL;
     public static final double[] targetPoint = new double[3];
     public static boolean motifShootAll = true;
-    private final static double BALL_SHOT_TIMING = 0.17;
     private final static double TRANSFER_SELECT_DELAY = 0.08;
     private final static double TRANSFER_REBOOST_DELAY = 0.18;
     public static Color[] motif = new Color[]{Color.PURPLE,Color.GREEN,Color.PURPLE};
@@ -596,6 +597,9 @@ public class Inferno implements RobotConfig{
         return new InstantCommand(()->{if (Inferno.shotType==ShotType.MOTIF) shotType=ShotType.NORMAL; else shotType=ShotType.MOTIF;});
     }
     private static abstract class MotifShoot{
+        private final static double SHOT_TIMEOUT = 0.17;
+        private final static double POST_DROP_DELAY = 0;
+        private final static double DROP_THRESHOLD = 80;
         private static ArrayList<BallPath> ballPaths; private static boolean leaveRollersOn; private static int transferDirection;
         public static void getMotifShotPlan(){
             Triple<ArrayList<BallPath>, Integer, Boolean> plan = findMotifShotPlan(motifShootAll);
@@ -609,22 +613,42 @@ public class Inferno implements RobotConfig{
                 ));
             }
         }
-        public static class HoodCommand extends Command{
+        public static class CheckVelDrop extends Command{
+            private double baseline;
             private double startTime;
             @Override
             protected boolean runProcedure() {
                 if (isStart()) {
-                    startTime = -9999;
-                }
-                if (timer.time() - startTime > BALL_SHOT_TIMING && !ballPaths.isEmpty()) {
                     startTime = timer.time();
-                    if (!Objects.isNull(ballPaths.get(0))) currentBallPath = ballPaths.get(0); else currentBallPath = ballPaths.get(1);
-                    ballPaths.remove(0);
+                    baseline = Math.min(floor(targetFlywheelVelocity / 20) * 20, flywheel.get("flywheelLeft").getVelocity());
+                    return true;
                 }
-                else if (timer.time() - startTime > BALL_SHOT_TIMING && ballPaths.isEmpty() && !leaveRollersOn){
-                    robotState = RobotState.STOPPED;
+                if (baseline>targetFlywheelVelocity) baseline = floor(targetFlywheelVelocity / 20) * 20;
+                if (flywheel.get("flywheelLeft").getVelocity()>baseline) baseline = Math.min(floor(targetFlywheelVelocity / 20) * 20, flywheel.get("flywheelLeft").getVelocity());
+                return (timer.time()-startTime)<SHOT_TIMEOUT && (baseline - flywheel.get("flywheelLeft").getVelocity()) < DROP_THRESHOLD;
+            }
+        }
+        private static final Command waitForBall = new SequentialCommand(
+                new CheckVelDrop(),
+                new SleepCommand(POST_DROP_DELAY)
+        );
+        public static class HoodCommand extends CompoundCommand{
+            @Override
+            public boolean runProcedure(){
+                if (isStart()){
+                    ArrayList<Command> hoodChanges = new ArrayList<>();
+                    for (int i=0;i<ballPaths.size();i++){
+                        hoodChanges.add(new InstantCommand(()->{
+                            if (!Objects.isNull(ballPaths.get(0))) currentBallPath = ballPaths.get(0); else currentBallPath = ballPaths.get(1);
+                            ballPaths.remove(0);}));
+                        hoodChanges.add(waitForBall);
+                    }
+                    hoodChanges.add(new InstantCommand(()->{if (!leaveRollersOn) robotState = null;}));
+                    setGroup(new SequentialCommand(
+                            hoodChanges.toArray(new Command[0])
+                    ));
                 }
-                return true;
+                return super.runProcedure();
             }
         }
         public static Command getFullMotifCommand(){

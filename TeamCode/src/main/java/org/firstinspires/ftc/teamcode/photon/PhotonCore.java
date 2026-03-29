@@ -41,6 +41,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class PhotonCore implements Runnable, OpModeManagerNotifier.Notifications {
+    //Thanks to the SolversLib team for the SolversLib Photon implementation.
     protected static final PhotonCore instance = new PhotonCore();
     protected AtomicBoolean enabled, threadEnabled;
 
